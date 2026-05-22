@@ -11,9 +11,15 @@ namespace Core.Models.MetricModel
 
         // Абсолютные нормы (по стандартам для возраста)
         public double AbsoluteMaxSpeed { get; set; }
+        public double AbsoluteAvgSpeed { get; set; }
+        public double AbsoluteAvgTop3Speed { get; set; }
+        public double AbsoluteHighSpeedRatio { get; set; }
         public double AbsoluteMaxDistancePerMinute { get; set; }
         public double AbsoluteMaxPlayerLoad { get; set; }
+        public double AbsoluteEnergy { get; set; }
+        public double AbsoluteMetabolicPower { get; set; }
         public double AbsoluteMaxSprintRatio { get; set; }
+        public double AbsoluteSprintEffortsPerMin { get; set; }
         public double AbsoluteMaxExplosiveContribution { get; set; }
 
         // Количество спортсменов в группе для этого периода

@@ -75,10 +75,7 @@
       </FormField>
     </div>
     <FormField label="Позиция">
-      <select v-model="editForm.position" class="w-full px-3 py-2 text-sm rounded-xl border border-neutral-200 focus:outline-none focus:border-blue-400">
-        <option value="">—</option>
-        <option v-for="p in POSITIONS" :key="p" :value="p">{{ p }} ({{ POSITION_LABEL[p] ?? p }})</option>
-      </select>
+      <PositionSelect v-model="editForm.position" />
     </FormField>
     <FormField label="Специализация">
       <select v-model="editForm.specialization" class="w-full px-3 py-2 text-sm rounded-xl border border-neutral-200 focus:outline-none focus:border-blue-400">
@@ -144,12 +141,12 @@ import AdminEntityCard from '@/components/ui/AdminEntityCard.vue'
 import ConfirmDeleteModal from '@/components/ui/ConfirmDeleteModal.vue'
 import EditModal from '@/components/ui/EditModal.vue'
 import FormField from '@/components/ui/FormField.vue'
+import PositionSelect from '@/components/ui/PositionSelect.vue'
 import { POSITION_LABEL } from '@/constants'
 
 const { toast, showToast } = useToast()
 
 const SPEC_LABEL: Record<string, string> = { Football: 'Футбол', Minifootball: 'Мини-футбол' }
-const POSITIONS = ['GK','CB','LB','RB','LWB','RWB','CM','CDM','CAM','LW','RW','ST','CF','SS']
 const PER_PAGE = 15
 const sortOptions = [
   { value: 'fio',    label: 'По имени' },

@@ -160,15 +160,9 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { formatDate } from '@/utils/formatDate'
 import api from '@/services/api'
+import { POSITION_AND_GROUP_LABEL } from '@/constants'
 
-const POSITION_LABELS: Record<string, string> = {
-  GK: 'Вратарь',
-  CB: 'Центр. защитник', LB: 'Левый защитник', RB: 'Правый защитник',
-  LWB: 'Левый латераль', RWB: 'Правый латераль',
-  CM: 'Центр. полузащитник', CDM: 'Опорный полузащитник', CAM: 'Атакующий полузащитник',
-  LW: 'Левый вингер', RW: 'Правый вингер',
-  ST: 'Центр. нападающий', CF: 'Второй нападающий', SS: 'Оттянутый нападающий',
-}
+const POSITION_LABELS = POSITION_AND_GROUP_LABEL
 
 const route = useRoute()
 const training = ref<any>({})

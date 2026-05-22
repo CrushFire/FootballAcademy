@@ -75,6 +75,7 @@ import { useRouter } from 'vue-router'
 import api from '@/services/api'
 import { formatDate } from '@/utils/formatDate'
 import AppCard from '@/components/ui/AppCard.vue'
+import { MATCH_TYPE, MATCH_STATUS, MATCH_RESULT } from '@/constants'
 
 const router = useRouter()
 const loading = ref(true)
@@ -86,9 +87,9 @@ const PER_PAGE = 10
 const paginated = computed(() => matches.value.slice((page.value - 1) * PER_PAGE, page.value * PER_PAGE))
 const totalPages = computed(() => Math.ceil(matches.value.length / PER_PAGE) || 1)
 
-const statusLabel: Record<string, string> = { Scheduled: 'Запланирован', InProgress: 'Идёт', Finished: 'Завершён' }
-const resultLabel: Record<string, string> = { Win: 'Победа', Draw: 'Ничья', Loss: 'Поражение' }
-const typeLabel: Record<string, string> = { Friendly: 'Товарищеский', League: 'Лига', Cup: 'Кубок', Tournament: 'Турнир' }
+const statusLabel = MATCH_STATUS
+const resultLabel = MATCH_RESULT
+const typeLabel = MATCH_TYPE
 
 function borderClass(_match: any) {
   return 'border-neutral-200 bg-white hover:bg-neutral-100 hover:border-neutral-300'

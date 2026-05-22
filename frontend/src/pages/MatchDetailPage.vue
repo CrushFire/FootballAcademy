@@ -106,6 +106,7 @@ import { useRoute, useRouter } from 'vue-router'
 import api from '@/services/api'
 import { formatDate } from '@/utils/formatDate'
 import AppCard from '@/components/ui/AppCard.vue'
+import { MATCH_TYPE, MATCH_RESULT } from '@/constants'
 
 const route = useRoute()
 const router = useRouter()
@@ -114,8 +115,8 @@ const match = ref<any>(null)
 const homeImage = ref<string | null>(null)
 const awayImage = ref<string | null>(null)
 
-const resultLabel: Record<string, string> = { Win: 'Победа', Draw: 'Ничья', Loss: 'Поражение' }
-const typeLabel: Record<string, string> = { Friendly: 'Товарищеский', League: 'Лига', Cup: 'Кубок', Tournament: 'Турнир' }
+const resultLabel = MATCH_RESULT
+const typeLabel = MATCH_TYPE
 const eventLabel: Record<string, string> = { Goal: 'Гол', YellowCard: 'Жёлтая карточка', RedCard: 'Красная карточка', Corner: 'Угловой', Foul: 'Фол', Penalty: 'Пенальти' }
 
 function resultClass(r: string) {

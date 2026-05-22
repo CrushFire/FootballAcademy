@@ -130,6 +130,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { formatDate } from '@/utils/formatDate'
 import api from '@/services/api'
+import { POSITION_AND_GROUP_LABEL, MATCH_TYPE, MATCH_STATUS, MATCH_RESULT } from '@/constants'
 import FootballField from '@/components/trainer/FootballField.vue'
 
 const FIELD_POSITIONS: Record<string, { x: number; y: number }> = {
@@ -146,20 +147,14 @@ const match = ref<any>({})
 const teamImages = ref<Record<number, string>>({})
 const sportsmenMap = ref<Record<number, string>>({})
 
-const statusLabel: Record<string, string> = { Scheduled: 'Запланирован', InProgress: 'Идёт', Finished: 'Завершён' }
-const resultLabel: Record<string, string> = { Win: 'Победа', Draw: 'Ничья', Loss: 'Поражение' }
-const typeLabel: Record<string, string> = { Friendly: 'Товарищеский', League: 'Лига', Cup: 'Кубок', Tournament: 'Турнир' }
+const statusLabel = MATCH_STATUS
+const resultLabel = MATCH_RESULT
+const typeLabel = MATCH_TYPE
 const eventTypeLabel: Record<string, string> = {
   Goal: 'Гол', YellowCard: 'Жёлтая карточка', RedCard: 'Красная карточка',
   Corner: 'Угловой', Penalty: 'Пенальти', Foul: 'Фол', Substitution: 'Замена'
 }
-const positionLabel: Record<string, string> = {
-  GK: 'Вратарь', CB: 'Центр. защитник', LB: 'Левый защитник', RB: 'Правый защитник',
-  LWB: 'Левый латераль', RWB: 'Правый латераль',
-  CM: 'Центр. полузащитник', CDM: 'Опорный полузащитник', CAM: 'Атак. полузащитник',
-  LW: 'Левый вингер', RW: 'Правый вингер',
-  ST: 'Центр. нападающий', CF: 'Второй нападающий', SS: 'Оттян. нападающий',
-}
+const positionLabel = POSITION_AND_GROUP_LABEL
 
 const stats = computed(() => [
   { label: 'Голы',              home: match.value.homeStats?.goals ?? 0,        away: match.value.awayStats?.goals ?? 0 },

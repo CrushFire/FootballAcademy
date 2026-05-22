@@ -203,6 +203,7 @@ import AppCard from '@/components/ui/AppCard.vue'
 import DashCard from '@/components/ui/DashCard.vue'
 import AppTooltip from '@/components/ui/AppTooltip.vue'
 import { PROFILE_TOOLTIPS, PENTAGON_LABELS, PENTAGON_TOOLTIPS } from '@/constants/metricTooltips'
+import { POSITION_AND_GROUP_LABEL, MATCH_TYPE, MATCH_STATUS, MATCH_RESULT } from '@/constants'
 import type { Training, Match } from '@/types'
 
 const props = defineProps<{
@@ -230,9 +231,9 @@ defineEmits<{
 const auth = useAuthStore()
 const todayStr = new Date().toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' })
 
-const matchType:   Record<string, string> = { Friendly: 'Товарищеский', League: 'Лига', Cup: 'Кубок', Tournament: 'Турнир' }
-const matchStatus: Record<string, string> = { Scheduled: 'Запланирован', InProgress: 'Идёт', Finished: 'Завершён' }
-const matchResult: Record<string, string> = { Win: 'Победа', Draw: 'Ничья', Loss: 'Поражение' }
+const matchType   = MATCH_TYPE
+const matchStatus = MATCH_STATUS
+const matchResult = MATCH_RESULT
 
 function resultClass(r: string | null) {
   if (r === 'Win')  return 'text-green-600'
@@ -240,15 +241,9 @@ function resultClass(r: string | null) {
   return 'text-yellow-600'
 }
 
-const positionLabel: Record<string, string> = {
-  GK: 'Вратарь',
-  CB: 'Центр. защитник', LB: 'Левый защитник', RB: 'Правый защитник',
-  LWB: 'Левый латераль', RWB: 'Правый латераль',
-  CM: 'Центр. полузащитник', CDM: 'Опорный полузащитник', CAM: 'Атак. полузащитник',
-  LW: 'Левый вингер', RW: 'Правый вингер',
-  ST: 'Центр. нападающий', CF: 'Второй нападающий', SS: 'Оттян. нападающий',
-  Goalkeeper: 'Вратарь',
-}
+// Лейблы позиций — единый источник из @/constants (POSITION_AND_GROUP_LABEL включает
+// и коды позиций GK/CB/..., и группы Goalkeeper/Defender/...).
+const positionLabel = POSITION_AND_GROUP_LABEL
 
 const profileLabels: Record<string, string> = {
   Sprinter:            'Спринтер',

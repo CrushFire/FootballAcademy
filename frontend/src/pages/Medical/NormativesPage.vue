@@ -54,7 +54,7 @@
         </div>
         <div class="flex-1 min-w-0">
           <div class="text-sm font-semibold text-neutral-800 truncate">{{ s.fio }}</div>
-          <div class="text-xs text-neutral-400 mt-0.5">{{ s.position ?? '—' }} · {{ SPEC_LABEL[s.specialization] ?? s.specialization }} · {{ s.age }} лет</div>
+          <div class="text-xs text-neutral-400 mt-0.5">{{ s.position ? `${s.position} (${POSITION_LABEL[s.position] ?? s.position})` : '—' }} · {{ SPEC_LABEL[s.specialization] ?? s.specialization }} · {{ s.age }} лет</div>
         </div>
         <div class="flex flex-col items-end gap-1 flex-shrink-0 min-w-[140px]">
           <div class="w-full">
@@ -149,6 +149,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
 import api from '@/services/api'
+import { POSITION_LABEL } from '@/constants'
 import { formatDate } from '@/utils/formatDate'
 import AdminListLayout from '@/components/ui/AdminListLayout.vue'
 import MedicalPageCard from '@/components/medical/MedicalPageCard.vue'

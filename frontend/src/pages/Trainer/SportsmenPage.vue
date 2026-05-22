@@ -42,7 +42,7 @@
           <div class="flex-1 min-w-0">
             <div class="text-sm font-semibold text-neutral-800">{{ s.fio }}</div>
             <div class="text-xs text-neutral-400 mt-0.5">
-              {{ s.position ?? '—' }} · {{ SPEC_LABEL[s.specialization] ?? s.specialization }} · {{ s.age }} лет · {{ s.height }} см · {{ s.weight }} кг
+              {{ s.position ? `${s.position} (${POSITION_LABEL[s.position] ?? s.position})` : '—' }} · {{ SPEC_LABEL[s.specialization] ?? s.specialization }} · {{ s.age }} лет · {{ s.height }} см · {{ s.weight }} кг
             </div>
           </div>
           <button
@@ -87,6 +87,7 @@ import FormField from '@/components/ui/FormField.vue'
 import PositionSelect from '@/components/ui/PositionSelect.vue'
 import TrainerCard from '@/components/trainer/TrainerCard.vue'
 import TrainerPageCard from '@/components/trainer/TrainerPageCard.vue'
+import { POSITION_LABEL } from '@/constants'
 
 const SPEC_LABEL: Record<string, string> = { Football: 'Футбол', Minifootball: 'Мини-футбол' }
 const PER_PAGE = 15

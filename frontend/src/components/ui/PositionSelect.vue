@@ -38,7 +38,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { POSITION_LABEL, POSITIONS } from '@/constants'
 
 const emit = defineEmits<{ 'update:modelValue': [value: string] }>()
 
@@ -47,22 +48,22 @@ defineProps<{ modelValue: string }>()
 const open = ref(false)
 const containerRef = ref<HTMLElement | null>(null)
 
-const LABELS: Record<string, string> = {
-  GK: 'Вратарь',
-  CB: 'Центр. защитник', LB: 'Левый защитник', RB: 'Правый защитник',
-  LWB: 'Левый латераль', RWB: 'Правый латераль',
-  CM: 'Центр. полузащитник', CDM: 'Опорный полузащитник', CAM: 'Атакующий полузащитник',
-  LW: 'Левый вингер', RW: 'Правый вингер',
-  ST: 'Центр. нападающий', CF: 'Второй нападающий', SS: 'Оттянутый нападающий',
-}
+// Единый источник лейблов из @/constants
+const LABELS = POSITION_LABEL
 
-const GROUPS = [
-  { label: 'Вратарь',        positions: ['GK'] },
-  { label: 'Защитники',      positions: ['CB', 'LB', 'RB', 'LWB', 'RWB'] },
-  { label: 'Полузащитники',  positions: ['CM', 'CDM', 'CAM'] },
-  { label: 'Вингеры',        positions: ['LW', 'RW'] },
-  { label: 'Нападающие',     positions: ['ST', 'CF', 'SS'] },
-]
+// Группы строим из POSITIONS (поле group). Используем кастомные названия для UI.
+const GROUP_ORDER = ['Вратарь', 'Защитники', 'Полузащитники', 'Атакующие полузащитники / фланги', 'Нападающие']
+const GROUP_DISPLAY: Record<string, string> = {
+  'Вратарь': 'Вратарь',
+  'Защитники': 'Защитники',
+  'Полузащитники': 'Полузащитники',
+  'Атакующие полузащитники / фланги': 'Вингеры',
+  'Нападающие': 'Нападающие',
+}
+const GROUPS = computed(() => GROUP_ORDER.map(g => ({
+  label: GROUP_DISPLAY[g] ?? g,
+  positions: POSITIONS.filter(p => p.group === g).map(p => p.value as string),
+})))
 
 function select(val: string) {
   emit('update:modelValue', val)

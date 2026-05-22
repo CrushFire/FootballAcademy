@@ -132,6 +132,7 @@
 <script setup lang="ts">
 import { ref, onMounted, defineComponent, h } from 'vue'
 import api from '@/services/api'
+import { POSITION_AND_GROUP_LABEL } from '@/constants'
 import { useAuthStore } from '@/store/auth'
 
 const auth = useAuthStore()
@@ -148,14 +149,7 @@ const InfoRow = defineComponent({
   }
 })
 
-const positionLabel: Record<string, string> = {
-  GK: 'Вратарь',
-  CB: 'Центральный защитник', LB: 'Левый защитник', RB: 'Правый защитник',
-  LWB: 'Левый латераль', RWB: 'Правый латераль',
-  CM: 'Центральный ПЗ', CDM: 'Опорный ПЗ', CAM: 'Атакующий ПЗ',
-  LW: 'Левый вингер', RW: 'Правый вингер',
-  ST: 'Нападающий', CF: 'Центрфорвард', SS: 'Второй нападающий',
-}
+const positionLabel = POSITION_AND_GROUP_LABEL
 
 const loading = ref(true)
 const profile = ref<any>(null)

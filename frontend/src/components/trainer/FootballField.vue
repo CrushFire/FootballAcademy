@@ -90,6 +90,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import { POSITION_LABEL } from '@/constants'
 
 defineProps<{
   positions: {
@@ -104,13 +105,7 @@ defineProps<{
   }[]
 }>()
 
-const positionLabel: Record<string, string> = {
-  GK: 'Вратарь', CB: 'Центр. защитник', LB: 'Левый защитник', RB: 'Правый защитник',
-  LWB: 'Левый латераль', RWB: 'Правый латераль',
-  CM: 'Центр. полузащитник', CDM: 'Опорный полузащитник', CAM: 'Атак. полузащитник',
-  LW: 'Левый вингер', RW: 'Правый вингер',
-  ST: 'Центр. нападающий', CF: 'Второй нападающий', SS: 'Оттян. нападающий',
-}
+const positionLabel = POSITION_LABEL
 
 const activeIdx = ref<number | null>(null)
 

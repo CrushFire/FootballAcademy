@@ -37,7 +37,7 @@
               <div class="flex-1 min-w-0">
                 <div class="text-sm font-semibold text-neutral-800">{{ s.fio }}</div>
                 <div class="text-xs text-neutral-400 mt-0.5">
-                  {{ POSITION_LABEL[s.position] ?? s.position ?? '—' }} · {{ SPEC_LABEL[s.specialization] ?? s.specialization }} · {{ s.age }} лет · {{ s.height }} см · {{ s.weight }} кг
+                  {{ s.position ? `${s.position} (${POSITION_LABEL[s.position] ?? s.position})` : '—' }} · {{ SPEC_LABEL[s.specialization] ?? s.specialization }} · {{ s.age }} лет · {{ s.height }} см · {{ s.weight }} кг
                 </div>
               </div>
             </div>
@@ -54,14 +54,9 @@ import api from '@/services/api'
 import AdminListLayout from '@/components/ui/AdminListLayout.vue'
 import TrainerCard from '@/components/trainer/TrainerCard.vue'
 import MedicalPageCard from '@/components/medical/MedicalPageCard.vue'
+import { POSITION_LABEL } from '@/constants'
 
 const SPEC_LABEL: Record<string, string> = { Football: 'Футбол', Minifootball: 'Мини-футбол' }
-const POSITION_LABEL: Record<string, string> = {
-  GK: 'GK (Вратарь)', CB: 'CB (Центральный защитник)', LB: 'LB (Левый защитник)', RB: 'RB (Правый защитник)',
-  LWB: 'LWB (Левый латераль)', RWB: 'RWB (Правый латераль)', CDM: 'CDM (Опорный полузащитник)',
-  CM: 'CM (Центральный полузащитник)', CAM: 'CAM (Атакующий полузащитник)',
-  LW: 'LW (Левый вингер)', RW: 'RW (Правый вингер)', ST: 'ST (Нападающий)', CF: 'CF (Центральный нападающий)', SS: 'SS (Второй нападающий)'
-}
 const PER_PAGE = 15
 const sortOptions = [
   { value: 'fio',    label: 'По имени' },

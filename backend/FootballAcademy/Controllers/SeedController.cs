@@ -36,25 +36,30 @@ namespace FootballAcademy.Controllers
             _ => "Unknown"
         };
 
-        // Реалистичные диапазоны MaxSpeed (км/ч) по возрасту (источник: Buchheit et al., youth academy benchmarks)
+        // Реалистичные диапазоны MaxSpeed (км/ч) по возрасту.
+        // Источник: Buchheit (Assessing Maximal Sprinting Speed): U12=24.2, U14=26.6, U16=29.6, U18=31.3
+        // Верх диапазона = чуть ниже целевого норматива (чтобы MAX за период не упирался в стандарт).
         private static (double min, double max) MaxSpeedRangeByAge(int age) => age switch
         {
-            <= 10 => (16.0, 22.0),
-            <= 12 => (19.0, 25.0),
-            <= 14 => (22.0, 28.0),
-            <= 16 => (25.0, 31.0),
-            <= 18 => (27.0, 33.0),
-            _     => (29.0, 36.0)
+            <= 10 => (15.0, 19.5),
+            <= 12 => (18.0, 22.5),
+            <= 14 => (21.0, 25.5),
+            <= 16 => (23.0, 27.5),
+            <= 18 => (25.0, 29.5),
+            _     => (27.0, 32.0)
         };
 
-        // AvgSpeed (км/ч) — средняя по тренировке с учётом пауз/ходьбы (типично 4-9 км/ч для футбольных сессий)
+        // AvgSpeed (км/ч) — средняя по тренировке с учётом пауз/ходьбы.
+        // Источник: Motion Analysis NZ (U13-U15): 94-97 m/min ≈ 5.7-5.8 km/h.
+        // Верх диапазона = норматив × 0.85 (чтобы среднее по выборке не равнялось нормативу).
         private static (double min, double max) AvgSpeedRangeByAge(int age) => age switch
         {
-            <= 10 => (3.5, 6.5),
-            <= 12 => (4.0, 7.0),
-            <= 14 => (4.5, 7.5),
-            <= 16 => (5.0, 8.0),
-            _     => (5.5, 8.5)
+            <= 10 => (3.0, 5.0),
+            <= 12 => (3.5, 5.5),
+            <= 14 => (4.0, 6.0),
+            <= 16 => (4.5, 6.5),
+            <= 18 => (5.0, 7.0),
+            _     => (5.5, 7.5)
         };
 
         private static TrainingMetrics MakeWeakMetrics(Random rnd, long trainingId, long sportsmanId, Position? pos, DateTime date, int age)

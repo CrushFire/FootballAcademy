@@ -86,6 +86,7 @@ import { useAuthStore } from '@/store/auth'
 import AdminListLayout from '@/components/ui/AdminListLayout.vue'
 import TrainerPageCard from '@/components/trainer/TrainerPageCard.vue'
 import { formatDate } from '@/utils/formatDate'
+import { MATCH_TYPE, MATCH_STATUS, MATCH_RESULT } from '@/constants'
 
 const PER_PAGE = 15
 const sortOptions = [
@@ -104,9 +105,9 @@ const sortBy = ref('date')
 const sortDir = ref<'asc'|'desc'>('desc')
 const page = ref(1)
 
-const statusLabel: Record<string, string> = { Scheduled: 'Запланирован', InProgress: 'Идёт', Finished: 'Завершён' }
-const resultLabel: Record<string, string> = { Win: 'Победа', Draw: 'Ничья', Loss: 'Поражение' }
-const typeLabel: Record<string, string> = { Friendly: 'Товарищеский', League: 'Лига', Cup: 'Кубок', Tournament: 'Турнир' }
+const statusLabel = MATCH_STATUS
+const resultLabel = MATCH_RESULT
+const typeLabel = MATCH_TYPE
 
 const currentSortLabel = computed(() => sortOptions.find(o => o.value === sortBy.value)?.label ?? '')
 

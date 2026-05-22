@@ -404,6 +404,7 @@
 import { ref, computed, onMounted, defineComponent, h } from 'vue'
 import { RouterLink } from 'vue-router'
 import api from '@/services/api'
+import { POSITION_LABEL } from '@/constants'
 import MedicalPageCard from '@/components/medical/MedicalPageCard.vue'
 import AppTooltip from '@/components/ui/AppTooltip.vue'
 import { MEDICAL_CHECK_TOOLTIPS } from '@/constants/metricTooltips'
@@ -497,18 +498,15 @@ const page         = ref(1)
 const cardOffset   = ref(0)
 const modalItem    = ref<any>(null)
 
-const POSITION_LABEL: Record<string, string> = {
-  GK: 'GK (Вратарь)', CB: 'CB (Центральный защитник)', LB: 'LB (Левый защитник)',
-  RB: 'RB (Правый защитник)', LWB: 'LWB (Левый латераль)', RWB: 'RWB (Правый латераль)',
-  CDM: 'CDM (Опорный полузащитник)', CM: 'CM (Центральный полузащитник)',
-  CAM: 'CAM (Атакующий полузащитник)', LW: 'LW (Левый вингер)', RW: 'RW (Правый вингер)',
-  ST: 'ST (Нападающий)', CF: 'CF (Центральный нападающий)', SS: 'SS (Второй нападающий)'
-}
 
 function initials(fio: string) {
   return (fio ?? '').split(' ').slice(0, 2).map((w: string) => w[0]).join('').toUpperCase()
 }
-function positionLabel(pos: string) { return POSITION_LABEL[pos] ?? pos ?? '—' }
+function positionLabel(pos: string) {
+  if (!pos) return '—'
+  const label = POSITION_LABEL[pos]
+  return label ? `${pos} (${label})` : pos
+}
 
 function overallDotClass(item: any): string {
   if (item.isHealthy) return 'bg-green-500'

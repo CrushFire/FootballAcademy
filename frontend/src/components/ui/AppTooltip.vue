@@ -63,10 +63,10 @@ function hide() {
 }
 .q-icon.active { background: #3b82f6; color: #fff; }
 
-/* Тёмная тема */
+/* Тёмная тема — приглушённый знак вопроса, чтобы не отвлекал от контента */
 :global(html.dark) .q-icon {
-  background: #1E3A5F;
-  color: #5B7BB0;
+  background: #14213D;
+  color: #3D5278;
 }
 :global(html.dark) .q-icon.active {
   background: #3B82F6;

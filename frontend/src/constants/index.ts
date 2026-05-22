@@ -6,25 +6,26 @@ export const ROLES = {
   MEDICAL: 'medical'
 } as const
 
+// Единый источник лейблов позиций. Вариант 1 — короткие лейблы (Центр., Атак., Оттян.).
 export const POSITIONS = [
   { value: 'GK',  label: 'Вратарь', group: 'Вратарь' },
 
-  { value: 'CB',  label: 'Центральный защитник', group: 'Защитники' },
+  { value: 'CB',  label: 'Центр. защитник', group: 'Защитники' },
   { value: 'LB',  label: 'Левый защитник', group: 'Защитники' },
   { value: 'RB',  label: 'Правый защитник', group: 'Защитники' },
-  { value: 'LWB', label: 'Левый защитник (фулбек)', group: 'Защитники' },
-  { value: 'RWB', label: 'Правый защитник (фулбек)', group: 'Защитники' },
+  { value: 'LWB', label: 'Левый латераль', group: 'Защитники' },
+  { value: 'RWB', label: 'Правый латераль', group: 'Защитники' },
 
   { value: 'CDM', label: 'Опорный полузащитник', group: 'Полузащитники' },
-  { value: 'CM',  label: 'Центральный полузащитник', group: 'Полузащитники' },
-  { value: 'CAM', label: 'Атакующий полузащитник', group: 'Полузащитники' },
+  { value: 'CM',  label: 'Центр. полузащитник', group: 'Полузащитники' },
+  { value: 'CAM', label: 'Атак. полузащитник', group: 'Полузащитники' },
 
-  { value: 'LW',  label: 'Левый вингер', group: 'Атакующие полузащитники / фланги' },
-  { value: 'RW',  label: 'Правый вингер', group: 'Атакующие полузащитники / фланги' },
+  { value: 'LW',  label: 'Левый вингер', group: 'Вингеры' },
+  { value: 'RW',  label: 'Правый вингер', group: 'Вингеры' },
 
-  { value: 'ST',  label: 'Центральный нападающий', group: 'Нападающие' },
-  { value: 'CF',  label: 'Свободный нападающий', group: 'Нападающие' },
-  { value: 'SS',  label: 'Второй нападающий', group: 'Нападающие' }
+  { value: 'ST',  label: 'Центр. нападающий', group: 'Нападающие' },
+  { value: 'CF',  label: 'Второй нападающий', group: 'Нападающие' },
+  { value: 'SS',  label: 'Оттян. нападающий', group: 'Нападающие' }
 ] as const
 
 // Быстрая мапа код → русское название (для рендера в карточках/чипах)
@@ -32,23 +33,43 @@ export const POSITION_LABEL: Record<string, string> = Object.fromEntries(
   POSITIONS.map(p => [p.value, p.label])
 )
 
-export const ATTENDANCE_STATUS = {
+// Маппинг PositionGroup с бэка (Goalkeeper/Defender/Midfielder/Winger/Forward)
+// в русские лейблы — для случаев когда бэк отдаёт строку группы вместо кода позиции.
+export const POSITION_GROUP_LABEL: Record<string, string> = {
+  Goalkeeper: 'Вратарь',
+  Defender:   'Защитник',
+  Midfielder: 'Полузащитник',
+  Winger:     'Вингер',
+  Forward:    'Нападающий',
+}
+
+// Объединённый словарь — лейблы позиций + лейблы групп.
+// Используется в местах где приходит и код (GK/CB), и строка группы (Goalkeeper).
+export const POSITION_AND_GROUP_LABEL: Record<string, string> = {
+  ...POSITION_LABEL,
+  ...POSITION_GROUP_LABEL,
+}
+
+export const ATTENDANCE_STATUS: Record<string, string> = {
   Present: 'Присутствовал',
   Absent:  'Отсутствовал',
   Late:    'Опоздал'
-} as const
+}
 
-export const MATCH_STATUS = {
+export const MATCH_STATUS: Record<string, string> = {
   Scheduled:  'Запланирован',
   InProgress: 'Идет',
   Finished:   'Завершен'
-} as const
+}
 
+// Типы матчей по GameType enum на бэке. Home — внутриакадемический матч
+// (две своих команды играют друг с другом), не «домашняя игра».
 export const MATCH_TYPE: Record<string, string> = {
   Friendly:   'Товарищеский',
   League:     'Лига',
   Cup:        'Кубок',
-  Tournament: 'Турнир'
+  Tournament: 'Турнир',
+  Home:       'Домашний',
 }
 
 export const MATCH_RESULT: Record<string, string> = {

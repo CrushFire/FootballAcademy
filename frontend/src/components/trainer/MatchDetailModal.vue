@@ -118,6 +118,7 @@
 import { formatDate } from '@/utils/formatDate'
 import { ref, onMounted, onUnmounted } from 'vue'
 import ModalCard from './ModalCard.vue'
+import { MATCH_TYPE, MATCH_STATUS, MATCH_RESULT } from '@/constants'
 
 defineProps<{
   match: any
@@ -143,9 +144,9 @@ onUnmounted(() => {
   document.removeEventListener('click', onClickOutside)
 })
 
-const statusLabel: Record<string, string> = { Scheduled: 'Запланирован', InProgress: 'Идёт', Finished: 'Завершён' }
-const resultLabel: Record<string, string> = { Win: 'Победа', Draw: 'Ничья', Loss: 'Поражение' }
-const typeLabel: Record<string, string> = { Friendly: 'Товарищеский', League: 'Лига', Cup: 'Кубок', Tournament: 'Турнир' }
+const statusLabel = MATCH_STATUS
+const resultLabel = MATCH_RESULT
+const typeLabel = MATCH_TYPE
 const eventTypeLabel: Record<string, string> = {
   Goal: 'Гол',
   YellowCard: 'Жёлтая карточка',

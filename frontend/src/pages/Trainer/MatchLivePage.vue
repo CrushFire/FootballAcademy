@@ -629,6 +629,7 @@
 import { ref, computed, reactive, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '@/services/api'
+import { POSITION_AND_GROUP_LABEL, MATCH_TYPE } from '@/constants'
 import { formatDate } from '@/utils/formatDate'
 import { useAuthStore } from '@/store/auth'
 import LiveMatchHeader from '@/components/trainer/LiveMatchHeader.vue'
@@ -641,13 +642,14 @@ const auth = useAuthStore()
 
 
 
-const typeLabel: Record<string, string> = { Friendly: 'Товарищеский', League: 'Лига', Cup: 'Кубок', Tournament: 'Турнир', Home: 'Домашний' }
+const typeLabel = MATCH_TYPE
 
+// Лейблы позиций — единый источник из @/constants, плюс альтернативные коды (CB2/CM2/CM3) для составов.
 const positionRu: Record<string, string> = {
-  GK: 'Вратарь', CB: 'Центр. защ.', CB2: 'Центр. защ.', LB: 'Лев. защ.', RB: 'Прав. защ.',
-  LWB: 'Лев. латераль', RWB: 'Прав. латераль', CM: 'Центр. полузащ.', CM2: 'Центр. полузащ.',
-  CM3: 'Центр. полузащ.', CDM: 'Опорн. полузащ.', CAM: 'Атак. полузащ.',
-  LW: 'Лев. крайний', RW: 'Прав. крайний', ST: 'Нападающий', CF: 'Второй нап.', SS: 'Теневой нап.',
+  ...POSITION_AND_GROUP_LABEL,
+  CB2: POSITION_AND_GROUP_LABEL.CB,
+  CM2: POSITION_AND_GROUP_LABEL.CM,
+  CM3: POSITION_AND_GROUP_LABEL.CM,
 }
 const eventTypeLabel: Record<string, string> = {
   Goal: 'Гол', YellowCard: 'Жёлтая карточка', RedCard: 'Красная карточка',

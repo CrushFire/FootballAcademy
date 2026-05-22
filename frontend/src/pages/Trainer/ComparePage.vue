@@ -210,6 +210,7 @@
 import { ref, computed, onMounted, defineComponent, h } from 'vue'
 import api from '@/services/api'
 import { useAuthStore } from '@/store/auth'
+import { POSITION_AND_GROUP_LABEL } from '@/constants'
 import TrainerPageCard from '@/components/trainer/TrainerPageCard.vue'
 import AppTooltip from '@/components/ui/AppTooltip.vue'
 import { GPS_METRIC_TOOLTIPS } from '@/constants/metricTooltips'
@@ -299,14 +300,7 @@ const pickerSlot = ref(0)
 const pickerSearch = ref('')
 const pickerGroupKey = ref('mine')   // 'mine' | 'all' | 'g-{id}' | 't-{id}'
 
-const positionLabel: Record<string, string> = {
-  GK: 'Вратарь',
-  CB: 'Центральный защитник', LB: 'Левый защитник', RB: 'Правый защитник',
-  LWB: 'Левый латераль', RWB: 'Правый латераль',
-  CM: 'Центральный ПЗ', CDM: 'Опорный ПЗ', CAM: 'Атакующий ПЗ',
-  LW: 'Левый вингер', RW: 'Правый вингер',
-  ST: 'Нападающий', CF: 'Центрфорвард', SS: 'Второй нападающий',
-}
+const positionLabel = POSITION_AND_GROUP_LABEL
 
 const gpsLabel = computed(() => 'Метрики тренировок (среднее за 6 мес.)')
 

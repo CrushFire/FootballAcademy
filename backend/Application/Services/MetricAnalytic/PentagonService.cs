@@ -43,14 +43,16 @@ namespace Application.Services.MetricAnalytic
             if (sportsman == null)
                 return Result<MetricPentagonResponse>.Failure("Спортсмен не найден", 404);
 
-            var aggregated = await GetAggregatedMetricsAsync(sportsmanId, filter);
-            if (aggregated == null)
+            // Получаем СЫРОЙ список тренировок — нужен для AvgTop3 (стабильность пика скорости).
+            var rawList = await GetRawMetricsListAsync(sportsmanId, filter);
+            if (rawList.Count == 0)
                 return Result<MetricPentagonResponse>.Failure("Нет данных о тренировках", 404);
 
+            var aggregated = _mapper.Map<TrainingMetrics>(rawList);
             var baseMetrics = BaseMetricFactory.CreateBaseMetrics(aggregated);
             var context = await BuildContextAsync(baseMetrics, sportsman, filter);
 
-            var raw = CalculateRawPentagon(context, aggregated);
+            var raw = CalculateRawPentagon(context, aggregated, rawList);
             var normalized = NormalizePentagon(context, raw);
 
             return Result<MetricPentagonResponse>.Success(new MetricPentagonResponse
@@ -61,64 +63,118 @@ namespace Application.Services.MetricAnalytic
             });
         }
 
-        // Считаем реальные показатели спортсмена без нормализации
-        private PentagonRawScores CalculateRawPentagon(MetricContext ctx, TrainingMetrics m)
-        {
-            var hrRedPercent = NormalizePercent(ctx.Base.HRRedPercent);
-            var penalty = CoefficientsConfigProvider.Current.PentagonNormalization.EndurancePenaltyPerRedZonePercent;
+        // ─── Композитные формулы 5 осей ─────────────────────────────────────────
+        // Каждая ось возвращает уже нормированную (~0..1+) сумму взвешенных компонентов.
+        // Стандарты берутся из AbsoluteStandards (по возрасту). Дальше идёт в NormalizeHybrid.
+        // Обоснование весов: Обоснование_коэффициентов/ФормулыПятиугольника_Обоснование.txt
 
+        // raw остаётся параметром (может пригодиться для других композитов в будущем).
+        private double CalculateSpeedComposite(TrainingMetrics m, List<TrainingMetrics> raw, MetricContext ctx)
+        {
+            var c = CoefficientsConfigProvider.Current.SpeedComposition;
+            var std = ctx.AgeGroup;
+
+            return c.MaxSpeedWeight       * SafeDivide(m.MaximumSpeed,          std.AbsoluteMaxSpeed)
+                 + c.AvgSpeedWeight       * SafeDivide(m.AverageSpeed,          std.AbsoluteAvgSpeed)
+                 + c.HighSpeedRatioWeight * SafeDivide(ctx.Base.HighSpeedRatio, std.AbsoluteHighSpeedRatio);
+        }
+
+        private double CalculatePowerComposite(TrainingMetrics m, MetricContext ctx)
+        {
+            var c = CoefficientsConfigProvider.Current.PowerComposition;
+            var std = ctx.AgeGroup;
+
+            // Каждый компонент нормируется к своему стандарту (одинаковые единицы):
+            // PlayerLoad / PlayerLoadStandard (у.е.), Energy / EnergyStandard (kJ),
+            // MetabolicPower / MetabolicPowerStandard (W/kg).
+            // Литература: Catapult (PlayerLoad), Osgnach 2010 (Energy/MetabolicPower).
+            return c.PlayerLoadWeight     * SafeDivide(m.PlayerLoad,     std.AbsoluteMaxPlayerLoad)
+                 + c.EnergyWeight         * SafeDivide(m.Energy,         std.AbsoluteEnergy)
+                 + c.MetabolicPowerWeight * SafeDivide(m.MetabolicPower, std.AbsoluteMetabolicPower);
+        }
+
+        private double CalculateSprintsComposite(TrainingMetrics m, MetricContext ctx)
+        {
+            var c = CoefficientsConfigProvider.Current.SprintsComposition;
+            var std = ctx.AgeGroup;
+
+            double sprintsPerMin = m.Duration > 0 ? m.SprintEfforts / (m.Duration / 60.0) : 0.0;
+            double sprintMaxSpeed = m.MaximumSpeed;
+
+            // Каждый компонент нормируется к своему стандарту:
+            // SprintRatio / SprintRatioStandard (доля), sprintsPerMin / SprintEffortsPerMinStandard (1/мин),
+            // sprintMaxSpeed / MaxSpeedStandard (км/ч).
+            return c.SprintRatioWeight         * SafeDivide(Math.Clamp(ctx.Base.SprintRatio, 0.0, 1.0), std.AbsoluteMaxSprintRatio)
+                 + c.SprintEffortsPerMinWeight * SafeDivide(sprintsPerMin,                              std.AbsoluteSprintEffortsPerMin)
+                 + c.SprintMaxSpeedWeight      * SafeDivide(sprintMaxSpeed,                             std.AbsoluteMaxSpeed);
+        }
+
+        private double CalculateEnduranceComposite(TrainingMetrics m, MetricContext ctx)
+        {
+            var c = CoefficientsConfigProvider.Current.EnduranceComposition;
+            var std = ctx.AgeGroup;
+            var penalty = CoefficientsConfigProvider.Current.PentagonNormalization.EndurancePenaltyPerRedZonePercent;
+            var hrRedPercent = NormalizePercent(ctx.Base.HRRedPercent);
+
+            // AerobicLoad, HRStability, LowIntensityRatio уже в диапазоне 0..1 → норма = 1.0 (целевое значение).
+            // Чем ближе к 1.0, тем лучше выносливость.
+            double composite = c.DistancePerMinuteWeight * SafeDivide(ctx.Base.DistancePerMinute, std.AbsoluteMaxDistancePerMinute)
+                             + c.AerobicLoadWeight       * ctx.Base.AerobicLoad
+                             + c.HRStabilityWeight       * ctx.Base.HRStability
+                             + c.LowIntensityRatioWeight * ctx.Base.LowIntensityRatio;
+
+            // Штраф за время в красной зоне ЧСС (как было раньше).
+            return composite * (1.0 - penalty * hrRedPercent);
+        }
+
+        private double CalculateExplosiveComposite(TrainingMetrics m, MetricContext ctx)
+        {
+            var c = CoefficientsConfigProvider.Current.ExplosiveComposition;
+            var std = ctx.AgeGroup;
+
+            double explosivePerMin = m.Duration > 0 ? m.ExplosiveEfforts / (m.Duration / 60.0) : 0.0;
+            double accDecPerSec    = m.Duration > 0 ? (m.AccelerationCount + m.DecelerationCount) / (double)m.Duration : 0.0;
+
+            return c.ExplosiveEffortsPerMinWeight * SafeDivide(explosivePerMin, std.AbsoluteMaxExplosiveContribution)
+                 + c.MaxAccelerationWeight        * SafeDivide(m.MaxAcceleration, c.MaxAccelerationStandard)
+                 + c.AccelDecelPerSecWeight       * SafeDivide(accDecPerSec, c.AccelDecelPerSecStandard);
+        }
+
+        // Считаем реальные показатели спортсмена без нормализации
+        private PentagonRawScores CalculateRawPentagon(MetricContext ctx, TrainingMetrics m, List<TrainingMetrics> raw)
+        {
             return new PentagonRawScores
             {
-                Speed = m.MaximumSpeed,
-                Power = m.PlayerLoad,
-                Sprints = Math.Clamp(ctx.Base.SprintRatio, 0.0, 1.0),
-                Endurance = ctx.Base.DistancePerMinute * (1.0 - penalty * hrRedPercent),
-                Explosive = GetExplosiveContribution(m)
+                // Все 5 осей теперь композитные. Возвращают значение ~0..1+, дальше идёт в NormalizeHybrid.
+                Speed     = CalculateSpeedComposite(m, raw, ctx),
+                Power     = CalculatePowerComposite(m, ctx),
+                Sprints   = CalculateSprintsComposite(m, ctx),
+                Endurance = CalculateEnduranceComposite(m, ctx),
+                Explosive = CalculateExplosiveComposite(m, ctx)
             };
         }
 
-        // Гибридная нормализация: actual / standard, где стандарт учитывает возраст и позицию
+        // Финальная нормализация: raw уже композитная доля (~0..1+).
+        // Делим на positionWeight (даёт «процент для своей позиции») и clamp 0..1.
         private PentagonScores NormalizePentagon(MetricContext ctx, PentagonRawScores raw)
         {
-            var groupCount = ctx.AgeGroup.SportsmanCountInGroup;
-
             return new PentagonScores
             {
-                Speed = NormalizeHybrid(
-                    actual: raw.Speed,
-                    groupStandard: ctx.AgeGroup.MaxSpeed,
-                    absoluteStandard: ctx.AgeGroup.AbsoluteMaxSpeed,
-                    positionWeight: ctx.Position.SpeedWeight,
-                    groupCount: groupCount),
-
-                Power = NormalizeHybrid(
-                    actual: raw.Power,
-                    groupStandard: ctx.AgeGroup.MaxPlayerLoad,
-                    absoluteStandard: ctx.AgeGroup.AbsoluteMaxPlayerLoad,
-                    positionWeight: ctx.Position.PowerWeight,
-                    groupCount: groupCount),
-
-                Sprints = NormalizeHybrid(
-                    actual: raw.Sprints,
-                    groupStandard: ctx.AgeGroup.MaxSprintRatio,
-                    absoluteStandard: ctx.AgeGroup.AbsoluteMaxSprintRatio,
-                    positionWeight: ctx.Position.SprintWeight,
-                    groupCount: groupCount),
-
-                Endurance = NormalizeHybrid(
-                    actual: raw.Endurance,
-                    groupStandard: ctx.AgeGroup.MaxDistancePerMinute,
-                    absoluteStandard: ctx.AgeGroup.AbsoluteMaxDistancePerMinute,
-                    positionWeight: ctx.Position.EnduranceWeight,
-                    groupCount: groupCount),
-
-                Explosive = NormalizeHybrid(
-                    actual: raw.Explosive,
-                    groupStandard: ctx.AgeGroup.MaxExplosiveContribution,
-                    absoluteStandard: ctx.AgeGroup.AbsoluteMaxExplosiveContribution,
-                    positionWeight: ctx.Position.ExplosiveWeight,
-                    groupCount: groupCount)
+                Speed     = ApplyPositionAndClamp(raw.Speed,     ctx.Position.SpeedWeight),
+                Power     = ApplyPositionAndClamp(raw.Power,     ctx.Position.PowerWeight),
+                Sprints   = ApplyPositionAndClamp(raw.Sprints,   ctx.Position.SprintWeight),
+                Endurance = ApplyPositionAndClamp(raw.Endurance, ctx.Position.EnduranceWeight),
+                Explosive = ApplyPositionAndClamp(raw.Explosive, ctx.Position.ExplosiveWeight)
             };
+        }
+
+        // Применяем позиционный вес как «важность качества для позиции»:
+        // композит × weight. Низкий weight (GK SpeedWeight=0.65) → даже отличный показатель
+        // снижается до 65% максимум. Высокий weight (Winger=1.0) → composite не меняется.
+        // Это даёт реалистичную оценку: вратарь не должен «дотягивать» до полевых по скорости.
+        private static double ApplyPositionAndClamp(double composite, double positionWeight)
+        {
+            return Math.Clamp(composite * positionWeight, 0.0, 1.0);
         }
 
         // Relative: actual / (groupStandard * positionWeight)          — группа уже возрастная
@@ -162,6 +218,17 @@ namespace Application.Services.MetricAnalytic
 
             var metrics = await query.ToListAsync();
             return metrics.Any() ? _mapper.Map<TrainingMetrics>(metrics) : null;
+        }
+
+        // Сырой список тренировок (без агрегации) — нужен для AvgTop3 MaxSpeed.
+        private async Task<List<TrainingMetrics>> GetRawMetricsListAsync(long sportsmanId, Filter? filter)
+        {
+            var query = _context.TrainingMetrics
+                .Include(m => m.Training)
+                .Where(m => m.SportsmanId == sportsmanId)
+                .ApplyFilter(filter);
+
+            return await query.ToListAsync();
         }
 
         private async Task<MetricContext> BuildContextAsync(BaseMetricModel baseMetrics, Sportsman sportsman, Filter? filter)
@@ -243,6 +310,12 @@ namespace Application.Services.MetricAnalytic
                         absoluteStandard.ExplosiveContributionStandard),
 
                     AbsoluteMaxSpeed = absoluteStandard.MaxSpeedStandard,
+                    AbsoluteEnergy = absoluteStandard.EnergyStandard,
+                    AbsoluteMetabolicPower = absoluteStandard.MetabolicPowerStandard,
+                    AbsoluteSprintEffortsPerMin = absoluteStandard.SprintEffortsPerMinStandard,
+                    AbsoluteAvgSpeed = absoluteStandard.AvgSpeedStandard,
+                    AbsoluteAvgTop3Speed = absoluteStandard.AvgTop3SpeedStandard,
+                    AbsoluteHighSpeedRatio = absoluteStandard.HighSpeedRatioStandard,
                     AbsoluteMaxDistancePerMinute = absoluteStandard.MaxDistancePerMinuteStandard,
                     AbsoluteMaxPlayerLoad = absoluteStandard.MaxPlayerLoadStandard,
                     AbsoluteMaxSprintRatio = absoluteStandard.SprintRatioStandard,
@@ -262,6 +335,12 @@ namespace Application.Services.MetricAnalytic
                     MaxExplosiveContribution = absoluteStandard.ExplosiveContributionStandard,
 
                     AbsoluteMaxSpeed = absoluteStandard.MaxSpeedStandard,
+                    AbsoluteEnergy = absoluteStandard.EnergyStandard,
+                    AbsoluteMetabolicPower = absoluteStandard.MetabolicPowerStandard,
+                    AbsoluteSprintEffortsPerMin = absoluteStandard.SprintEffortsPerMinStandard,
+                    AbsoluteAvgSpeed = absoluteStandard.AvgSpeedStandard,
+                    AbsoluteAvgTop3Speed = absoluteStandard.AvgTop3SpeedStandard,
+                    AbsoluteHighSpeedRatio = absoluteStandard.HighSpeedRatioStandard,
                     AbsoluteMaxDistancePerMinute = absoluteStandard.MaxDistancePerMinuteStandard,
                     AbsoluteMaxPlayerLoad = absoluteStandard.MaxPlayerLoadStandard,
                     AbsoluteMaxSprintRatio = absoluteStandard.SprintRatioStandard,
