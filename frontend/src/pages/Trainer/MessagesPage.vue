@@ -25,16 +25,26 @@
           placeholder="Поиск..."
           class="flex-1 px-3 py-1.5 text-xs rounded-xl border border-neutral-200 focus:outline-none focus:border-blue-400 bg-neutral-50"
         />
-        <button
-          v-if="activeTab === 'chats'"
-          @click="openNewChat"
-          class="w-8 h-8 rounded-xl bg-blue-500 flex items-center justify-center hover:bg-blue-600 transition-colors shrink-0"
-          title="Новый чат"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" class="w-4 h-4 text-white">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
-          </svg>
-        </button>
+        <template v-if="activeTab === 'chats'">
+          <button
+            @click="openAdminChat"
+            class="w-8 h-8 rounded-xl bg-red-400 flex items-center justify-center hover:bg-red-500 transition-colors shrink-0"
+            title="Написать админу"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" class="w-4 h-4 text-white">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 2l8 4v6c0 5-3.5 9-8 10-4.5-1-8-5-8-10V6l8-4z"/>
+            </svg>
+          </button>
+          <button
+            @click="openNewChat"
+            class="w-8 h-8 rounded-xl bg-blue-500 flex items-center justify-center hover:bg-blue-600 transition-colors shrink-0"
+            title="Новый чат"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" class="w-4 h-4 text-white">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+            </svg>
+          </button>
+        </template>
         <button
           v-else
           @click="openNewBroadcast"
@@ -316,6 +326,74 @@
     </div>
   </div>
 
+  <!-- Модалка чата с админом -->
+  <div v-if="adminChatModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm p-4">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm flex flex-col max-h-[85vh]">
+      <div class="flex items-center justify-between px-4 pt-4 pb-3 border-b border-neutral-100">
+        <span class="text-sm font-semibold text-neutral-800">
+          {{ adminChatStep === 1 ? 'Написать админу — выбор' : 'Сообщение администратору' }}
+        </span>
+        <button @click="adminChatModal = false" class="text-neutral-400 hover:text-neutral-600">✕</button>
+      </div>
+
+      <template v-if="adminChatStep === 1">
+        <div class="px-4 pt-3 pb-2">
+          <input v-model="adminSearch" placeholder="Поиск по имени..."
+            class="w-full px-3 py-2 text-sm rounded-xl border border-neutral-200 focus:outline-none focus:border-blue-400 bg-neutral-50"/>
+        </div>
+        <div class="overflow-y-auto flex-1 divide-y divide-neutral-50 px-2 pb-2">
+          <div v-if="adminsLoading" class="px-4 py-8 text-center text-xs text-neutral-400">Загрузка...</div>
+          <template v-else>
+            <div v-for="a in filteredAdmins" :key="a.id"
+              @click="adminSelected = adminSelected?.id === a.id ? null : a"
+              class="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer hover:bg-neutral-50 transition-colors"
+              :class="adminSelected?.id === a.id ? 'bg-red-50' : ''">
+              <div class="w-8 h-8 rounded-full bg-red-400 flex items-center justify-center text-white text-xs font-bold shrink-0">
+                {{ initials(a.login) }}
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="text-sm font-medium text-neutral-800 truncate">{{ a.login }}</div>
+                <div class="text-xs text-neutral-400">Администратор</div>
+              </div>
+              <svg v-if="adminSelected?.id === a.id" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" class="w-4 h-4 text-red-500 shrink-0">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+              </svg>
+            </div>
+            <div v-if="filteredAdmins.length === 0" class="px-4 py-8 text-center text-xs text-neutral-400">Нет администраторов</div>
+          </template>
+        </div>
+        <div class="p-4 border-t border-neutral-100">
+          <button @click="adminChatStep = 2" :disabled="!adminSelected"
+            class="w-full py-2.5 rounded-xl text-sm font-semibold transition-colors"
+            :class="adminSelected ? 'bg-red-500 text-white hover:bg-red-600' : 'bg-neutral-100 text-neutral-400 cursor-not-allowed'">
+            Далее →
+          </button>
+        </div>
+      </template>
+
+      <template v-else>
+        <div class="px-4 py-3 border-b border-neutral-100 flex items-center gap-2">
+          <div class="w-8 h-8 rounded-full bg-red-400 flex items-center justify-center text-white text-xs font-bold shrink-0">
+            {{ initials(adminSelected?.login ?? '') }}
+          </div>
+          <span class="text-sm font-semibold text-neutral-800">{{ adminSelected?.login }}</span>
+        </div>
+        <div class="px-4 py-3 flex-1">
+          <textarea v-model="adminText" rows="5" placeholder="Введите сообщение администратору..."
+            class="w-full px-3 py-2 text-sm rounded-xl border border-neutral-200 focus:outline-none focus:border-blue-400 resize-none"/>
+        </div>
+        <div class="px-4 pb-4 flex gap-2">
+          <button @click="adminChatStep = 1" class="px-4 py-2.5 rounded-xl border border-neutral-200 text-sm font-semibold text-neutral-600 hover:bg-neutral-50 transition-colors">← Назад</button>
+          <button @click="sendAdminMessage" :disabled="!adminText.trim() || sendingAdmin"
+            class="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-colors"
+            :class="adminText.trim() && !sendingAdmin ? 'bg-red-500 text-white hover:bg-red-600' : 'bg-neutral-100 text-neutral-400 cursor-not-allowed'">
+            {{ sendingAdmin ? 'Отправка...' : 'Отправить' }}
+          </button>
+        </div>
+      </template>
+    </div>
+  </div>
+
   <!-- Модалка новой рассылки -->
   <div v-if="broadcastModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm p-4">
     <div class="bg-white rounded-2xl shadow-xl w-full max-w-md flex flex-col">
@@ -443,6 +521,21 @@ const allSportsmen = ref<any[]>([])
 // Groups/Teams sportsmen cache
 const sportsmenByGroup = ref<Record<number, any[]>>({})
 const sportsmenByTeam  = ref<Record<number, any[]>>({})
+
+// Admin chat
+const adminChatModal = ref(false)
+const adminChatStep = ref<1 | 2>(1)
+const admins = ref<any[]>([])
+const adminsLoading = ref(false)
+const adminSearch = ref('')
+const adminSelected = ref<any>(null)
+const adminText = ref('')
+const sendingAdmin = ref(false)
+
+const filteredAdmins = computed(() => {
+  const q = adminSearch.value.toLowerCase().trim()
+  return admins.value.filter(a => !q || a.login?.toLowerCase().includes(q))
+})
 
 // Modals
 const newChatModal = ref(false)
@@ -730,6 +823,47 @@ async function startChatWithMessage() {
   }
 }
 
+
+async function loadAdmins() {
+  if (admins.value.length) return
+  adminsLoading.value = true
+  try {
+    const res = await api.get('/users', { params: { filters: { role: ['admin'] } } }).catch(() => null)
+    admins.value = (res?.data?.data ?? []).filter((u: any) => u.id !== auth.userId)
+  } finally {
+    adminsLoading.value = false
+  }
+}
+
+function openAdminChat() {
+  adminSearch.value = ''
+  adminSelected.value = null
+  adminText.value = ''
+  adminChatStep.value = 1
+  adminChatModal.value = true
+  loadAdmins()
+}
+
+async function sendAdminMessage() {
+  if (!adminSelected.value || !adminText.value.trim() || sendingAdmin.value) return
+  sendingAdmin.value = true
+  try {
+    const target = { id: adminSelected.value.id, login: adminSelected.value.login, role: 'admin' }
+    const res = await api.post('/message', { receiverId: target.id, text: adminText.value.trim() })
+    const sentMsg = res.data.data
+    adminChatModal.value = false
+    selectedUser.value = target
+    activeTab.value = 'chats'
+    dialogLoading.value = true
+    const dlg = await api.get(`/message/dialog/${target.id}`).catch(() => null)
+    messages.value = dlg?.data?.data?.messages ?? [sentMsg]
+    dialogLoading.value = false
+    await scrollToBottom()
+    loadUsers()
+  } finally {
+    sendingAdmin.value = false
+  }
+}
 
 function openNewBroadcast() {
   broadcastForm.value = { title: '', text: '', targetType: 'All', targetId: undefined }

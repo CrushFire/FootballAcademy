@@ -449,6 +449,10 @@ input[type=range] { accent-color: var(--color-primary); }
 .dark .hover\:bg-neutral-200:hover   { background-color: var(--theme-surface-3) !important; }
 .dark .hover\:bg-white:hover         { background-color: var(--theme-surface) !important; }
 
+/* Arbitrary-value hover #DDE3EB (светло-голубой для светлой темы) — на тёмной даём тонкий синий highlight,
+   чтобы карты не "загорались белым" */
+.dark .hover\:bg-\[\#DDE3EB\]:hover { background-color: rgba(59, 130, 246, 0.10) !important; }
+
 .dark .hover\:bg-blue-50:hover    { background-color: rgba(59, 130, 246, 0.18) !important; }
 .dark .hover\:bg-blue-100:hover   { background-color: rgba(59, 130, 246, 0.26) !important; }
 .dark .hover\:bg-blue-200:hover   { background-color: rgba(59, 130, 246, 0.32) !important; }
