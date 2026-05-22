@@ -6,8 +6,8 @@
     </div>
 
     <div class="flex items-center gap-2">
-      <!-- Колокольчик (не для админа) -->
-      <div v-if="auth.userRole !== 'admin'" class="relative" ref="bellRef">
+      <!-- Колокольчик -->
+      <div class="relative">
         <button
           @click="toggleDrawer"
           class="relative w-10 h-10 rounded-full flex items-center justify-center bg-sky-500/30 hover:bg-sky-400/40 ring-1 ring-sky-300/40 transition-colors"
@@ -153,7 +153,6 @@ const { notifications, unreadCount, init, markRead, markAllRead } = useNotificat
 const { theme, toggle: toggleTheme } = useTheme()
 
 const drawerOpen = ref(false)
-const bellRef = ref<HTMLElement | null>(null)
 
 const userName = computed(() => {
   const fio = auth.userLogin ?? `ID ${auth.userId}`

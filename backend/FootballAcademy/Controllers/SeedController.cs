@@ -36,7 +36,28 @@ namespace FootballAcademy.Controllers
             _ => "Unknown"
         };
 
-        private static TrainingMetrics MakeWeakMetrics(Random rnd, long trainingId, long sportsmanId, Position? pos, DateTime date)
+        // Реалистичные диапазоны MaxSpeed (км/ч) по возрасту (источник: Buchheit et al., youth academy benchmarks)
+        private static (double min, double max) MaxSpeedRangeByAge(int age) => age switch
+        {
+            <= 10 => (16.0, 22.0),
+            <= 12 => (19.0, 25.0),
+            <= 14 => (22.0, 28.0),
+            <= 16 => (25.0, 31.0),
+            <= 18 => (27.0, 33.0),
+            _     => (29.0, 36.0)
+        };
+
+        // AvgSpeed (км/ч) — средняя по тренировке с учётом пауз/ходьбы (типично 4-9 км/ч для футбольных сессий)
+        private static (double min, double max) AvgSpeedRangeByAge(int age) => age switch
+        {
+            <= 10 => (3.5, 6.5),
+            <= 12 => (4.0, 7.0),
+            <= 14 => (4.5, 7.5),
+            <= 16 => (5.0, 8.0),
+            _     => (5.5, 8.5)
+        };
+
+        private static TrainingMetrics MakeWeakMetrics(Random rnd, long trainingId, long sportsmanId, Position? pos, DateTime date, int age)
         {
             // Слабые метрики: низкая дистанция, мало спринтов, высокий пульс покоя, плохая выносливость
             var total    = rnd.Next(3200, 6000);
@@ -44,6 +65,11 @@ namespace FootballAcademy.Controllers
             var high     = rnd.Next(200, 700);
             var moderate = rnd.Next(600, 1500);
             var low      = Math.Max(total - sprint - high - moderate, 300);
+            // Слабый игрок: скорости берём из нижней половины возрастного диапазона
+            var (avgMin, avgMax) = AvgSpeedRangeByAge(age);
+            var (maxMin, maxMax) = MaxSpeedRangeByAge(age);
+            double weakAvg = avgMin + rnd.NextDouble() * (avgMax - avgMin) * 0.6;
+            double weakMax = maxMin + rnd.NextDouble() * (maxMax - maxMin) * 0.6;
 
             return new TrainingMetrics
             {
@@ -69,8 +95,8 @@ namespace FootballAcademy.Controllers
                 DistanceInSpeedZone5 = rnd.Next(50,  200),
                 DistanceInSpeedZone6 = rnd.Next(20,  100),
                 DistanceInSpeedZone7 = rnd.Next(5,   50),
-                AverageSpeed      = Math.Round(rnd.NextDouble() * 3  + 4.5, 2),
-                MaximumSpeed      = Math.Round(rnd.NextDouble() * 5  + 18,  2),
+                AverageSpeed      = Math.Round(weakAvg, 2),
+                MaximumSpeed      = Math.Round(weakMax, 2),
                 AccelerationCount = rnd.Next(6,  22),
                 DecelerationCount = rnd.Next(6,  22),
                 MaxAcceleration   = Math.Round(rnd.NextDouble() * 1.2 + 1.5, 2),
@@ -99,13 +125,25 @@ namespace FootballAcademy.Controllers
             };
         }
 
-        private static TrainingMetrics MakeMetrics(Random rnd, long trainingId, long sportsmanId, Position? pos, DateTime date)
+        // Детерминированный «талант»-множитель по sportsmanId — даёт стабильный разброс между игроками,
+        // чтобы профили (Sprinter/PowerPlayer/...) имели смысл. Диапазон 0.80-1.25 (около 80%-125% от среднего).
+        private static double TalentMultiplier(long sportsmanId) =>
+            0.80 + ((sportsmanId * 2654435761L) % 1000) / 1000.0 * 0.45;
+
+        private static TrainingMetrics MakeMetrics(Random rnd, long trainingId, long sportsmanId, Position? pos, DateTime date, int age)
         {
+            var talent   = TalentMultiplier(sportsmanId);   // 0.80..1.25
             var total    = rnd.Next(5500, 11000);
-            var sprint   = rnd.Next(250, 1100);
-            var high     = rnd.Next(700, 2000);
+            // SprintDistance: 1-3% от total с поправкой на «талант» (литература U14-U16: ~2% baseline,
+            // Football Observatory: 200м спринта при 10км total ≈ 2%).
+            var sprint   = (int)(total * (0.01 + rnd.NextDouble() * 0.02) * talent);
+            // HighSpeedDistance: 5-10% от total с поправкой (литература: 600-1000м high-speed при 10-13км)
+            var high     = (int)(total * (0.05 + rnd.NextDouble() * 0.05) * talent);
             var moderate = rnd.Next(1200, 3200);
             var low      = Math.Max(total - sprint - high - moderate, 300);
+            // Возрастные диапазоны скорости (нормальные/сильные игроки)
+            var (avgMin, avgMax) = AvgSpeedRangeByAge(age);
+            var (maxMin, maxMax) = MaxSpeedRangeByAge(age);
 
             return new TrainingMetrics
             {
@@ -121,9 +159,10 @@ namespace FootballAcademy.Controllers
                 TimeInSpeedZone2 = rnd.Next(300, 800),
                 TimeInSpeedZone3 = rnd.Next(250, 700),
                 TimeInSpeedZone4 = rnd.Next(200, 600),
-                TimeInSpeedZone5 = rnd.Next(150, 500),
-                TimeInSpeedZone6 = rnd.Next(80,  300),
-                TimeInSpeedZone7 = rnd.Next(30,  150),
+                // Подростковый уровень (литература STATSports/FIFA WC: ~5% времени в high-intensity у юношей)
+                TimeInSpeedZone5 = (int)(rnd.Next(80, 300) * talent),
+                TimeInSpeedZone6 = (int)(rnd.Next(40, 165) * talent),
+                TimeInSpeedZone7 = (int)(rnd.Next(15, 75)  * talent),
                 DistanceInSpeedZone1 = rnd.Next(300, 800),
                 DistanceInSpeedZone2 = rnd.Next(400, 1000),
                 DistanceInSpeedZone3 = rnd.Next(500, 1300),
@@ -131,16 +170,16 @@ namespace FootballAcademy.Controllers
                 DistanceInSpeedZone5 = rnd.Next(300, 900),
                 DistanceInSpeedZone6 = rnd.Next(150, 600),
                 DistanceInSpeedZone7 = rnd.Next(80,  350),
-                AverageSpeed      = Math.Round(rnd.NextDouble() * 7  + 6,  2),
-                MaximumSpeed      = Math.Round(rnd.NextDouble() * 12 + 21, 2),
-                AccelerationCount = rnd.Next(22, 95),
-                DecelerationCount = rnd.Next(22, 95),
+                AverageSpeed      = Math.Round((avgMin + rnd.NextDouble() * (avgMax - avgMin)) * talent, 2),
+                MaximumSpeed      = Math.Round((maxMin + rnd.NextDouble() * (maxMax - maxMin)) * talent, 2),
+                AccelerationCount = (int)(rnd.Next(28, 70) * talent),    // Литература U14-U18: 30-50/трен
+                DecelerationCount = (int)(rnd.Next(28, 70) * talent),
                 MaxAcceleration   = Math.Round(rnd.NextDouble() * 2.5 + 2.0, 2),
                 MaxDeceleration   = Math.Round(rnd.NextDouble() * 2.5 + 2.0, 2),
-                SprintEfforts     = rnd.Next(6,  28),
-                HighSpeedEfforts  = rnd.Next(12, 50),
-                ExplosiveEfforts  = rnd.Next(4,  20),
-                PlayerLoad        = Math.Round(rnd.NextDouble() * 60 + 270, 1),
+                SprintEfforts     = (int)(rnd.Next(9, 21) * talent),     // Юноши: 9-12 за матч, у нас 9-21
+                HighSpeedEfforts  = (int)(rnd.Next(15, 45) * talent),
+                ExplosiveEfforts  = (int)(rnd.Next(20, 45) * talent),
+                PlayerLoad        = Math.Round((rnd.NextDouble() * 200 + 350) * talent, 1),
                 Energy            = Math.Round(rnd.NextDouble() * 550 + 250, 1),
                 WorkRatio         = Math.Round(rnd.NextDouble() * 2.2 + 1.0, 2),
                 MetabolicPower    = Math.Round(rnd.NextDouble() * 6   + 5,   2),
@@ -163,7 +202,7 @@ namespace FootballAcademy.Controllers
             };
         }
 
-        private static TrainingMetrics MakeOverloadMetrics(Random rnd, long trainingId, long sportsmanId, Position? pos, DateTime date, int idx)
+        private static TrainingMetrics MakeOverloadMetrics(Random rnd, long trainingId, long sportsmanId, Position? pos, DateTime date, int idx, int age)
         {
             // Чередуем очень высокую и низкую нагрузку → std > 50, FatigueIndex > 1.2
             var playerLoad = idx % 2 == 0
@@ -171,10 +210,15 @@ namespace FootballAcademy.Controllers
                 : Math.Round(rnd.NextDouble() * 50 + 150, 1);  // низкая: 150–200
 
             var total    = rnd.Next(5500, 11000);
-            var sprint   = rnd.Next(250, 1100);
-            var high     = rnd.Next(700, 2000);
+            // SprintDistance: 1-3% от total (по литературе для baseline)
+            var sprint   = (int)(total * (0.01 + rnd.NextDouble() * 0.02));
+            // HighSpeedDistance: 5-10% от total (Bush 2015)
+            var high     = (int)(total * (0.05 + rnd.NextDouble() * 0.05));
             var moderate = rnd.Next(1200, 3200);
             var low      = Math.Max(total - sprint - high - moderate, 300);
+            // Возрастные диапазоны скорости — как у обычных метрик
+            var (avgMin, avgMax) = AvgSpeedRangeByAge(age);
+            var (maxMin, maxMax) = MaxSpeedRangeByAge(age);
 
             return new TrainingMetrics
             {
@@ -200,15 +244,15 @@ namespace FootballAcademy.Controllers
                 DistanceInSpeedZone5 = rnd.Next(300, 900),
                 DistanceInSpeedZone6 = rnd.Next(150, 600),
                 DistanceInSpeedZone7 = rnd.Next(80,  350),
-                AverageSpeed      = Math.Round(rnd.NextDouble() * 7  + 6,  2),
-                MaximumSpeed      = Math.Round(rnd.NextDouble() * 12 + 21, 2),
-                AccelerationCount = rnd.Next(22, 95),
-                DecelerationCount = rnd.Next(22, 95),
+                AverageSpeed      = Math.Round(avgMin + rnd.NextDouble() * (avgMax - avgMin), 2),
+                MaximumSpeed      = Math.Round(maxMin + rnd.NextDouble() * (maxMax - maxMin), 2),
+                AccelerationCount = rnd.Next(28, 70),
+                DecelerationCount = rnd.Next(28, 70),
                 MaxAcceleration   = Math.Round(rnd.NextDouble() * 2.5 + 2.0, 2),
                 MaxDeceleration   = Math.Round(rnd.NextDouble() * 2.5 + 2.0, 2),
-                SprintEfforts     = rnd.Next(6,  28),
-                HighSpeedEfforts  = rnd.Next(12, 50),
-                ExplosiveEfforts  = rnd.Next(4,  20),
+                SprintEfforts     = rnd.Next(9, 21),
+                HighSpeedEfforts  = rnd.Next(15, 45),
+                ExplosiveEfforts  = rnd.Next(20, 45),
                 PlayerLoad        = playerLoad,
                 Energy            = Math.Round(rnd.NextDouble() * 550 + 250, 1),
                 WorkRatio         = Math.Round(rnd.NextDouble() * 2.2 + 1.0, 2),
@@ -258,12 +302,16 @@ namespace FootballAcademy.Controllers
 
             // ── Команды ───────────────────────────────────────────────────────
             // Академические команды (основные для матчей)
-            var teamU14Ivanov  = new Team { Name = "U14-Синие-1",  TrainerId = pIvanov.Id,  AgeGroup = AgeGroup.U14 };
-            var teamU16Ivanov  = new Team { Name = "U16-Синие-1",  TrainerId = pIvanov.Id,  AgeGroup = AgeGroup.U16 };
-            var teamU14Trainer = new Team { Name = "U14-Красные-1", TrainerId = pTrainer.Id, AgeGroup = AgeGroup.U14 };
-            var teamU16Trainer = new Team { Name = "U16-Красные-1", TrainerId = pTrainer.Id, AgeGroup = AgeGroup.U16 };
-            var teamU14B       = new Team { Name = "U14-Синие-2",  TrainerId = pIvanov.Id,  AgeGroup = AgeGroup.U14 };
-            var teamU16B       = new Team { Name = "U16-Красные-2", TrainerId = pTrainer.Id, AgeGroup = AgeGroup.U16 };
+            // Год рождения = текущий год − U (U14 → 2012, U16 → 2010), формат как у оппонентов: "Синие (2012) - 1"
+            var nowYear = DateTime.UtcNow.Year;
+            var yearU14 = nowYear - 14;
+            var yearU16 = nowYear - 16;
+            var teamU14Ivanov  = new Team { Name = $"Синие ({yearU14}) - 1",   TrainerId = pIvanov.Id,  AgeGroup = AgeGroup.U14 };
+            var teamU16Ivanov  = new Team { Name = $"Синие ({yearU16}) - 1",   TrainerId = pIvanov.Id,  AgeGroup = AgeGroup.U16 };
+            var teamU14Trainer = new Team { Name = $"Красные ({yearU14}) - 1", TrainerId = pTrainer.Id, AgeGroup = AgeGroup.U14 };
+            var teamU16Trainer = new Team { Name = $"Красные ({yearU16}) - 1", TrainerId = pTrainer.Id, AgeGroup = AgeGroup.U16 };
+            var teamU14B       = new Team { Name = $"Синие ({yearU14}) - 2",   TrainerId = pIvanov.Id,  AgeGroup = AgeGroup.U14 };
+            var teamU16B       = new Team { Name = $"Красные ({yearU16}) - 2", TrainerId = pTrainer.Id, AgeGroup = AgeGroup.U16 };
             await _context.Teams.AddRangeAsync(teamU14Ivanov, teamU16Ivanov, teamU14Trainer, teamU16Trainer, teamU14B, teamU16B);
             await _context.SaveChangesAsync();
 
@@ -456,7 +504,7 @@ namespace FootballAcademy.Controllers
                         allAttend.Add(new Attendance { SportsmanId = s.Id, TrainingId = tr.Id, Status = status });
 
                         if (status != AttendanceStatus.Absent && status != AttendanceStatus.ExcusedAbsent)
-                            allMetrics.Add(MakeMetrics(rnd, tr.Id, s.Id, s.Position, tr.Date));
+                            allMetrics.Add(MakeMetrics(rnd, tr.Id, s.Id, s.Position, tr.Date, s.Age));
                     }
                 }
             }
@@ -474,7 +522,7 @@ namespace FootballAcademy.Controllers
             {
                 var tr = trU14Ivanov[i];
                 allAttend.Add(new Attendance { SportsmanId = novikov.Id, TrainingId = tr.Id, Status = AttendanceStatus.Present });
-                allMetrics.Add(MakeOverloadMetrics(rnd, tr.Id, novikov.Id, novikov.Position, tr.Date, i));
+                allMetrics.Add(MakeOverloadMetrics(rnd, tr.Id, novikov.Id, novikov.Position, tr.Date, i, novikov.Age));
             }
 
             await _context.TrainingMetrics.AddRangeAsync(allMetrics);
@@ -600,7 +648,7 @@ namespace FootballAcademy.Controllers
 
             var matches = new List<Match>
             {
-                // U14-Синие-1 (Иванов) — 6 матчей
+                // Синие (U14) - 1 (Иванов) — 6 матчей
                 new Match { HomeTeamId = teamU14Ivanov.Id, OpponentTeamName = "АФК (2012) - 1",     Type = GameType.League,   Status = MatchStatus.Finished, Result = MatchResult.Win,  Date = DateTime.UtcNow.AddDays(-360), TrainerComment = "Уверенная победа 3:0", Lineup = Lineup11(u14Players).ToList() },
                 new Match { HomeTeamId = teamU14Ivanov.Id, OpponentTeamName = "АФК (2012) - 2",     Type = GameType.Cup,      Status = MatchStatus.Finished, Result = MatchResult.Win,  Date = DateTime.UtcNow.AddDays(-300), TrainerComment = "Кубковая победа 2:1", Lineup = Lineup11(u14Players).ToList() },
                 new Match { HomeTeamId = teamU14Ivanov.Id, OpponentTeamName = "АФК (2013)",         Type = GameType.League,   Status = MatchStatus.Finished, Result = MatchResult.Draw, Date = DateTime.UtcNow.AddDays(-240), TrainerComment = "Ничья 1:1, не реализовали моменты", Lineup = Lineup11(u14Players).ToList() },
@@ -608,7 +656,7 @@ namespace FootballAcademy.Controllers
                 new Match { HomeTeamId = teamU14Ivanov.Id, OpponentTeamName = "АФК-ЖЕН-1",        Type = GameType.Friendly, Status = MatchStatus.Finished, Result = MatchResult.Win,  Date = DateTime.UtcNow.AddDays(-90),  TrainerComment = "Товарищеская победа 4:2", Lineup = Lineup11(u14Players).ToList() },
                 new Match { HomeTeamId = teamU14Ivanov.Id, OpponentTeamName = "АФК (2012) - 1",   Type = GameType.League,   Status = MatchStatus.Scheduled, Date = DateTime.UtcNow.AddDays(14) },
 
-                // U16-Синие-1 (Иванов) — 6 матчей
+                // Синие (U16) - 1 (Иванов) — 6 матчей
                 new Match { HomeTeamId = teamU16Ivanov.Id, OpponentTeamName = "АФК-ЖЕН-2",        Type = GameType.League,   Status = MatchStatus.Finished, Result = MatchResult.Win,  Date = DateTime.UtcNow.AddDays(-350), TrainerComment = "Победа 2:0", Lineup = Lineup11(u16Players).ToList() },
                 new Match { HomeTeamId = teamU16Ivanov.Id, OpponentTeamName = "АФК (2012) - 2",   Type = GameType.Cup,      Status = MatchStatus.Finished, Result = MatchResult.Win,  Date = DateTime.UtcNow.AddDays(-280), TrainerComment = "1/4 финала, победа по пенальти", Lineup = Lineup11(u16Players).ToList() },
                 new Match { HomeTeamId = teamU16Ivanov.Id, OpponentTeamName = "АФК-М",            Type = GameType.League,   Status = MatchStatus.Finished, Result = MatchResult.Draw, Date = DateTime.UtcNow.AddDays(-210), Lineup = Lineup11(u16Players).ToList() },
@@ -616,13 +664,13 @@ namespace FootballAcademy.Controllers
                 new Match { HomeTeamId = teamU16Ivanov.Id, OpponentTeamName = "АФК-ЖЕН-1",       Type = GameType.Friendly, Status = MatchStatus.Finished, Result = MatchResult.Win,  Date = DateTime.UtcNow.AddDays(-60),  TrainerComment = "Товарищеская, 3:1", Lineup = Lineup11(u16Players).ToList() },
                 new Match { HomeTeamId = teamU16Ivanov.Id, OpponentTeamName = "АФК (2012) - 1",  Type = GameType.League,   Status = MatchStatus.Scheduled, Date = DateTime.UtcNow.AddDays(21) },
 
-                // U14-Красные-1 (Сергеев) — 4 матча
+                // Красные (U14) - 1 (Сергеев) — 4 матча
                 new Match { HomeTeamId = teamU14Trainer.Id, OpponentTeamName = "АФК (2012) - 2", Type = GameType.Friendly, Status = MatchStatus.Finished, Result = MatchResult.Win,  Date = DateTime.UtcNow.AddDays(-200), TrainerComment = "Победа 2:0", Lineup = Lineup8(u14TPlayers).ToList() },
                 new Match { HomeTeamId = teamU14Trainer.Id, OpponentTeamName = "АФК (2013)",     Type = GameType.League,   Status = MatchStatus.Finished, Result = MatchResult.Draw, Date = DateTime.UtcNow.AddDays(-120), Lineup = Lineup8(u14TPlayers).ToList() },
                 new Match { HomeTeamId = teamU14Trainer.Id, OpponentTeamName = "АФК-М",          Type = GameType.League,   Status = MatchStatus.Finished, Result = MatchResult.Loss, Date = DateTime.UtcNow.AddDays(-50),  Lineup = Lineup8(u14TPlayers).ToList() },
                 new Match { HomeTeamId = teamU14Trainer.Id, OpponentTeamName = "АФК-ЖЕН-2",     Type = GameType.Friendly, Status = MatchStatus.Scheduled, Date = DateTime.UtcNow.AddDays(10) },
 
-                // U16-Красные-1 (Сергеев) — 4 матча
+                // Красные (U16) - 1 (Сергеев) — 4 матча
                 new Match { HomeTeamId = teamU16Trainer.Id, OpponentTeamName = "АФК (2013)",     Type = GameType.Friendly, Status = MatchStatus.Finished, Result = MatchResult.Win,  Date = DateTime.UtcNow.AddDays(-180), Lineup = Lineup8(u16TPlayers).ToList() },
                 new Match { HomeTeamId = teamU16Trainer.Id, OpponentTeamName = "АФК (2012) - 1", Type = GameType.League,   Status = MatchStatus.Finished, Result = MatchResult.Draw, Date = DateTime.UtcNow.AddDays(-100), Lineup = Lineup8(u16TPlayers).ToList() },
                 new Match { HomeTeamId = teamU16Trainer.Id, OpponentTeamName = "АФК-ЖЕН-1",     Type = GameType.League,   Status = MatchStatus.Finished, Result = MatchResult.Loss, Date = DateTime.UtcNow.AddDays(-30),  Lineup = Lineup8(u16TPlayers).ToList() },
@@ -782,7 +830,7 @@ namespace FootballAcademy.Controllers
             await _context.Trainings.AddRangeAsync(newTrainings);
             await _context.SaveChangesAsync();
 
-            var metrics = newTrainings.Select(t => MakeWeakMetrics(rnd, t.Id, sportsman.Id, sportsman.Position, t.Date)).ToList();
+            var metrics = newTrainings.Select(t => MakeWeakMetrics(rnd, t.Id, sportsman.Id, sportsman.Position, t.Date, sportsman.Age)).ToList();
             await _context.TrainingMetrics.AddRangeAsync(metrics);
 
             // Плохая посещаемость: каждая 3-я — прогул, каждая 5-я — опоздание

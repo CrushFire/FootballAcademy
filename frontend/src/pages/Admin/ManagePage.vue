@@ -227,7 +227,7 @@
       <input v-model="editForm.email" type="email" class="w-full px-3 py-2 text-sm rounded-xl border border-neutral-200 focus:outline-none focus:border-blue-400" />
     </FormField>
     <FormField label="Пароль">
-      <input v-model="editForm.password" type="password" class="w-full px-3 py-2 text-sm rounded-xl border border-neutral-200 focus:outline-none focus:border-blue-400" />
+      <input v-model="editForm.password" type="password" autocomplete="new-password" placeholder="••••••••" class="w-full px-3 py-2 text-sm rounded-xl border border-neutral-200 focus:outline-none focus:border-blue-400" />
     </FormField>
     <FormField v-if="!editItem" label="Роль">
       <select v-model="editForm.role" class="w-full px-3 py-2 text-sm rounded-xl border border-neutral-200 focus:outline-none focus:border-blue-400">

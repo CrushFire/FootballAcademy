@@ -16,13 +16,16 @@
               <line v-for="(pt, i) in outerPoints" :key="'ax'+i" :x1="CX" :y1="CY" :x2="pt.x" :y2="pt.y" stroke="#e2e8f0" stroke-width="1"/>
               <polygon :points="dataPoints" fill="rgba(59,130,246,0.18)" stroke="#3b82f6" stroke-width="2"/>
               <circle v-for="(pt, i) in dataPointsArr" :key="'dp'+i" :cx="pt.x" :cy="pt.y" r="4" fill="#3b82f6"/>
-              <text v-for="(label, i) in labels" :key="'lb'+i" :x="labelPos(i).x" :y="labelPos(i).y" text-anchor="middle" dominant-baseline="middle" font-size="11" fill="#475569" font-weight="600">{{ label }}</text>
+              <text v-for="(item, i) in PENTAGON_LABELS" :key="'lb'+i" :x="labelPos(i).x" :y="labelPos(i).y" text-anchor="middle" dominant-baseline="middle" font-size="11" fill="#475569" font-weight="600">{{ item.label }}</text>
             </svg>
           </div>
           <div class="flex flex-col gap-1.5 mt-1">
-            <div v-for="(label, i) in labels" :key="label" class="flex items-center gap-2 text-xs">
+            <div v-for="(item, i) in PENTAGON_LABELS" :key="item.key" class="flex items-center gap-2 text-xs">
               <span class="w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0" />
-              <span class="flex-1 text-neutral-400">{{ label }}</span>
+              <span class="flex-1 text-neutral-400 flex items-center gap-1">
+                {{ item.label }}
+                <AppTooltip v-if="PENTAGON_TOOLTIPS[item.key]" :text="PENTAGON_TOOLTIPS[item.key]" />
+              </span>
               <span class="font-semibold text-blue-800">{{ Math.round(pentagonValues[i] * 100) }}%</span>
             </div>
           </div>
@@ -188,7 +191,7 @@ import { formatDate } from '@/utils/formatDate'
 import AppCard from '@/components/ui/AppCard.vue'
 import DashCard from '@/components/ui/DashCard.vue'
 import AppTooltip from '@/components/ui/AppTooltip.vue'
-import { PROFILE_TOOLTIPS } from '@/constants/metricTooltips'
+import { PROFILE_TOOLTIPS, PENTAGON_LABELS, PENTAGON_TOOLTIPS } from '@/constants/metricTooltips'
 import type { Match } from '@/types'
 
 const props = defineProps<{
@@ -240,14 +243,9 @@ const profileLabels: Record<string, string> = {
   DynamicPlayer: 'Динамичный', StaticPlayer: 'Статичный', Offensive: 'Атакующий', Defensive: 'Оборонительный',
 }
 
-function profileColor(key: string) {
-  const offensive = ['Sprinter','ExplosivePlayer','Forward','AttackingMidfielder','Offensive','DynamicPlayer']
-  const defensive = ['DefenderType','DefensiveMidfielder','Defensive','Goalkeeper','StaticPlayer']
-  const balanced  = ['Universal','CentralMidfielder','EnduranceRunner']
-  if (offensive.includes(key)) return 'bg-red-50 text-red-700 border-red-100'
-  if (defensive.includes(key)) return 'bg-blue-50 text-blue-700 border-blue-100'
-  if (balanced.includes(key))  return 'bg-emerald-50 text-emerald-700 border-emerald-100'
-  return 'bg-amber-50 text-amber-700 border-amber-100'
+// Все «Подтверждено» плашки одного зелёного цвета (как заголовок).
+function profileColor(_key: string) {
+  return 'bg-emerald-50 text-emerald-700 border-emerald-100'
 }
 
 const positionalProfileToPositions: Record<string, string[]> = {
@@ -298,10 +296,9 @@ const nonPositionalPotential = computed(() => {
 })
 
 const SVG = 240, CX = 120, CY = 110, R = 80
-const labels = ['Скорость', 'Сила', 'Выносл.', 'Спринты', 'Взрывн.']
 function angleFor(i: number) { return (Math.PI * 2 * i) / 5 - Math.PI / 2 }
-const outerPoints = computed(() => labels.map((_, i) => ({ x: CX + R * Math.cos(angleFor(i)), y: CY + R * Math.sin(angleFor(i)) })))
-function gridPoints(lvl: number) { return labels.map((_, i) => `${CX + R * lvl * Math.cos(angleFor(i))},${CY + R * lvl * Math.sin(angleFor(i))}`).join(' ') }
+const outerPoints = computed(() => PENTAGON_LABELS.map((_, i) => ({ x: CX + R * Math.cos(angleFor(i)), y: CY + R * Math.sin(angleFor(i)) })))
+function gridPoints(lvl: number) { return PENTAGON_LABELS.map((_, i) => `${CX + R * lvl * Math.cos(angleFor(i))},${CY + R * lvl * Math.sin(angleFor(i))}`).join(' ') }
 const dataPointsArr = computed(() => props.pentagonValues.map((v, i) => ({ x: CX + R * v * Math.cos(angleFor(i)), y: CY + R * v * Math.sin(angleFor(i)) })))
 const dataPoints = computed(() => dataPointsArr.value.map(p => `${p.x},${p.y}`).join(' '))
 function labelPos(i: number) { return { x: CX + (R + 20) * Math.cos(angleFor(i)), y: CY + (R + 20) * Math.sin(angleFor(i)) } }

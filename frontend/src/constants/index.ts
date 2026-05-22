@@ -27,6 +27,11 @@ export const POSITIONS = [
   { value: 'SS',  label: 'Второй нападающий', group: 'Нападающие' }
 ] as const
 
+// Быстрая мапа код → русское название (для рендера в карточках/чипах)
+export const POSITION_LABEL: Record<string, string> = Object.fromEntries(
+  POSITIONS.map(p => [p.value, p.label])
+)
+
 export const ATTENDANCE_STATUS = {
   Present: 'Присутствовал',
   Absent:  'Отсутствовал',

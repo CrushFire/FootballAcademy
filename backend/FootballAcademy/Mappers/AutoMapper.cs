@@ -145,6 +145,7 @@ namespace FootballAcademy.Mappers
                 TimeInSpeedZone6 = (int)source.Average(m => m.TimeInSpeedZone6),
                 TimeInSpeedZone7 = (int)source.Average(m => m.TimeInSpeedZone7),
                 MaximumSpeed = source.Max(m => m.MaximumSpeed),  // Max: лучший результат за период, а не средний
+                AverageSpeed = source.Average(m => m.AverageSpeed),  // среднее средних — корректно для сопоставимых по длительности тренировок
                 MaxAcceleration = source.Average(m => m.MaxAcceleration),
                 MaxDeceleration = source.Average(m => m.MaxDeceleration),
                 AccelerationCount = (int)source.Average(m => m.AccelerationCount),

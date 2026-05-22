@@ -14,7 +14,7 @@
           </svg>
         </div>
         <div class="flex-1 min-w-0">
-          <div class="text-sm font-semibold text-neutral-800">AI-анализ</div>
+          <div class="text-sm font-semibold text-neutral-800">AI-ассистент</div>
         </div>
         <button
           @click="createChat"
@@ -78,7 +78,7 @@
           </div>
           <div>
             <div class="font-semibold text-neutral-900 text-sm">{{ selectedChat.title }}</div>
-            <div class="text-xs text-neutral-400">AI-анализ · спортивные данные академии</div>
+            <div class="text-xs text-neutral-400">AI-ассистент · спортивные данные академии</div>
           </div>
         </div>
 
@@ -95,7 +95,7 @@
                 </svg>
               </div>
               <div class="text-center">
-                <div class="text-sm font-semibold text-neutral-600 mb-1">Спросите AI-аналитика</div>
+                <div class="text-sm font-semibold text-neutral-600 mb-1">Спросите AI-ассистента</div>
                 <div class="text-xs text-neutral-400 max-w-xs leading-relaxed">Анализ GPS-метрик, подбор позиций, оценка готовности к матчу, сравнение спортсменов</div>
               </div>
             </div>
@@ -153,7 +153,7 @@
               @input="autoResize"
               ref="textareaEl"
               rows="1"
-              placeholder="Спросить AI-аналитика..."
+              placeholder="Спросить AI-ассистента..."
               class="flex-1 px-4 py-2.5 text-sm border border-neutral-200 rounded-2xl focus:outline-none focus:border-violet-400 resize-none overflow-hidden leading-relaxed"
               style="max-height: 120px"
             />
@@ -180,7 +180,7 @@
         </div>
         <div class="text-center">
           <div class="text-sm font-semibold text-neutral-500 mb-1">Выберите чат или создайте новый</div>
-          <div class="text-xs text-neutral-400">AI-аналитик отвечает на вопросы по данным спортсменов</div>
+          <div class="text-xs text-neutral-400">AI-ассистент отвечает на вопросы по данным спортсменов</div>
         </div>
         <button
           @click="createChat"
@@ -254,7 +254,7 @@ function formatMessage(text: string): string {
       const parts = line.split('**')
       return parts
         .map((part, i) => i % 2 === 1
-          ? `<strong style="font-weight:700;color:#111">${escapeHtml(part)}</strong>`
+          ? `<strong style="font-weight:700">${escapeHtml(part)}</strong>`
           : escapeHtml(part))
         .join('')
     })

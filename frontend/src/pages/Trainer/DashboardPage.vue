@@ -121,7 +121,7 @@ const IconAi = defineComponent({ render: () => h('svg', { xmlns: 'http://www.w3.
 const quickLinks = [
   { to: '/trainer/sportsmen',  label: 'Спортсмены',  color: 'bg-blue-50 text-blue-600',     icon: IconUsers },
   { to: '/trainer/schedule',   label: 'Расписание',  color: 'bg-green-50 text-green-600',   icon: IconCalendar },
-  { to: '/trainer/ai-eval',    label: 'AI-анализ',   color: 'bg-violet-50 text-violet-600', icon: IconAi },
+  { to: '/trainer/ai-eval',    label: 'AI-ассистент', color: 'bg-violet-50 text-violet-600', icon: IconAi },
   { to: '/trainer/matches',    label: 'Матчи',       color: 'bg-sky-50 text-sky-600',       icon: IconCalendar },
   { to: '/trainer/groups',     label: 'Группы',      color: 'bg-indigo-50 text-indigo-600', icon: IconUsers },
   { to: '/trainer/normatives', label: 'Нормативы',   color: 'bg-orange-50 text-orange-600', icon: IconStar },

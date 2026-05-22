@@ -12,6 +12,7 @@ namespace Core.Models.Config
         public AbsoluteStandardsBlock AbsoluteStandards { get; set; } = new();
         public MedicalThresholdsBlock MedicalThresholds { get; set; } = new();
         public PentagonNormalizationBlock PentagonNormalization { get; set; } = new();
+        public ProfileThresholdsBlock ProfileThresholds { get; set; } = new();
     }
 
     public class AgeCoefficientsBlock
@@ -92,5 +93,83 @@ namespace Core.Models.Config
     {
         public double Relative { get; set; }
         public double Absolute { get; set; }
+    }
+
+    /// <summary>
+    /// Пороги активации профилей в ProfileService.
+    /// Все значения берутся из appsettings.Coefficients.json — секция ProfileThresholds.
+    /// Подобраны как ~среднее БД × 1.25-1.30 для каждой метрики (см. ПорогиПрофилейИгрока_Обоснование.txt).
+    /// </summary>
+    public class ProfileThresholdsBlock
+    {
+        // Логика: метрика > Hard → active. метрика > Soft (но не > Hard) → potential.
+        // По умолчанию Soft = Hard × PotentialMultiplier (0.7). Значения Soft в JSON предварительно
+        // рассчитаны под этот множитель, но КАЖДЫЙ Soft можно тонко настроить отдельно (исключение для профиля).
+        // PotentialMultiplier — справочный множитель: храним для документации и пересчёта при изменении Hard.
+
+        public double PotentialMultiplier { get; set; }
+
+        // Простые правила (Hard / Soft)
+        public double EnduranceRunner_AerobicLoad { get; set; }
+        public double EnduranceRunner_AerobicLoad_Soft { get; set; }
+        public double PowerPlayer_PlayerLoad { get; set; }
+        public double PowerPlayer_PlayerLoad_Soft { get; set; }
+        public double ExplosivePlayer_ExplosiveIndex { get; set; }
+        public double ExplosivePlayer_ExplosiveIndex_Soft { get; set; }
+        public double DynamicPlayer_AccelPerSecond { get; set; }
+        public double DynamicPlayer_AccelPerSecond_Soft { get; set; }
+        public double StaticPlayer_PlayerLoadPerDistance { get; set; }
+        public double StaticPlayer_PlayerLoadPerDistance_Soft { get; set; }
+
+        // Sprinter
+        public double Sprinter_SprintRatio { get; set; }
+        public double Sprinter_SprintRatio_Soft { get; set; }
+        public double Sprinter_AccelPerSecond { get; set; }
+        public double Sprinter_AccelPerSecond_Soft { get; set; }
+
+        // FlankPlayer
+        public double FlankPlayer_SprintRatio { get; set; }
+        public double FlankPlayer_SprintRatio_Soft { get; set; }
+        public double FlankPlayer_AccelPerSecond { get; set; }
+        public double FlankPlayer_AccelPerSecond_Soft { get; set; }
+        public double FlankPlayer_DistancePerMinute { get; set; }
+        public double FlankPlayer_DistancePerMinute_Soft { get; set; }
+        public double FlankPlayer_SpeedWeightMin { get; set; }
+
+        // DefenderType
+        public double DefenderType_Index { get; set; }
+        public double DefenderType_Index_Soft { get; set; }
+        public double DefenderType_PowerWeightMin { get; set; }
+
+        // CentralMidfielder
+        public double CentralMidfielder_Index { get; set; }
+        public double CentralMidfielder_Index_Soft { get; set; }
+        public double CentralMidfielder_EnduranceWeightMin { get; set; }
+
+        // DefensiveMidfielder
+        public double DefensiveMidfielder_Index { get; set; }
+        public double DefensiveMidfielder_Index_Soft { get; set; }
+
+        // AttackingMidfielder (окно — без soft, окно само мягкое)
+        public double AttackingMidfielder_SprintRatioMin { get; set; }
+        public double AttackingMidfielder_SprintRatioMax { get; set; }
+
+        // Forward
+        public double Forward_SprintRatio { get; set; }
+        public double Forward_SprintRatio_Soft { get; set; }
+        public double Forward_SprintWeightMin { get; set; }
+
+        // Offensive
+        public double Offensive_HighIntensityRatio { get; set; }
+        public double Offensive_HighIntensityRatio_Soft { get; set; }
+        public int Offensive_SprintEfforts { get; set; }
+        public int Offensive_SprintEfforts_Soft { get; set; }
+
+        // Defensive
+        public double Defensive_Index { get; set; }
+        public double Defensive_Index_Soft { get; set; }
+
+        // Universal — добавляется если active.Count >= UniversalMinActive
+        public int Universal_MinActiveCount { get; set; }
     }
 }

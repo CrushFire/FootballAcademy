@@ -11,6 +11,7 @@ services:
       ASPNETCORE_URLS: "http://+:5000"
       ConnectionStrings__Default: "Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}"
       Redis__Host: "redis"
+      OpenAI__ApiKey: "${OPENAI_API_KEY}"
     volumes:
       - images_data:/app/wwwroot/images
       - ./backend/FootballAcademy/knowledge:/app/knowledge

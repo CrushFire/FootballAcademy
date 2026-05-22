@@ -44,7 +44,7 @@
       >
         <div class="text-sm font-semibold text-neutral-800">{{ s.fio }}</div>
         <div class="text-xs text-neutral-400 mt-0.5">
-          {{ s.position ?? '—' }} · {{ SPEC_LABEL[s.specialization] ?? s.specialization }} · {{ s.age }} лет · {{ s.height }} см · {{ s.weight }} кг
+          {{ s.position ? `${s.position} (${POSITION_LABEL[s.position] ?? s.position})` : '—' }} · {{ SPEC_LABEL[s.specialization] ?? s.specialization }} · {{ s.age }} лет · {{ s.height }} см · {{ s.weight }} кг
         </div>
       </AdminEntityCard>
     </template>
@@ -77,7 +77,7 @@
     <FormField label="Позиция">
       <select v-model="editForm.position" class="w-full px-3 py-2 text-sm rounded-xl border border-neutral-200 focus:outline-none focus:border-blue-400">
         <option value="">—</option>
-        <option v-for="p in POSITIONS" :key="p" :value="p">{{ p }}</option>
+        <option v-for="p in POSITIONS" :key="p" :value="p">{{ p }} ({{ POSITION_LABEL[p] ?? p }})</option>
       </select>
     </FormField>
     <FormField label="Специализация">
@@ -144,6 +144,7 @@ import AdminEntityCard from '@/components/ui/AdminEntityCard.vue'
 import ConfirmDeleteModal from '@/components/ui/ConfirmDeleteModal.vue'
 import EditModal from '@/components/ui/EditModal.vue'
 import FormField from '@/components/ui/FormField.vue'
+import { POSITION_LABEL } from '@/constants'
 
 const { toast, showToast } = useToast()
 

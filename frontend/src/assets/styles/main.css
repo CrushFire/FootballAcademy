@@ -165,6 +165,10 @@ body {
 input::placeholder,
 textarea::placeholder { color: var(--color-muted) !important; }
 
+/* Тёмная тема — менее насыщенный текст placeholder (не такой белёсый) */
+.dark input::placeholder,
+.dark textarea::placeholder { color: #2F3A5A !important; opacity: 1; }
+
 /* Глобально убираем жёлтый autofill Chrome/Edge/Safari в любых полях.
    Цвет фона унаследуется от самого поля через box-shadow inset. */
 input:-webkit-autofill,

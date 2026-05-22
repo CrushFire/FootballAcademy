@@ -300,10 +300,12 @@ namespace Application.Services.MetricAnalytic
         private static double GetDistancePerMinute(TrainingMetrics m) =>
             m.Duration > 0 ? m.TotalDistance / (m.Duration / 60.0) : 0.0;
 
+        // «Взрывная» = частота взрывных эпизодов в минуту.
+        // Взрывные действия (резкие ускорения/торможения по производной скорости) — независимое множество
+        // от спринтов (попадание в 7-ю зону скорости). Поэтому отношение Explosive/Sprint некорректно.
+        // Берём абсолютную частоту: ExplosiveEfforts / минуты. Норматив см. ExplosiveContributionStandard (теперь /мин).
         private static double GetExplosiveContribution(TrainingMetrics m) =>
-            m.SprintEfforts > 0
-                ? Math.Clamp(m.ExplosiveEfforts / (double)m.SprintEfforts, 0.0, 1.0)
-                : 0.0;
+            m.Duration > 0 ? m.ExplosiveEfforts / (m.Duration / 60.0) : 0.0;
 
         private static double SafeDivide(double numerator, double denominator) =>
             denominator > 0 ? numerator / denominator : 0.0;

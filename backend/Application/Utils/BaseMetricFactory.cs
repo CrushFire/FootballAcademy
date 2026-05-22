@@ -18,8 +18,9 @@ namespace Application.Utils
             return new CommonMetricsAllFormulas
             {
                 MaxSpeed = m.MaximumSpeed,
-                // м / с * 3.6 = км/ч (TotalDistance в метрах, Duration в секундах)
-                AvgSpeed = SafeDivide(m.TotalDistance * 3.6, m.Duration),
+                // AvgSpeed (км/ч) приходит из XLSX от GPS-трекера — доверяем его собственному расчёту,
+                // не считаем заново через TotalDistance/Duration.
+                AvgSpeed = m.AverageSpeed,
                 SprintRatio = SafeDivide(m.SprintDistance, m.TotalDistance),
                 HighSpeedRatio = SafeDivide(m.HighSpeedDistance, m.TotalDistance),
                 PlayerLoad = m.PlayerLoad,
