@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Вариант 4 — Один мяч на поле</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { min-height: 100vh; display: flex; align-items: center; justify-content: center; font-family: 'Segoe UI', system-ui, sans-serif; overflow: hidden; }
+    canvas { position: fixed; inset: 0; z-index: 0; }
+    #frame { position: fixed; inset: 0; border: 20px solid #0c2461; z-index: 200; pointer-events: none; border-radius: 4px; }
+    #frame::after { content: ''; position: absolute; inset: 3px; border: 1.5px solid rgba(99,157,255,0.4); border-radius: 2px; }
+    .card { position: relative; z-index: 10; width: 100%; max-width: 480px; margin: 24px; background: rgba(255,255,255,0.93); backdrop-filter: blur(20px); border-radius: 28px; border: 1px solid rgba(255,255,255,0.8); padding: 48px 48px 38px; box-shadow: 0 32px 80px rgba(10,36,99,0.4), 0 0 0 1px rgba(59,130,246,0.1); }
+    .logo-wrap { display: flex; flex-direction: column; align-items: center; margin-bottom: 32px; gap: 12px; }
+    .logo-box { width: 100px; height: 100px; border-radius: 26px; background: linear-gradient(145deg, #e0eeff, #c7d9f8); display: flex; align-items: center; justify-content: center; border: 1px solid rgba(147,197,253,0.6); box-shadow: 0 8px 24px rgba(37,99,235,0.18); }
+    h1 { font-size: 26px; font-weight: 800; color: #1e3a8a; }
+    .tag { font-size: 11px; font-weight: 600; color: #3b82f6; background: #eff6ff; border: 1px solid #bfdbfe; padding: 3px 12px; border-radius: 20px; }
+    .field-group { margin-bottom: 18px; }
+    label { display: block; font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 8px; }
+    input { width: 100%; padding: 13px 16px; border-radius: 14px; border: 1.5px solid #e2e8f0; background: #f8fafc; font-size: 15px; color: #0f172a; outline: none; font-family: inherit; transition: border-color .2s, box-shadow .2s; }
+    input:focus { border-color: #3b82f6; background: #fff; box-shadow: 0 0 0 4px rgba(59,130,246,0.12); }
+    input::placeholder { color: #94a3b8; }
+    .divider { display: flex; align-items: center; gap: 10px; margin: 18px 0 16px; font-size: 11px; color: #cbd5e1; }
+    .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: #e2e8f0; }
+    .btn { width: 100%; padding: 15px; border-radius: 16px; border: none; cursor: pointer; font-size: 15px; font-weight: 700; color: #fff; background: linear-gradient(135deg, #1d4ed8 0%, #3b82f6 100%); box-shadow: 0 4px 20px rgba(29,78,216,0.4); transition: transform .15s; }
+    .btn:hover { transform: translateY(-1px); }
+    .footer-tags { display: flex; justify-content: center; gap: 16px; margin-top: 20px; padding-top: 16px; border-top: 1px solid #f1f5f9; }
+    .footer-tags span { font-size: 11px; color: #94a3b8; }
+  </style>
+</head>
+<body>
+  <canvas id="c"></canvas>
+  <div id="frame"></div>
+  <div class="card">
+    <div class="logo-wrap">
+      <div class="logo-box"><span style="font-size:52px">⚽</span></div>
+      <h1>FootballAcademy</h1>
+      <span class="tag">⚽ Твой путь к большому футболу!</span>
+    </div>
+    <form onsubmit="return false">
+      <div class="field-group"><label>Электронная почта</label><input type="email" placeholder="example@sport.ru"/></div>
+      <div class="field-group"><label>Пароль</label><input type="password" placeholder="••••••••"/></div>
+      <div class="divider">войти в систему</div>
+      <button class="btn">⚽&nbsp; Войти</button>
+    </form>
+    <div class="footer-tags"><span>🥅 Забивай голы</span><span>📈 Рости с нами</span><span>🌟 Стань лучшим</span></div>
+  </div>
+  <script>
+    const canvas = document.getElementById('c'), ctx = canvas.getContext('2d')
+    let W, H
+    const BORDER = 20
+    function resize() { W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight }
+    resize(); window.addEventListener('resize', resize)
+
+    const ball = { x: 0, y: 0, vx: 3.2, vy: 2.1, r: 22, rot: 0 }
+    ball.x = W / 2; ball.y = H / 2
+
+    // след мяча
+    const trail = []
+
+    function drawField() {
+      const sw = W / 10
+      for (let i = 0; i < 10; i++) {
+        ctx.fillStyle = i % 2 === 0 ? '#0d2e0a' : '#0f3410'
+        ctx.fillRect(i * sw, 0, sw, H)
+      }
+      ctx.strokeStyle = 'rgba(255,255,255,0.45)'
+      ctx.lineWidth = 2
+      const p = Math.min(W,H)*0.06, fw = W-p*2, fh = H-p*2
+      ctx.strokeRect(p,p,fw,fh)
+      ctx.beginPath(); ctx.moveTo(W/2,p); ctx.lineTo(W/2,p+fh); ctx.stroke()
+      const cr = Math.min(fw,fh)*0.12
+      ctx.beginPath(); ctx.arc(W/2,H/2,cr,0,Math.PI*2); ctx.stroke()
+      ctx.fillStyle='rgba(255,255,255,0.45)'; ctx.beginPath(); ctx.arc(W/2,H/2,4,0,Math.PI*2); ctx.fill()
+      const bw=fw*0.12,bh=fh*0.38
+      ctx.strokeRect(p,H/2-bh/2,bw,bh); ctx.strokeRect(p+fw-bw,H/2-bh/2,bw,bh)
+      const gw=fw*0.025,gh=fh*0.16
+      ctx.strokeRect(p-gw,H/2-gh/2,gw,gh); ctx.strokeRect(p+fw,H/2-gh/2,gw,gh)
+      const ar=Math.min(fw,fh)*0.03
+      ;[[p,p,0],[p+fw,p,Math.PI/2],[p,p+fh,-Math.PI/2],[p+fw,p+fh,Math.PI]].forEach(([cx,cy,sa])=>{
+        ctx.beginPath(); ctx.arc(cx,cy,ar,sa,sa+Math.PI/2); ctx.stroke()
+      })
+      ctx.beginPath(); ctx.arc(p+fw*0.09,H/2,4,0,Math.PI*2); ctx.fill()
+      ctx.beginPath(); ctx.arc(p+fw*0.91,H/2,4,0,Math.PI*2); ctx.fill()
+    }
+
+    function drawBall(x, y, rot) {
+      const r = ball.r
+      ctx.save()
+      ctx.translate(x, y)
+
+      // тень
+      ctx.beginPath(); ctx.ellipse(0, r * 0.9, r * 0.8, r * 0.25, 0, 0, Math.PI*2)
+      ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.fill()
+
+      ctx.rotate(rot)
+
+      // основа мяча
+      const grad = ctx.createRadialGradient(-r*0.3, -r*0.3, r*0.1, 0, 0, r)
+      grad.addColorStop(0, '#ffffff')
+      grad.addColorStop(0.5, '#e8e8e8')
+      grad.addColorStop(1, '#c0c0c0')
+      ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI*2)
+      ctx.fillStyle = grad; ctx.fill()
+
+      // пятиугольные пятна (5 штук)
+      ctx.fillStyle = '#1a1a1a'
+      const spots = [
+        [0, 0],
+        [0, -r*0.52],
+        [r*0.5, -r*0.16],
+        [r*0.31, r*0.43],
+        [-r*0.31, r*0.43],
+        [-r*0.5, -r*0.16],
+      ]
+      for (const [sx, sy] of spots) {
+        ctx.beginPath()
+        for (let i = 0; i < 5; i++) {
+          const a = (i / 5) * Math.PI * 2 - Math.PI / 2
+          const pr = r * 0.18
+          i === 0 ? ctx.moveTo(sx + pr*Math.cos(a), sy + pr*Math.sin(a))
+                  : ctx.lineTo(sx + pr*Math.cos(a), sy + pr*Math.sin(a))
+        }
+        ctx.closePath(); ctx.fill()
+      }
+
+      // блик
+      ctx.beginPath(); ctx.arc(-r*0.28, -r*0.28, r*0.18, 0, Math.PI*2)
+      ctx.fillStyle = 'rgba(255,255,255,0.55)'; ctx.fill()
+
+      ctx.restore()
+    }
+
+    function loop() {
+      ctx.clearRect(0,0,W,H)
+      drawField()
+
+      // обновить мяч
+      ball.x += ball.vx; ball.y += ball.vy
+      ball.rot += Math.sqrt(ball.vx**2 + ball.vy**2) * 0.04
+
+      const minX = BORDER + ball.r, maxX = W - BORDER - ball.r
+      const minY = BORDER + ball.r, maxY = H - BORDER - ball.r
+      if (ball.x < minX) { ball.x = minX; ball.vx = Math.abs(ball.vx) }
+      if (ball.x > maxX) { ball.x = maxX; ball.vx = -Math.abs(ball.vx) }
+      if (ball.y < minY) { ball.y = minY; ball.vy = Math.abs(ball.vy) }
+      if (ball.y > maxY) { ball.y = maxY; ball.vy = -Math.abs(ball.vy) }
+
+      // след
+      trail.push({ x: ball.x, y: ball.y, age: 0 })
+      if (trail.length > 28) trail.shift()
+      for (let i = 0; i < trail.length; i++) {
+        const p = trail[i]
+        const alpha = (i / trail.length) * 0.18
+        const r = ball.r * (i / trail.length) * 0.7
+        ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, Math.PI*2)
+        ctx.fillStyle = `rgba(255,255,255,${alpha})`; ctx.fill()
+      }
+
+      drawBall(ball.x, ball.y, ball.rot)
+      requestAnimationFrame(loop)
+    }
+    loop()
+  </script>
+</body>
+</html>

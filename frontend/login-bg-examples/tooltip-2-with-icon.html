@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Tooltip — с иконкой вопроса</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f1f5f9; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+
+    .card { background: #fff; border-radius: 16px; border: 1px solid #e2e8f0; padding: 24px; width: 280px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+    .card-title { font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; }
+
+    .row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; font-size: 13px; border-bottom: 1px solid #f8fafc; }
+    .row:last-child { border-bottom: none; }
+    .row-label { color: #64748b; display: flex; align-items: center; gap: 4px; }
+    .row-value { font-weight: 600; color: #0f172a; }
+
+    /* Иконка вопроса */
+    .q-icon {
+      width: 14px; height: 14px;
+      border-radius: 50%;
+      background: #e2e8f0;
+      color: #94a3b8;
+      font-size: 9px;
+      font-weight: 700;
+      display: inline-flex; align-items: center; justify-content: center;
+      cursor: default;
+      flex-shrink: 0;
+    }
+
+    /* Tooltip */
+    .tip { position: relative; display: inline-flex; align-items: center; }
+    .tip .bubble {
+      display: none;
+      position: absolute;
+      bottom: calc(100% + 8px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: #f1f5f9;
+      border: 1px solid #e2e8f0;
+      color: #475569;
+      font-size: 11px;
+      font-weight: 400;
+      padding: 6px 10px;
+      border-radius: 8px;
+      white-space: nowrap;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      z-index: 100;
+      pointer-events: none;
+      max-width: 220px;
+      white-space: normal;
+      text-align: center;
+      line-height: 1.4;
+    }
+    .tip .bubble::after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 5px solid transparent;
+      border-top-color: #e2e8f0;
+    }
+    .tip:hover .bubble { display: block; }
+    .tip:hover .q-icon { background: #3b82f6; color: #fff; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="card-title">С иконкой вопроса</div>
+
+    <div class="row">
+      <span class="row-label">
+        Средняя скорость
+        <span class="tip">
+          <span class="q-icon">?</span>
+          <span class="bubble">Средняя скорость за всю тренировку</span>
+        </span>
+      </span>
+      <span class="row-value">8.4 км/ч</span>
+    </div>
+
+    <div class="row">
+      <span class="row-label">
+        Макс. скорость
+        <span class="tip">
+          <span class="q-icon">?</span>
+          <span class="bubble">Пиковая скорость за тренировку</span>
+        </span>
+      </span>
+      <span class="row-value">28.1 км/ч</span>
+    </div>
+
+    <div class="row">
+      <span class="row-label">
+        Доля спринта
+        <span class="tip">
+          <span class="q-icon">?</span>
+          <span class="bubble">Отношение спринтерской дистанции к общей дистанции</span>
+        </span>
+      </span>
+      <span class="row-value">12.3%</span>
+    </div>
+
+    <div class="row">
+      <span class="row-label">
+        Нагрузка игрока
+        <span class="tip">
+          <span class="q-icon">?</span>
+          <span class="bubble">Суммарная физическая нагрузка за тренировку</span>
+        </span>
+      </span>
+      <span class="row-value">219.6</span>
+    </div>
+
+    <div class="row">
+      <span class="row-label">
+        Индекс усталости
+        <span class="tip">
+          <span class="q-icon">?</span>
+          <span class="bubble">Отношение текущей нагрузки к средней за последние 5 тренировок. Больше 1.2 — риск перегрузки</span>
+        </span>
+      </span>
+      <span class="row-value">1.12</span>
+    </div>
+  </div>
+</body>
+</html>

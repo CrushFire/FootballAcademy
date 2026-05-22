@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Tooltip — без иконки вопроса</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f1f5f9; display: flex; align-items: center; justify-content: center; min-height: 100vh; gap: 40px; }
+
+    .card { background: #fff; border-radius: 16px; border: 1px solid #e2e8f0; padding: 24px; width: 280px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+    .card-title { font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; }
+
+    .row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; font-size: 13px; border-bottom: 1px solid #f8fafc; }
+    .row:last-child { border-bottom: none; }
+    .row-label { color: #64748b; cursor: default; }
+    .row-value { font-weight: 600; color: #0f172a; }
+
+    /* Tooltip */
+    .tip { position: relative; display: inline-block; }
+    .tip .bubble {
+      display: none;
+      position: absolute;
+      bottom: calc(100% + 8px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: #f1f5f9;
+      border: 1px solid #e2e8f0;
+      color: #475569;
+      font-size: 11px;
+      font-weight: 400;
+      padding: 6px 10px;
+      border-radius: 8px;
+      white-space: nowrap;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      z-index: 100;
+      pointer-events: none;
+    }
+    .tip .bubble::after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 5px solid transparent;
+      border-top-color: #e2e8f0;
+    }
+    .tip:hover .bubble { display: block; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="card-title">Без иконки вопроса</div>
+
+    <div class="row">
+      <span class="row-label tip">
+        Средняя скорость
+        <span class="bubble">Средняя скорость за всю тренировку</span>
+      </span>
+      <span class="row-value">8.4 км/ч</span>
+    </div>
+
+    <div class="row">
+      <span class="row-label tip">
+        Макс. скорость
+        <span class="bubble">Пиковая скорость за тренировку</span>
+      </span>
+      <span class="row-value">28.1 км/ч</span>
+    </div>
+
+    <div class="row">
+      <span class="row-label tip">
+        Доля спринта
+        <span class="bubble">Отношение спринтерской дистанции к общей</span>
+      </span>
+      <span class="row-value">12.3%</span>
+    </div>
+
+    <div class="row">
+      <span class="row-label tip">
+        Нагрузка игрока
+        <span class="bubble">Суммарная физическая нагрузка за тренировку</span>
+      </span>
+      <span class="row-value">219.6</span>
+    </div>
+
+    <div class="row">
+      <span class="row-label tip">
+        Индекс усталости
+        <span class="bubble">Отношение текущей нагрузки к средней за 5 тренировок</span>
+      </span>
+      <span class="row-value">1.12</span>
+    </div>
+  </div>
+</body>
+</html>

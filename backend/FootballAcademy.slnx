@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="Application/Application.csproj" Id="96f856e4-f12e-4edd-9d95-087e301f83cb" />
+  <Project Path="Core/Core.csproj" Id="9e1de29a-702c-4d53-bfdb-121d8c5ce2ba" />
+  <Project Path="DataAccess/DataAccess.csproj" Id="fa6a812f-12da-45a8-980a-8dae4a669067" />
+  <Project Path="FootballAcademy/FootballAcademy.csproj" />
+</Solution>

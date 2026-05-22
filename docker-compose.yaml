@@ -1,0 +1,134 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: FootballAcademy_backend
+    ports:
+      - "5000:5000"
+    environment:
+      ASPNETCORE_ENVIRONMENT: "Development"
+      ASPNETCORE_URLS: "http://+:5000"
+      ConnectionStrings__Default: "Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}"
+      Redis__Host: "redis"
+    volumes:
+      - images_data:/app/wwwroot/images
+      - ./backend/FootballAcademy/knowledge:/app/knowledge
+      - ./backend/FootballAcademy/uploads:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - appnet
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: FootballAcademy_frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    networks:
+      - appnet
+
+  # =====================================================
+  # TODO: разкомментировать когда понадобится AI-часть
+  # python-backend-ai:
+  #   build:
+  #     context: ./python_backend_AI
+  #     dockerfile: Dockerfile
+  #   container_name: FootballAcademy_python_ai
+  #   ports:
+  #     - "7000:7000"
+  #   environment:
+  #     - WEAVIATE_URL=http://weaviate:7080
+  #     - POSTGRES_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+  #     - OPENAI_API_KEY=${OPENAI_API_KEY}
+  #     - OLLAMA_URL=${OLLAMA_URL}
+  #     - LLM_MODEL=llama3:8b-instruct-q4_0
+  #   volumes:
+  #     - ./data:/app/data
+  #   depends_on:
+  #     - weaviate
+  #     - postgres
+  #   networks:
+  #     - appnet
+  # =====================================================
+
+
+  postgres:
+    image: pgvector/pgvector:pg17
+    container_name: FootballAcademy_postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-FootballAcademy_DB}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - appnet
+
+  # =====================================================
+  # TODO: разкомментировать когда понадобится
+  # pgadmin:
+  #   image: dpage/pgadmin4
+  #   container_name: FootballAcademy_pgadmin
+  #   environment:
+  #     PGADMIN_DEFAULT_EMAIL: admin@admin.com
+  #     PGADMIN_DEFAULT_PASSWORD: admin123
+  #   ports:
+  #     - "5050:80"
+  #   depends_on:
+  #     - postgres
+  #   networks:
+  #     - appnet
+  # =====================================================
+
+  redis:
+    image: redis:7.4-alpine
+    container_name: FootballAcademy_redis
+    ports:
+      - "6379:6379"
+    networks:
+      - appnet
+
+  # =====================================================
+  # TODO: разкомментировать когда понадобится
+  # weaviate:
+  #   image: cr.weaviate.io/semitechnologies/weaviate:1.24.0
+  #   container_name: FootballAcademy_weaviate
+  #   ports:
+  #     - "7080:8080"
+  #   environment:
+  #     - QUERY_DEFAULTS_LIMIT=25
+  #     - AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED=true
+  #     - PERSISTENCE_DATA_PATH=/var/lib/weaviate
+  #     - DEFAULT_VECTORIZER_MODULE=text2vec-openai
+  #     - ENABLE_MODULES=text2vec-openai
+  #     - OPENAI_APIKEY=${OPENAI_API_KEY}
+  #   volumes:
+  #     - weaviate_data:/var/lib/weaviate
+  #   networks:
+  #     - appnet
+  # =====================================================
+
+volumes:
+  pgdata:
+  redis_data:
+  weaviate_data:
+  images_data:
+
+networks:
+  appnet:
+    driver: bridge

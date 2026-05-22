@@ -1,0 +1,569 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-primary:       #3b82f6;
+  --color-background:    #f8fafc;
+  --color-surface:       #f1f5f9;
+  --color-surface-inner: #e8edf2;
+  --color-foreground:    #000000;
+  --color-muted:         #64748b;
+  --color-input:         #ffffff;
+  --color-input-focus:   #eef2f6;
+  --color-input-line:    #64748b;
+  --color-border:        #e2e8f0;
+  --color-shadow:        rgba(0, 0, 0, 0.08);
+  --color-press:         rgba(0, 0, 0, 0.06);
+  --radius-sm:   0.375rem;
+  --radius-md:   0.5rem;
+  --radius-lg:   0.75rem;
+  --radius-xl:   1rem;
+  --radius-full: 9999px;
+
+  /* === Семантические токены — светлая тема === */
+  --theme-bg:         #FFFFFF;
+  --theme-surface:    #FFFFFF;
+  --theme-surface-2:  #F8FAFC;
+  --theme-surface-3:  #F1F5F9;
+  --theme-border:     #E2E8F0;
+  --theme-line:       #F1F5F9;
+  --theme-text:       #0F172A;
+  --theme-text-2:     #475569;
+  --theme-muted:      #94A3B8;
+  --theme-accent:     #3B82F6;
+  --theme-accent-2:   #60A5FA;
+
+  /* Цветные плашки (chip) — светлая тема */
+  --theme-chip-blue:        #DBEAFE;
+  --theme-chip-blue-text:   #1D4ED8;
+  --theme-chip-sky:         #E0F2FE;
+  --theme-chip-sky-text:    #0369A1;
+  --theme-chip-green:       #DCFCE7;
+  --theme-chip-green-text:  #15803D;
+  --theme-chip-amber:       #FEF3C7;
+  --theme-chip-amber-text:  #B45309;
+  --theme-chip-red:         #FFE4E6;
+  --theme-chip-red-text:    #BE123C;
+  --theme-chip-violet:      #EDE9FE;
+  --theme-chip-violet-text: #6D28D9;
+  --theme-chip-neutral:     #F1F5F9;
+  --theme-chip-neutral-text:#475569;
+
+  /* Полоски-градиенты на карточках — светлая тема */
+  --theme-stripe-blue:    #3B82F6;
+  --theme-stripe-emerald: #10B981;
+  --theme-stripe-amber:   #F59E0B;
+  --theme-stripe-red:     #EF4444;
+  --theme-stripe-violet:  #8B5CF6;
+  --theme-stripe-orange:  #F97316;
+  --theme-stripe-teal:    #14B8A6;
+}
+
+.dark {
+  --color-primary:       #60A5FA;
+  --color-background:    #0B1220;
+  --color-surface:       #111A2E;
+  --color-surface-inner: #162238;
+  --color-border:        #1F2D4D;
+  --color-foreground:    #E5ECFA;
+  --color-muted:         #A8B4D2;
+  --color-input:         #162238;
+  --color-input-focus:   #1F2D4D;
+  --color-input-line:    #A8B4D2;
+  --color-shadow:        rgba(0, 0, 0, 0.4);
+  --color-press:         rgba(255, 255, 255, 0.06);
+
+  /* === Семантические токены — тёмная тема === */
+  --theme-bg:         #0B1220;
+  --theme-surface:    #111A2E;
+  --theme-surface-2:  #162238;
+  --theme-surface-3:  #1B2840;
+  --theme-border:     #1F2D4D;
+  --theme-line:       #243557;
+  --theme-text:       #E5ECFA;
+  --theme-text-2:     #A8B4D2;
+  --theme-muted:      #6B7BA0;
+  --theme-accent:     #3B82F6;
+  --theme-accent-2:   #60A5FA;
+
+  /* Цветные плашки (chip) — тёмная тема, насыщенные акценты */
+  --theme-chip-blue:        rgba(59, 130, 246, 0.35);
+  --theme-chip-blue-text:   #BFDBFE;
+  --theme-chip-sky:         rgba(14, 165, 233, 0.35);
+  --theme-chip-sky-text:    #BAE6FD;
+  --theme-chip-green:       rgba(16, 185, 129, 0.35);
+  --theme-chip-green-text:  #A7F3D0;
+  --theme-chip-amber:       rgba(245, 158, 11, 0.35);
+  --theme-chip-amber-text:  #FDE68A;
+  --theme-chip-red:         rgba(239, 68, 68, 0.35);
+  --theme-chip-red-text:    #FECACA;
+  --theme-chip-violet:      rgba(139, 92, 246, 0.35);
+  --theme-chip-violet-text: #DDD6FE;
+  --theme-chip-neutral:     rgba(168, 180, 210, 0.20);
+  --theme-chip-neutral-text:#CBD5E1;
+
+  /* Полоски-градиенты на карточках — тёмная тема, тёмно-насыщенные */
+  --theme-stripe-blue:    #1E3A8A;
+  --theme-stripe-emerald: #064E3B;
+  --theme-stripe-amber:   #78350F;
+  --theme-stripe-red:     #7F1D1D;
+  --theme-stripe-violet:  #4C1D95;
+  --theme-stripe-orange:  #7C2D12;
+  --theme-stripe-teal:    #134E4A;
+}
+
+html { font-size: 100%; }
+:root { color-scheme: light; }
+.dark { color-scheme: dark; }
+
+* { color: var(--color-foreground); }
+
+body {
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+
+/* Поля ввода */
+.input-container {
+  background: linear-gradient(to top, var(--color-input-focus) 0%, var(--color-input) 50%);
+  background-size: 100% 0%;
+  background-position: bottom;
+  background-repeat: no-repeat;
+  background-color: var(--color-input);
+  border: 1px solid var(--color-border);
+  border-bottom: 3px solid var(--color-input);
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  overflow: hidden;
+  transition: background-size 0.6s ease, border-bottom-color 0.6s ease;
+}
+.input-container input {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+}
+.input-container:hover:not(:has(.no-hover-effect)) {
+  background-size: 100% 200%;
+  border-bottom-color: var(--color-input-line);
+}
+.input-container:focus-within:not(:has(.no-hover-effect)) {
+  background-size: 100% 200%;
+  border-bottom-color: var(--color-primary);
+}
+.input-container input:-webkit-autofill,
+.input-container input:-webkit-autofill:hover,
+.input-container input:-webkit-autofill:focus,
+.input-container input:-webkit-autofill:active {
+  -webkit-box-shadow: none !important;
+  background-color: transparent !important;
+  -webkit-text-fill-color: var(--color-foreground) !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+input::placeholder,
+textarea::placeholder { color: var(--color-muted) !important; }
+
+/* Глобально убираем жёлтый autofill Chrome/Edge/Safari в любых полях.
+   Цвет фона унаследуется от самого поля через box-shadow inset. */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active,
+textarea:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0 1000px var(--color-input) inset !important;
+  -webkit-text-fill-color: var(--color-foreground) !important;
+  caret-color: var(--color-foreground) !important;
+  transition: background-color 5000s ease-in-out 0s !important;
+}
+
+input[type=range] { accent-color: var(--color-primary); }
+
+/* Скроллбар */
+.submenu-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border) transparent;
+}
+.submenu-scroll::-webkit-scrollbar       { width: 4px; }
+.submenu-scroll::-webkit-scrollbar-track { background: transparent; }
+.submenu-scroll::-webkit-scrollbar-thumb { background-color: var(--color-border); border-radius: 999px; }
+
+/* Скрытый скроллбар */
+.scrollbar-none { scrollbar-width: none; }
+.scrollbar-none::-webkit-scrollbar { display: none; }
+
+/* Убрать стрелки у number input */
+.no-spin::-webkit-outer-spin-button,
+.no-spin::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.no-spin { -moz-appearance: textfield; }
+
+/* ==================================================================
+   ТЁМНАЯ ТЕМА — глобальные переопределения частых Tailwind-классов
+   Идея: в светлой теме всё остаётся как есть. В .dark эти классы
+   переписываются на тёмные эквиваленты с синим подтоном.
+   ================================================================== */
+
+.dark .bg-white { background-color: var(--theme-surface) !important; }
+.dark .bg-neutral-50  { background-color: var(--theme-surface-2) !important; }
+.dark .bg-neutral-100 { background-color: var(--theme-surface-3) !important; }
+.dark .bg-neutral-200 { background-color: #243557 !important; }
+.dark .bg-slate-50  { background-color: var(--theme-surface-2) !important; }
+.dark .bg-slate-100 { background-color: var(--theme-surface-3) !important; }
+.dark .bg-slate-200 { background-color: #243557 !important; }
+
+.dark .border-neutral-50  { border-color: var(--theme-line) !important; }
+.dark .border-neutral-100 { border-color: var(--theme-line) !important; }
+.dark .border-neutral-200 { border-color: var(--theme-border) !important; }
+.dark .border-neutral-300 { border-color: var(--theme-border) !important; }
+
+/* border-dashed без явного border-* — задаём цвет вручную чтобы не наследовать currentColor (становится белым на тёмном) */
+.dark .border-dashed { border-color: #34466E; }
+.dark .border-neutral-400 { border-color: #34466E !important; }
+.dark .border-neutral-500 { border-color: #4A5680 !important; }
+.dark .border-neutral-600,
+.dark .border-neutral-700,
+.dark .border-neutral-800,
+.dark .border-neutral-900 { border-color: #34466E !important; }
+
+.dark .text-neutral-900 { color: var(--theme-text) !important; }
+.dark .text-neutral-800 { color: var(--theme-text) !important; }
+.dark .text-neutral-700 { color: var(--theme-text-2) !important; }
+.dark .text-neutral-600 { color: var(--theme-text-2) !important; }
+.dark .text-neutral-500 { color: var(--theme-text-2) !important; }
+.dark .text-neutral-400 { color: var(--theme-muted) !important; }
+.dark .text-neutral-300 { color: var(--theme-muted) !important; }
+
+.dark .divide-neutral-100 > * + * { border-color: var(--theme-line) !important; }
+.dark .divide-neutral-50  > * + * { border-color: var(--theme-line) !important; }
+
+/* ===== Цветные плашки (фоны *-50/100) — полупрозрачные подсветки на тёмном ===== */
+.dark .bg-blue-50    { background-color: rgba(59, 130, 246, 0.15) !important; }
+.dark .bg-blue-100   { background-color: rgba(59, 130, 246, 0.22) !important; }
+.dark .bg-sky-50     { background-color: rgba(14, 165, 233, 0.15) !important; }
+.dark .bg-sky-100    { background-color: rgba(14, 165, 233, 0.22) !important; }
+.dark .bg-indigo-50  { background-color: rgba(99, 102, 241, 0.15) !important; }
+.dark .bg-cyan-50    { background-color: rgba(6, 182, 212, 0.15) !important; }
+.dark .bg-teal-50    { background-color: rgba(20, 184, 166, 0.15) !important; }
+.dark .bg-teal-100   { background-color: rgba(20, 184, 166, 0.22) !important; }
+.dark .bg-green-50   { background-color: rgba(16, 185, 129, 0.15) !important; }
+.dark .bg-green-100  { background-color: rgba(16, 185, 129, 0.22) !important; }
+.dark .bg-emerald-50 { background-color: rgba(16, 185, 129, 0.15) !important; }
+.dark .bg-emerald-100{ background-color: rgba(16, 185, 129, 0.22) !important; }
+.dark .bg-yellow-50  { background-color: rgba(234, 179, 8, 0.18) !important; }
+.dark .bg-yellow-100 { background-color: rgba(234, 179, 8, 0.25) !important; }
+.dark .bg-amber-50   { background-color: rgba(234, 179, 8, 0.18) !important; }
+.dark .bg-amber-100  { background-color: rgba(234, 179, 8, 0.25) !important; }
+.dark .bg-orange-50  { background-color: rgba(249, 115, 22, 0.15) !important; }
+.dark .bg-orange-100 { background-color: rgba(249, 115, 22, 0.22) !important; }
+.dark .bg-red-50     { background-color: rgba(239, 68, 68, 0.15) !important; }
+.dark .bg-red-100    { background-color: rgba(239, 68, 68, 0.22) !important; }
+.dark .bg-rose-50    { background-color: rgba(244, 63, 94, 0.15) !important; }
+
+/* Alpha-варианты bg-*-50/число — точечные классы через escape-селектор,
+   чтобы не задеть hover:bg-*-50/число (применяется только при наведении).
+   Перечисляем все используемые в проекте значения прозрачности: 20/30/40/50/60. */
+
+/* green / emerald */
+.dark .bg-green-50\/20,   .dark .bg-green-50\/30,
+.dark .bg-green-50\/40,   .dark .bg-green-50\/50,
+.dark .bg-green-50\/60,
+.dark .bg-emerald-50\/20, .dark .bg-emerald-50\/30,
+.dark .bg-emerald-50\/40, .dark .bg-emerald-50\/50,
+.dark .bg-emerald-50\/60 { background-color: rgba(16, 185, 129, 0.10) !important; }
+
+/* blue */
+.dark .bg-blue-50\/20,    .dark .bg-blue-50\/30,
+.dark .bg-blue-50\/40,    .dark .bg-blue-50\/50,
+.dark .bg-blue-50\/60     { background-color: rgba(59, 130, 246, 0.12) !important; }
+
+/* sky */
+.dark .bg-sky-50\/30,     .dark .bg-sky-50\/40,
+.dark .bg-sky-50\/50,     .dark .bg-sky-50\/60
+                          { background-color: rgba(14, 165, 233, 0.10) !important; }
+
+/* yellow / amber */
+.dark .bg-yellow-50\/30,  .dark .bg-yellow-50\/40,
+.dark .bg-yellow-50\/50,  .dark .bg-yellow-50\/60,
+.dark .bg-amber-50\/30,   .dark .bg-amber-50\/40,
+.dark .bg-amber-50\/50,   .dark .bg-amber-50\/60
+                          { background-color: rgba(234, 179, 8, 0.12) !important; }
+
+/* orange */
+.dark .bg-orange-50\/30,  .dark .bg-orange-50\/40,
+.dark .bg-orange-50\/50,  .dark .bg-orange-50\/60
+                          { background-color: rgba(249, 115, 22, 0.10) !important; }
+
+/* red / rose */
+.dark .bg-red-50\/20,     .dark .bg-red-50\/30,
+.dark .bg-red-50\/40,     .dark .bg-red-50\/50,
+.dark .bg-red-50\/60,
+.dark .bg-rose-50\/30,    .dark .bg-rose-50\/40
+                          { background-color: rgba(239, 68, 68, 0.10) !important; }
+
+/* teal — используется в нормативах */
+.dark .bg-teal-50\/40,    .dark .bg-teal-50\/30
+                          { background-color: rgba(20, 184, 166, 0.10) !important; }
+
+/* purple / violet */
+.dark .bg-purple-50\/30,  .dark .bg-purple-50\/40,
+.dark .bg-violet-50\/30,  .dark .bg-violet-50\/40
+                          { background-color: rgba(139, 92, 246, 0.10) !important; }
+
+/* pink */
+.dark .bg-pink-50\/30,    .dark .bg-pink-50\/40
+                          { background-color: rgba(236, 72, 153, 0.10) !important; }
+
+/* Нейтральные alpha-маски */
+.dark .bg-neutral-50\/50,
+.dark .bg-neutral-50\/60   { background-color: rgba(168, 180, 210, 0.06) !important; }
+.dark .bg-neutral-900\/35,
+.dark .bg-neutral-900\/50  { background-color: rgba(0, 0, 0, 0.5) !important; }
+
+/* bg-neutral-900 как разделительная линия (w-px bg-neutral-900 / h-px bg-neutral-900) */
+.dark .bg-neutral-900 { background-color: #34466E !important; }
+.dark .bg-neutral-800 { background-color: #34466E !important; }
+.dark .bg-neutral-700 { background-color: #2E4068 !important; }
+.dark .bg-purple-50  { background-color: rgba(168, 85, 247, 0.15) !important; }
+.dark .bg-purple-100 { background-color: rgba(168, 85, 247, 0.22) !important; }
+.dark .bg-violet-50  { background-color: rgba(139, 92, 246, 0.15) !important; }
+.dark .bg-violet-100 { background-color: rgba(139, 92, 246, 0.22) !important; }
+.dark .bg-pink-50    { background-color: rgba(236, 72, 153, 0.15) !important; }
+
+/* ===== Цветные тексты — светлые тона для контраста на тёмном/подсвеченном фоне ===== */
+.dark .text-blue-500,
+.dark .text-blue-600,
+.dark .text-blue-700,
+.dark .text-blue-800,
+.dark .text-blue-900   { color: #93C5FD !important; }
+.dark .text-blue-400   { color: #93C5FD !important; }
+
+.dark .text-sky-500,
+.dark .text-sky-600,
+.dark .text-sky-700,
+.dark .text-sky-800,
+.dark .text-sky-900    { color: #7DD3FC !important; }
+.dark .text-sky-400    { color: #7DD3FC !important; }
+
+.dark .text-green-500,
+.dark .text-green-600,
+.dark .text-green-700,
+.dark .text-green-800  { color: #6EE7B7 !important; }
+.dark .text-green-400  { color: #6EE7B7 !important; }
+
+.dark .text-emerald-500,
+.dark .text-emerald-600,
+.dark .text-emerald-700,
+.dark .text-emerald-800{ color: #6EE7B7 !important; }
+.dark .text-emerald-400{ color: #6EE7B7 !important; }
+
+.dark .text-amber-500,
+.dark .text-amber-600,
+.dark .text-amber-700,
+.dark .text-amber-800  { color: #FDE68A !important; }
+.dark .text-amber-400  { color: #FDE68A !important; }
+
+.dark .text-yellow-500,
+.dark .text-yellow-600,
+.dark .text-yellow-700,
+.dark .text-yellow-800 { color: #FEF08A !important; }
+.dark .text-yellow-400 { color: #FEF08A !important; }
+
+.dark .text-orange-400,
+.dark .text-orange-500,
+.dark .text-orange-600,
+.dark .text-orange-700 { color: #FDBA74 !important; }
+
+.dark .text-red-500,
+.dark .text-red-600,
+.dark .text-red-700    { color: #FCA5A5 !important; }
+.dark .text-red-400    { color: #FCA5A5 !important; }
+
+.dark .text-rose-500,
+.dark .text-rose-600,
+.dark .text-rose-700   { color: #FDA4AF !important; }
+
+.dark .text-purple-400,
+.dark .text-purple-500,
+.dark .text-purple-600,
+.dark .text-purple-700 { color: #C4B5FD !important; }
+
+.dark .text-violet-400,
+.dark .text-violet-500,
+.dark .text-violet-600,
+.dark .text-violet-700 { color: #C4B5FD !important; }
+
+.dark .text-pink-400,
+.dark .text-pink-500,
+.dark .text-pink-600   { color: #FBCFE8 !important; }
+
+.dark .text-indigo-500,
+.dark .text-indigo-600,
+.dark .text-indigo-700 { color: #A5B4FC !important; }
+
+.dark .text-cyan-500,
+.dark .text-cyan-600,
+.dark .text-cyan-700   { color: #67E8F9 !important; }
+
+.dark .text-teal-500,
+.dark .text-teal-600,
+.dark .text-teal-700   { color: #5EEAD4 !important; }
+
+.dark .text-slate-400,
+.dark .text-slate-500  { color: #94A3B8 !important; }
+
+/* ===== Цветные границы — полупрозрачные ===== */
+.dark .border-blue-100   { border-color: rgba(96, 165, 250, 0.4) !important; }
+.dark .border-blue-200   { border-color: rgba(96, 165, 250, 0.55) !important; }
+.dark .border-blue-300   { border-color: rgba(96, 165, 250, 0.7) !important; }
+.dark .border-sky-100    { border-color: rgba(14, 165, 233, 0.4) !important; }
+.dark .border-sky-200    { border-color: rgba(14, 165, 233, 0.55) !important; }
+.dark .border-green-100  { border-color: rgba(16, 185, 129, 0.4) !important; }
+.dark .border-green-200  { border-color: rgba(16, 185, 129, 0.5) !important; }
+.dark .border-green-300  { border-color: rgba(16, 185, 129, 0.6) !important; }
+.dark .border-emerald-100{ border-color: rgba(16, 185, 129, 0.4) !important; }
+.dark .border-emerald-200{ border-color: rgba(16, 185, 129, 0.5) !important; }
+.dark .border-yellow-100,
+.dark .border-yellow-200,
+.dark .border-yellow-300 { border-color: rgba(245, 158, 11, 0.4) !important; }
+.dark .border-amber-100,
+.dark .border-amber-200,
+.dark .border-amber-300  { border-color: rgba(245, 158, 11, 0.4) !important; }
+.dark .border-orange-100 { border-color: rgba(249, 115, 22, 0.4) !important; }
+.dark .border-red-100,
+.dark .border-red-200,
+.dark .border-red-300    { border-color: rgba(239, 68, 68, 0.4) !important; }
+.dark .border-purple-100 { border-color: rgba(168, 85, 247, 0.4) !important; }
+.dark .border-violet-100 { border-color: rgba(139, 92, 246, 0.4) !important; }
+
+/* ===== Кнопки call-to-action с насыщенными фонами — приглушаем чтобы не били в глаза ===== */
+.dark .bg-red-500 { background-color: #B91C1C !important; }
+.dark .bg-red-600 { background-color: #991B1B !important; }
+.dark .bg-red-700 { background-color: #7F1D1D !important; }
+.dark .hover\:bg-red-600:hover { background-color: #7F1D1D !important; }
+.dark .hover\:bg-red-700:hover { background-color: #6B1818 !important; }
+
+/* ===== hover-эффекты ===== */
+.dark .hover\:bg-neutral-50:hover    { background-color: var(--theme-surface-2) !important; }
+.dark .hover\:bg-neutral-100:hover   { background-color: var(--theme-surface-3) !important; }
+.dark .hover\:bg-neutral-200:hover   { background-color: var(--theme-surface-3) !important; }
+.dark .hover\:bg-white:hover         { background-color: var(--theme-surface) !important; }
+
+.dark .hover\:bg-blue-50:hover    { background-color: rgba(59, 130, 246, 0.18) !important; }
+.dark .hover\:bg-blue-100:hover   { background-color: rgba(59, 130, 246, 0.26) !important; }
+.dark .hover\:bg-blue-200:hover   { background-color: rgba(59, 130, 246, 0.32) !important; }
+.dark .hover\:bg-sky-50:hover     { background-color: rgba(14, 165, 233, 0.18) !important; }
+.dark .hover\:bg-green-50:hover   { background-color: rgba(16, 185, 129, 0.18) !important; }
+.dark .hover\:bg-green-100:hover  { background-color: rgba(16, 185, 129, 0.26) !important; }
+.dark .hover\:bg-emerald-50:hover { background-color: rgba(16, 185, 129, 0.18) !important; }
+.dark .hover\:bg-red-50:hover     { background-color: rgba(239, 68, 68, 0.18) !important; }
+.dark .hover\:bg-red-100:hover    { background-color: rgba(239, 68, 68, 0.26) !important; }
+.dark .hover\:bg-amber-50:hover   { background-color: rgba(245, 158, 11, 0.18) !important; }
+.dark .hover\:bg-yellow-50:hover  { background-color: rgba(245, 158, 11, 0.18) !important; }
+.dark .hover\:bg-orange-50:hover  { background-color: rgba(249, 115, 22, 0.18) !important; }
+.dark .hover\:bg-violet-50:hover  { background-color: rgba(139, 92, 246, 0.18) !important; }
+.dark .hover\:bg-purple-50:hover  { background-color: rgba(168, 85, 247, 0.18) !important; }
+
+/* Hover на alpha-варианты: bg-blue-50/30, bg-green-50/30 и т.п. */
+.dark .hover\:bg-blue-50\/30:hover,
+.dark .hover\:bg-blue-50\/40:hover,
+.dark .hover\:bg-blue-50\/50:hover { background-color: rgba(59, 130, 246, 0.18) !important; }
+.dark .hover\:bg-green-50\/30:hover { background-color: rgba(16, 185, 129, 0.18) !important; }
+.dark .hover\:bg-red-50\/30:hover  { background-color: rgba(239, 68, 68, 0.18) !important; }
+
+.dark .hover\:border-blue-200:hover { border-color: rgba(59, 130, 246, 0.6) !important; }
+.dark .hover\:border-green-200:hover { border-color: rgba(16, 185, 129, 0.6) !important; }
+.dark .hover\:border-blue-400:hover  { border-color: rgba(96, 165, 250, 0.7) !important; }
+
+/* Фон-маска с прозрачностью (bg-blue-50/30, /50, /60 и т.п.) */
+.dark .bg-blue-50\/30,
+.dark .bg-blue-50\/50,
+.dark .bg-blue-50\/60 { background-color: rgba(59, 130, 246, 0.14) !important; }
+.dark .hover\:bg-blue-50\/30:hover { background-color: rgba(59, 130, 246, 0.18) !important; }
+
+/* Placeholder */
+.dark .placeholder-neutral-300::placeholder,
+.dark .placeholder-neutral-400::placeholder { color: var(--theme-muted) !important; }
+
+/* Скроллбар submenu */
+.dark .submenu-scroll { scrollbar-color: var(--theme-border) transparent; }
+.dark .submenu-scroll::-webkit-scrollbar-thumb { background-color: var(--theme-border); }
+
+/* Фон экрана за карточками (AppLayout, AppFooter) */
+.dark .bg-surface-light    { background-color: var(--theme-bg) !important; }
+.dark .bg-background-light { background-color: var(--theme-bg) !important; }
+.dark .bg-surface-dark     { background-color: var(--theme-bg) !important; }
+
+/* Навигация — тёмный синий вместо светлого */
+.dark .nav-sidebar { background: #0F1E3D !important; }
+
+/* SVG-графики: тёмная сетка вместо ярко-белой */
+.dark svg polygon[stroke="#e2e8f0"],
+.dark svg line[stroke="#e2e8f0"],
+.dark svg path[stroke="#e2e8f0"],
+.dark svg [stroke="#E2E8F0"] {
+  stroke: var(--theme-border) !important;
+}
+.dark svg text[fill="#475569"] { fill: var(--theme-text-2) !important; }
+.dark svg [fill="#94A3B8"]      { fill: var(--theme-muted) !important; }
+
+/* Светло-серые сетки графиков (rgba) */
+.dark .recharts-cartesian-grid line,
+.dark .recharts-cartesian-axis-line { stroke: var(--theme-border) !important; }
+.dark .recharts-cartesian-axis-tick-value { fill: var(--theme-text-2) !important; }
+
+/* Checkbox и radio в тёмной теме — синие, без жёлтого браузерного оттенка */
+html.dark input[type=checkbox],
+html.dark input[type=radio] {
+  accent-color: #3B82F6 !important;
+  color-scheme: dark !important;
+}
+
+/* Поля ввода в тёмной теме: фон в тон карточки, без жёлтого autofill.
+   :not(...) покрывает <input> без атрибута type (по умолчанию text) и все текстовые типы */
+.dark input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]):not([type=color]):not([type=submit]):not([type=button]):not([type=reset]):not([type=image]),
+.dark textarea,
+.dark select {
+  background-color: #162238 !important;
+  color: #E5ECFA !important;
+  border-color: #243557 !important;
+}
+
+/* Иконка календаря в date/datetime — инвертируем для тёмной темы */
+.dark input[type=date]::-webkit-calendar-picker-indicator,
+.dark input[type=datetime-local]::-webkit-calendar-picker-indicator,
+.dark input[type=time]::-webkit-calendar-picker-indicator,
+.dark input[type=month]::-webkit-calendar-picker-indicator,
+.dark input[type=week]::-webkit-calendar-picker-indicator {
+  filter: invert(0.8) brightness(1.2);
+  cursor: pointer;
+}
+.dark input:focus,
+.dark textarea:focus,
+.dark select:focus {
+  border-color: #60A5FA !important;
+  background-color: #1B2840 !important;
+}
+
+/* Autofill (Chrome/Edge/Safari): убираем жёлтый фон, подставляем тёмный.
+   Работает для ВСЕХ input независимо от атрибута type (включая <input> без type) */
+html.dark input:-webkit-autofill,
+html.dark input:-webkit-autofill:hover,
+html.dark input:-webkit-autofill:focus,
+html.dark input:-webkit-autofill:active,
+html.dark textarea:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0 1000px #162238 inset !important;
+  -webkit-text-fill-color: #E5ECFA !important;
+  caret-color: #E5ECFA !important;
+  border-color: #243557 !important;
+  transition: background-color 5000s ease-in-out 0s !important;
+}
+
+/* Placeholder в тёмной теме — оставляем дефолтный цвет браузера (адаптивный к color-scheme).
+   Фон поля свой, текст placeholder браузерный. */
+
+/* Убираем глобальный жёлтый автозаполнения текста (Chrome -internal-light-dark) */
+html.dark input:not(:-webkit-autofill),
+html.dark textarea:not(:-webkit-autofill) {
+  -webkit-text-fill-color: #E5ECFA !important;
+}

@@ -1,0 +1,16 @@
+namespace Core.Models.NormativeModel
+{
+    public class NormativeResponse
+    {
+        public long Id { get; set; }
+        public int AgeGroup { get; set; }
+        public char Gender { get; set; }
+        public string Type { get; set; } = string.Empty;
+        public string Unit { get; set; } = string.Empty;
+        public double GradeExcellent { get; set; }
+        public double GradeGood { get; set; }
+        public double GradeSatisfactory { get; set; }
+        public bool IsAboveYearOfStudy { get; set; }
+        public DateTime CreatedAt { get; set; }
+    }
+}

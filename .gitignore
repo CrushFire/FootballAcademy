@@ -1,0 +1,165 @@
+# ===============================================
+# Football Academy — корневой .gitignore
+# ===============================================
+
+# === IDE / Editors ===
+.vs/
+.vscode/
+.idea/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# === .NET / C# (backend) ===
+[Bb]in/
+[Oo]bj/
+[Oo]ut/
+[Dd]ebug/
+[Rr]elease/
+[Bb]uild/
+[Ll]og/
+[Ll]ogs/
+*.dll
+*.exe
+*.pdb
+*.cache
+*.tlog
+*.lastbuildstate
+*.nupkg
+*.snupkg
+project.lock.json
+project.fragment.lock.json
+artifacts/
+.dotnet/
+**/Properties/launchSettings.json
+
+# Migrations: НЕ игнорим, они нужны в репо
+# (если когда-нибудь захочешь — убери комментарий)
+# **/Migrations/
+
+# EF Core scaffolded / dev DB
+*.mdf
+*.ldf
+
+# === Node.js / Vue / Vite (frontend) ===
+node_modules/
+dist/
+dist-ssr/
+.vite/
+.cache/
+.parcel-cache/
+*.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-store/
+.yarn/
+package-lock.json.bak
+
+# Build artifacts фронта
+frontend/dist/
+frontend/.output/
+
+# === Python (python_backend_AI) ===
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+.pytest_cache/
+.tox/
+.mypy_cache/
+.ruff_cache/
+.pyre/
+.pytype/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+*.cover
+*.pyc
+*.pyo
+*.pyd
+
+# Виртуальные окружения
+.venv/
+venv/
+env/
+ENV/
+.python-version
+
+# === Docker / Compose ===
+# Volumes и runtime данные
+data/
+postgres-data/
+redis-data/
+**/uploads/
+**/cache/
+*.dump
+*.bak
+*.tar
+*.tar.gz
+
+# === Логи / runtime ===
+*.log
+*.log.*
+logs/
+*.pid
+*.seed
+*.pid.lock
+
+# === Секреты / конфиги локального окружения ===
+.env
+.env.*
+!.env.example
+appsettings.Development.json
+appsettings.Local.json
+secrets.json
+*.pfx
+*.key
+*.pem
+
+# === Временные / превью / черновики ===
+preview-*.html
+response.json
+*.scratch.md
+*.draft.md
+tmp/
+temp/
+
+# === Документация / черновые материалы (не код) ===
+# Если решишь публиковать — раскомментируй обратно
+Пометочки/
+Второй_комп_лама/
+МодульАналитики.txt
+МодульАналитики_Обоснование.txt
+
+# === Knowledge base (внешние материалы) ===
+# Включаем только структуру / документацию по формату.
+# Реальные .pdf/.txt с базой знаний — в репо не нужны.
+backend/FootballAcademy/knowledge/*.pdf
+backend/FootballAcademy/knowledge/*.txt
+backend/FootballAcademy/knowledge/.cache/
+
+# === Дамп БД и метрик (тяжёлое) ===
+backend/FootballAcademy/uploads/metrics/
+backend/FootballAcademy/uploads/archive/
+backend/FootballAcademy/uploads/**/archive/
+
+# === Сертификаты / ключи ===
+*.crt
+*.cer
+*.csr
+
+# === Системные ===
+*.bak
+*.orig
+*.rej
