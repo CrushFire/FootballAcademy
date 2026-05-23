@@ -61,26 +61,13 @@
           <div class="player-main">
             <div
               class="player-circle"
-              :class="{
-                'has-substitute': pos.substitute,
-                'is-late': pos.late,
-                'is-reserve': pos.type === 'Reserve',
-                'came-on-bench': pos.cameOnFromBench
-              }"
+              :class="{ 'has-substitute': pos.substitute, 'is-late': pos.late, 'is-reserve': pos.type === 'Reserve' }"
               @click="pos.substitute && toggle(idx)"
             >
               {{ initials(pos.name) }}
-              <!-- Иконка-стрелка для тех кто вышел на замену -->
-              <span v-if="pos.cameOnFromBench" class="sub-in-badge" :title="'Вышел на ' + pos.subInMinute + '′'">↑</span>
             </div>
             <div class="player-position">{{ pos.position || 'ST' }} ({{ positionLabel[pos.position || 'ST'] }})</div>
-            <div class="player-tooltip">
-              <div>{{ pos.name }}</div>
-              <div v-if="pos.cameOnFromBench && pos.replacedName" class="tooltip-sub">
-                <span class="text-emerald-300">↑ {{ pos.subInMinute }}′</span>
-                · заменил {{ pos.replacedName }}
-              </div>
-            </div>
+            <div class="player-tooltip">{{ pos.name }}</div>
           </div>
 
           <Transition name="sub-fade">
@@ -95,9 +82,8 @@
         </div>
       </div>
     </div>
-    <div class="text-xs text-neutral-500 mt-2 flex gap-3 flex-wrap">
-      <span><span class="text-[#10b981] font-semibold">Зелёная</span> — есть запасной</span>
-      <span><span class="text-[#8b5cf6] font-semibold">Фиолетовая ↑</span> — вышел на замену</span>
+    <div class="text-xs text-neutral-500 mt-2">
+      <span class="text-[#10b981] font-semibold">Зелёная рамка</span> — есть замена
     </div>
   </div>
 </template>
@@ -115,9 +101,6 @@ defineProps<{
     position?: string
     type?: string
     late?: boolean
-    cameOnFromBench?: boolean
-    subInMinute?: number
-    replacedName?: string | null
     substitute: { number: number; name: string; position?: string; type?: string } | null
   }[]
 }>()
@@ -205,38 +188,6 @@ function initials(name: string) {
   border-color: #10b981;
   color: #047857;
   box-shadow: 0 4px 16px rgba(16, 185, 129, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.8);
-}
-
-.player-circle.came-on-bench {
-  border-color: #8b5cf6;
-  color: #6d28d9;
-  background: linear-gradient(145deg, #f5f3ff, #ede9fe);
-  box-shadow: 0 4px 16px rgba(139, 92, 246, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.8);
-}
-
-.sub-in-badge {
-  position: absolute;
-  top: -4px;
-  right: -4px;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: #8b5cf6;
-  color: white;
-  font-size: 9px;
-  font-weight: 900;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 1px 4px rgba(139, 92, 246, 0.5);
-  line-height: 1;
-}
-
-.tooltip-sub {
-  font-size: 10px;
-  font-weight: 500;
-  margin-top: 2px;
-  color: rgba(255, 255, 255, 0.75);
 }
 
 .player-circle.has-substitute:hover {

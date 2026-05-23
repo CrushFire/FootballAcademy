@@ -38,9 +38,9 @@ export const useAuthStore = defineStore('auth', () => {
 
   const isAuthenticated = computed(() => !!token.value)
 
-  async function login(email: string, password: string) {
-    // DEV: логинимся через реальный бек даже в DEV
-    const { data } = await api.post('/auth', { email, password })
+  async function login(identifier: string, password: string) {
+    // Универсальный вход: identifier = логин или email. Бэк сам разрулит.
+    const { data } = await api.post('/auth', { identifier, password })
     token.value = data.data.token
     userId.value = data.data.userId
     localStorage.setItem('token', data.data.token)
@@ -76,13 +76,13 @@ export const useAuthStore = defineStore('auth', () => {
           userLogin.value = sfio; localStorage.setItem('userLogin', sfio)
         } else {
           const userRes = await api.get('/users/me').catch(() => null)
-          const login = userRes?.data?.data?.login ?? email
+          const login = userRes?.data?.data?.login ?? identifier
           userLogin.value = login; localStorage.setItem('userLogin', login)
         }
       }
     } catch {
-      userLogin.value = email
-      localStorage.setItem('userLogin', email)
+      userLogin.value = identifier
+      localStorage.setItem('userLogin', identifier)
     }
     const role = userRole.value
     const pType = personalType.value?.toLowerCase()

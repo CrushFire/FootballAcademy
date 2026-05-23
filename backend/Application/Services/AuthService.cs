@@ -24,7 +24,14 @@ namespace Application.Services
 
         public async Task<Result<AuthResponse>> AuthorizationAsync(AuthRequest req)
         {
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == req.Email);
+            // Универсальный вход: ищем по логину ИЛИ email (что прислали).
+            // Identifier — приоритет; если его нет — fallback на Email для старых клиентов.
+            var input = (req.Identifier ?? req.Email ?? string.Empty).Trim();
+            if (string.IsNullOrEmpty(input))
+                return Result<AuthResponse>.Failure("Укажите логин или email", 400);
+
+            var user = await _context.Users
+                .FirstOrDefaultAsync(u => u.Login == input || u.Email == input);
             if (user == null)
                 return Result<AuthResponse>.Failure("Пользователь не найден", 404);
 

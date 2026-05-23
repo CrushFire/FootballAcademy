@@ -11,8 +11,9 @@ namespace Core.Models.Auth
     {
         [Required]
         public string Password { get; set; }
-        [Required]
-        [EmailAddress]
-        public string Email { get; set; }
+        // Можно прислать либо логин, либо email — сервер сам определит.
+        // Email оставлен для обратной совместимости старых клиентов.
+        public string? Identifier { get; set; }
+        public string? Email { get; set; }
     }
 }

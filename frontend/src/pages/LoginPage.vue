@@ -14,8 +14,26 @@
 
       <form @submit.prevent="handleLogin">
         <div class="field-group">
-          <label>Электронная почта</label>
-          <input v-model="email" type="email" placeholder="example@sport.ru" required />
+          <div class="mode-switch">
+            <button type="button"
+              class="mode-btn"
+              :class="{ active: loginMode === 'login' }"
+              @click="loginMode = 'login'"
+            >Логин</button>
+            <button type="button"
+              class="mode-btn"
+              :class="{ active: loginMode === 'email' }"
+              @click="loginMode = 'email'"
+            >Email</button>
+          </div>
+          <label>{{ loginMode === 'email' ? 'Электронная почта' : 'Логин' }}</label>
+          <input
+            v-model="identifier"
+            :type="loginMode === 'email' ? 'email' : 'text'"
+            :placeholder="loginMode === 'email' ? 'example@sport.ru' : 'ivanov'"
+            :autocomplete="loginMode === 'email' ? 'email' : 'username'"
+            required
+          />
         </div>
         <div class="field-group">
           <label>Пароль</label>
@@ -64,14 +82,18 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { useAuth } from '@/composables/useAuth'
 
 const { login, loading, error } = useAuth()
-const email = ref('')
+const identifier = ref('')
 const password = ref('')
 const showPass = ref(false)
+const loginMode = ref<'login' | 'email'>('login')
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 
 function togglePass() { showPass.value = !showPass.value }
 async function handleLogin() {
-  await login(email.value.trim().toLowerCase(), password.value)
+  // Email регистронезависимый (toLowerCase), логин — как ввели
+  const raw = identifier.value.trim()
+  const value = loginMode.value === 'email' ? raw.toLowerCase() : raw
+  await login(value, password.value)
 }
 
 const EYE_OPEN = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>`
@@ -234,6 +256,35 @@ h1 { font-size: 26px; font-weight: 800; color: #1e3a8a; letter-spacing: -0.5px; 
 }
 
 .field-group { margin-bottom: 18px; }
+
+.mode-switch {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+  padding: 4px;
+  background: #f1f5f9;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+}
+.mode-btn {
+  flex: 1;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 9px;
+  background: transparent;
+  font-size: 13px;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background .15s, color .15s, box-shadow .15s;
+}
+.mode-btn:hover:not(.active) { color: #475569; background: #e2e8f0; }
+.mode-btn.active {
+  background: linear-gradient(135deg, #1d4ed8 0%, #3b82f6 100%);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(29, 78, 216, 0.35);
+}
 label { display: block; font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 8px; }
 
 .input-wrap { position: relative; }

@@ -157,27 +157,13 @@
                 <div class="flex-1 min-w-0 text-xs font-semibold text-neutral-700 px-1 truncate">
                   {{ sportsmenMap[entry.sportsmanId] ?? (entry.sportsmanId ? `#${entry.sportsmanId}` : '—') }}
                 </div>
-                <!-- Бейдж замены — слева от позиции -->
-                <template v-if="getPossibleReplacements(entry.position).length > 0">
-                  <!-- Выбран конкретный запасной — отображаем как обычного игрока: ФИО + позиция -->
-                  <button v-if="entry.substituteId" type="button"
-                    @click="toggleSubstitutes(idx)"
-                    class="shrink-0 flex items-center gap-2 px-2 py-1 rounded-lg border border-green-300 bg-green-50 hover:bg-green-100 transition-colors max-w-[180px]"
-                    :title="sportsmenMap[entry.substituteId]">
-                    <span class="text-xs font-semibold text-neutral-700 truncate">
-                      {{ sportsmenMap[entry.substituteId] ?? `#${entry.substituteId}` }}
-                    </span>
-                    <span class="text-[10px] font-bold text-neutral-500 shrink-0">
-                      {{ substitutePositionFor(entry.substituteId) }}
-                    </span>
-                  </button>
-                  <!-- Не выбран — показываем счётчик -->
-                  <button v-else type="button"
-                    @click="toggleSubstitutes(idx)"
-                    class="shrink-0 px-2 py-1 rounded-lg border border-green-400 bg-green-50 text-green-700 text-[10px] font-bold hover:bg-green-100 transition-colors">
-                    Замены: {{ getPossibleReplacements(entry.position).length }}
-                  </button>
-                </template>
+                <!-- Бейдж замены — слева от позиции, всегда показывает счётчик -->
+                <button v-if="getPossibleReplacements(entry.position).length > 0"
+                  type="button"
+                  @click="toggleSubstitutes(idx)"
+                  class="shrink-0 px-2 py-1 rounded-lg border border-green-400 bg-green-50 text-green-700 text-[10px] font-bold hover:bg-green-100 transition-colors">
+                  Замены: {{ getPossibleReplacements(entry.position).length }}
+                </button>
                 <span v-else class="shrink-0 px-2 py-1 rounded-lg border border-neutral-200 bg-neutral-100 text-neutral-400 text-[10px] font-semibold">
                   Нет замен
                 </span>
@@ -368,18 +354,12 @@
               <div class="space-y-2 max-h-64 overflow-y-auto pr-1">
                 <div v-for="row in liveLineupView" :key="row.sportsmanId"
                   class="flex items-center gap-2 p-2 rounded-xl border bg-neutral-50"
-                  :class="{
-                    'border-neutral-100': !row.cameOnFromBench && !row.offField,
-                    'border-purple-200 bg-purple-50': row.cameOnFromBench,
-                    'border-neutral-300 opacity-60': row.offField,
-                  }">
+                  :class="row.cameOnFromBench ? 'border-purple-200 bg-purple-50' : 'border-neutral-100'">
                   <!-- ФИО и позиция текстом -->
-                  <div class="flex-1 min-w-0 text-xs px-1 truncate"
-                    :class="row.offField ? 'line-through text-neutral-500' : 'font-semibold text-neutral-700'">
+                  <div class="flex-1 min-w-0 text-xs px-1 truncate font-semibold text-neutral-700">
                     {{ row.fio }}
                     <span class="text-neutral-400 font-normal">· {{ row.position }} ({{ positionRu[row.position] ?? row.position }})</span>
                     <span v-if="row.cameOnFromBench" class="ml-1 text-[10px] font-bold text-purple-600">↑ {{ row.subMinute }}′</span>
-                    <span v-if="row.offField" class="ml-1 text-[10px] font-bold text-neutral-500">↓ {{ row.subMinute }}′</span>
                   </div>
                   <!-- Позиция (короткий код) -->
                   <div class="shrink-0">
@@ -390,12 +370,8 @@
                   <!-- Тип -->
                   <div class="shrink-0">
                     <div class="text-xs font-bold px-2 py-1 rounded border min-w-[48px] text-center"
-                      :class="row.offField
-                        ? 'border-neutral-300 bg-neutral-100 text-neutral-500'
-                        : row.type === 'Main'
-                          ? 'border-blue-400 bg-blue-50 text-blue-600'
-                          : 'border-green-400 bg-green-50 text-green-600'">
-                      {{ row.offField ? 'Ушёл' : (row.type === 'Main' ? 'Осн.' : 'Зап.') }}
+                      :class="row.type === 'Main' ? 'border-blue-400 bg-blue-50 text-blue-600' : 'border-green-400 bg-green-50 text-green-600'">
+                      {{ row.type === 'Main' ? 'Осн.' : 'Зап.' }}
                     </div>
                   </div>
                 </div>
@@ -450,7 +426,9 @@
                     <div v-if="ev.comment" class="text-xs text-neutral-400 italic truncate">{{ ev.comment }}</div>
                   </div>
                 </div>
-                <div class="w-10 shrink-0 text-base font-bold text-neutral-400 tabular-nums flex items-center justify-center">{{ ev.minute }}'</div>
+                <div class="w-10 shrink-0 text-base font-bold text-neutral-400 tabular-nums flex items-baseline justify-center">
+                  <span class="inline-block min-w-[1.5em] text-right">{{ ev.minute }}</span><span>'</span>
+                </div>
                 <div class="flex items-center gap-0.5 shrink-0">
                   <button @click="openEditEvent(ev)"
                     class="w-7 h-7 rounded-lg flex items-center justify-center text-neutral-400 hover:text-blue-600 hover:bg-blue-50 transition-colors">
@@ -584,40 +562,70 @@
                 <div class="text-xs font-semibold text-neutral-500 mb-2">
                   {{ eventModal.form.type === 'Substitution' ? 'Уходит с поля' : 'Игрок' }}
                 </div>
-                <input v-model="playerSearch" placeholder="Поиск игрока..." class="w-full text-sm rounded-xl border border-neutral-200 px-3 py-2 mb-2 focus:outline-none focus:border-blue-400" />
-                <div class="max-h-40 overflow-y-auto rounded-xl border border-neutral-200 divide-y divide-neutral-50">
-                  <button type="button"
-                    @click="eventModal.form.sportsmanId = ''"
-                    class="w-full text-left px-3 py-2 text-sm transition-colors"
-                    :class="eventModal.form.sportsmanId === '' ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-neutral-400 hover:bg-neutral-50'">
-                    Не указан
-                  </button>
-                  <button type="button"
-                    v-for="s in filteredModalSportsmen" :key="s.id"
-                    @click="eventModal.form.sportsmanId = s.id"
-                    class="w-full text-left px-3 py-2 text-sm transition-colors"
-                    :class="eventModal.form.sportsmanId === s.id ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-neutral-700 hover:bg-neutral-50'">
-                    {{ s.fio }}<span v-if="s.position" class="text-neutral-400 text-xs ml-1">· {{ positionRu[s.position] ?? s.position }}</span>
-                  </button>
+                <!-- Кнопка-заголовок: показывает выбранного, клик раскрывает -->
+                <button type="button"
+                  @click="playerSelectOpen = !playerSelectOpen"
+                  class="w-full text-sm rounded-xl border border-neutral-200 px-3 py-2.5 bg-white text-left flex items-center justify-between hover:border-neutral-300 transition-colors">
+                  <span :class="eventModal.form.sportsmanId ? 'text-neutral-900' : 'text-neutral-400'">
+                    {{ selectedSportsmanLabel || 'Не указан' }}
+                  </span>
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"
+                    class="w-3.5 h-3.5 text-neutral-400 transition-transform"
+                    :class="playerSelectOpen ? 'rotate-180' : ''">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/>
+                  </svg>
+                </button>
+                <div v-if="playerSelectOpen" class="mt-2">
+                  <input v-model="playerSearch" placeholder="Поиск игрока..." class="w-full text-sm rounded-xl border border-neutral-200 px-3 py-2 mb-2 focus:outline-none focus:border-blue-400" />
+                  <div class="max-h-40 overflow-y-auto rounded-xl border border-neutral-200 divide-y divide-neutral-50">
+                    <button type="button"
+                      @click="eventModal.form.sportsmanId = ''; playerSelectOpen = false"
+                      class="w-full text-left px-3 py-2 text-sm transition-colors"
+                      :class="eventModal.form.sportsmanId === '' ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-neutral-400 hover:bg-neutral-50'">
+                      Не указан
+                    </button>
+                    <button type="button"
+                      v-for="s in filteredModalSportsmen" :key="s.id"
+                      @click="eventModal.form.sportsmanId = s.id; playerSelectOpen = false"
+                      class="w-full text-left px-3 py-2 text-sm transition-colors"
+                      :class="eventModal.form.sportsmanId === s.id ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-neutral-700 hover:bg-neutral-50'">
+                      {{ s.fio }}<span v-if="s.position" class="text-neutral-400 text-xs ml-1">· {{ positionRu[s.position] ?? s.position }}</span>
+                    </button>
+                  </div>
                 </div>
               </div>
               <div v-if="eventModal.form.type === 'Substitution'">
                 <div class="text-xs font-semibold text-neutral-500 mb-2">Выходит на поле</div>
-                <input v-model="substituteSearch" placeholder="Поиск замены..." class="w-full text-sm rounded-xl border border-neutral-200 px-3 py-2 mb-2 focus:outline-none focus:border-blue-400" />
-                <div class="max-h-40 overflow-y-auto rounded-xl border border-neutral-200 divide-y divide-neutral-50">
-                  <button type="button"
-                    @click="eventModal.form.substituteSportsmanId = ''"
-                    class="w-full text-left px-3 py-2 text-sm transition-colors"
-                    :class="eventModal.form.substituteSportsmanId === '' ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-neutral-400 hover:bg-neutral-50'">
-                    Не указан
-                  </button>
-                  <button type="button"
-                    v-for="s in filteredModalReserves" :key="s.id"
-                    @click="eventModal.form.substituteSportsmanId = s.id"
-                    class="w-full text-left px-3 py-2 text-sm transition-colors"
-                    :class="eventModal.form.substituteSportsmanId === s.id ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-neutral-700 hover:bg-neutral-50'">
-                    {{ s.fio }}<span v-if="s.position" class="text-neutral-400 text-xs ml-1">· {{ positionRu[s.position] ?? s.position }}</span>
-                  </button>
+                <!-- Кнопка-заголовок второго селектора -->
+                <button type="button"
+                  @click="substituteSelectOpen = !substituteSelectOpen"
+                  class="w-full text-sm rounded-xl border border-neutral-200 px-3 py-2.5 bg-white text-left flex items-center justify-between hover:border-neutral-300 transition-colors">
+                  <span :class="eventModal.form.substituteSportsmanId ? 'text-neutral-900' : 'text-neutral-400'">
+                    {{ selectedSubstituteLabel || 'Не указан' }}
+                  </span>
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"
+                    class="w-3.5 h-3.5 text-neutral-400 transition-transform"
+                    :class="substituteSelectOpen ? 'rotate-180' : ''">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/>
+                  </svg>
+                </button>
+                <div v-if="substituteSelectOpen" class="mt-2">
+                  <input v-model="substituteSearch" placeholder="Поиск замены..." class="w-full text-sm rounded-xl border border-neutral-200 px-3 py-2 mb-2 focus:outline-none focus:border-blue-400" />
+                  <div class="max-h-40 overflow-y-auto rounded-xl border border-neutral-200 divide-y divide-neutral-50">
+                    <button type="button"
+                      @click="eventModal.form.substituteSportsmanId = ''; substituteSelectOpen = false"
+                      class="w-full text-left px-3 py-2 text-sm transition-colors"
+                      :class="eventModal.form.substituteSportsmanId === '' ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-neutral-400 hover:bg-neutral-50'">
+                      Не указан
+                    </button>
+                    <button type="button"
+                      v-for="s in filteredModalReserves" :key="s.id"
+                      @click="eventModal.form.substituteSportsmanId = s.id; substituteSelectOpen = false"
+                      class="w-full text-left px-3 py-2 text-sm transition-colors"
+                      :class="eventModal.form.substituteSportsmanId === s.id ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-neutral-700 hover:bg-neutral-50'">
+                      {{ s.fio }}<span v-if="s.position" class="text-neutral-400 text-xs ml-1">· {{ positionRu[s.position] ?? s.position }}</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             </template>
@@ -773,14 +781,6 @@ const currentEditSportsmen = computed(() =>
   editTeamSide.value === 'home' ? homeSportsmen.value : awaySportsmen.value
 )
 
-// Позиция запасного игрока по id (для отображения в бейдже выбранной замены)
-function substitutePositionFor(sportsmanId: any) {
-  const id = Number(sportsmanId)
-  if (!id) return ''
-  const entry = lineupEdit.value.find(e => Number(e.sportsmanId) === id)
-  return entry?.position ?? ''
-}
-
 // На шаге утверждения показываем ТОЛЬКО основу (Main).
 // Запасные не нужны как отдельные строки — они подбираются через бейдж "Замены".
 // Сохраняем оригинальный индекс в lineupEdit для двухсторонней связи через v-model.
@@ -870,8 +870,53 @@ const currentModalSportsmen = computed(() => {
   return eventModal.value.form.isHomeTeam ? homeSportsmen.value : []
 })
 
+const playerSearch = ref('')
+const substituteSearch = ref('')
+
+// Состояние раскрытия дропдаунов в модалке события
+const playerSelectOpen = ref(false)
+const substituteSelectOpen = ref(false)
+
+const selectedSportsmanLabel = computed(() => {
+  const id = Number(eventModal.value.form.sportsmanId)
+  if (!id) return ''
+  const s = currentModalSportsmen.value.find(x => x.id === id)
+  if (!s) return sportsmenMap[id] ?? `#${id}`
+  return s.position ? `${s.fio} · ${positionRu[s.position] ?? s.position}` : s.fio
+})
+
+const selectedSubstituteLabel = computed(() => {
+  const id = Number(eventModal.value.form.substituteSportsmanId)
+  if (!id) return ''
+  const s = currentModalSportsmen.value.find(x => x.id === id)
+  if (!s) return sportsmenMap[id] ?? `#${id}`
+  return s.position ? `${s.fio} · ${positionRu[s.position] ?? s.position}` : s.fio
+})
+
+// Для Substitution — пул "Уходит с поля" = только те, кто сейчас на поле
+// (Main + Reserve которые уже вышли заменой, минус те кого уже заменили).
+// Для остальных событий — все игроки команды.
+const currentlyOnField = computed(() => {
+  const lineup = eventModal.value.form.isHomeTeam
+    ? (match.value?.lineup ?? [])
+    : (match.value?.awayLineup ?? [])
+  const onField = new Set<number>()
+  lineup.forEach((e: any) => {
+    if (e.type !== 'Reserve') onField.add(Number(e.sportsmanId))
+  })
+  const subs = liveEvents.value
+    .filter(e => e.type === 'Substitution' && e.isHomeTeam === eventModal.value.form.isHomeTeam && e.sportsmanId && e.substituteSportsmanId)
+    .sort((a, b) => (a.minute ?? 0) - (b.minute ?? 0))
+  subs.forEach(sub => {
+    onField.delete(Number(sub.sportsmanId))
+    onField.add(Number(sub.substituteSportsmanId))
+  })
+  return currentModalSportsmen.value.filter(s => onField.has(s.id))
+})
+
 const filteredModalSportsmen = computed(() => {
-  const pool = filteredModalSportsmenScoped.value
+  const isSub = eventModal.value.form.type === 'Substitution'
+  const pool = isSub ? currentlyOnField.value : currentModalSportsmen.value
   const q = playerSearch.value.trim().toLowerCase()
   if (!q) return pool
   return pool.filter(s => s.fio?.toLowerCase().includes(q))
@@ -903,91 +948,69 @@ const liveLineupView = computed(() => {
     .filter(e => e.type === 'Substitution' && e.isHomeTeam === isHome && e.sportsmanId && e.substituteSportsmanId)
     .sort((a, b) => (a.minute ?? 0) - (b.minute ?? 0))
 
+  // Применяем замены: ушедший удаляется из видимого списка, вместо него встаёт пришедший
+  // на его позицию. Пришедший помечается флагом cameOnFromBench для визуальной пометки в списке.
+  // История замен видна в блоке "События" и в тултипах на карте.
+  const removeIds = new Set<number>()
   subs.forEach(sub => {
-    const out = rows.find(r => r.sportsmanId === Number(sub.sportsmanId) && r.type === 'Main' && !r.offField)
-    const inP = rows.find(r => r.sportsmanId === Number(sub.substituteSportsmanId) && r.type === 'Reserve' && !r.cameOnFromBench)
+    const outId = Number(sub.sportsmanId)
+    const inId  = Number(sub.substituteSportsmanId)
+    const out = rows.find(r => r.sportsmanId === outId && r.type === 'Main')
+    const inP = rows.find(r => r.sportsmanId === inId && r.type === 'Reserve')
     if (!out || !inP) return
-    out.offField = true
-    out.subMinute = sub.minute
+    removeIds.add(outId)
     inP.type = 'Main'
     inP.position = out.position
     inP.cameOnFromBench = true
     inP.subMinute = sub.minute
   })
 
-  // Сортируем: Main на поле → вышедшие заменой → ушедшие → Reserve на скамейке
-  return rows.sort((a, b) => {
-    const order = (r: Row) =>
-      r.type === 'Main' && !r.cameOnFromBench && !r.offField ? 0 :
-      r.cameOnFromBench ? 1 :
-      r.offField ? 2 : 3
-    return order(a) - order(b)
-  })
+  // Сортируем: Main на поле → вышедшие заменой → Reserve на скамейке
+  return rows
+    .filter(r => !removeIds.has(r.sportsmanId))
+    .sort((a, b) => {
+      const order = (r: Row) =>
+        r.type === 'Main' && !r.cameOnFromBench ? 0 :
+        r.cameOnFromBench ? 1 : 2
+      return order(a) - order(b)
+    })
 })
 
-// Состояние игроков (на поле / на скамейке) с учётом сыгранных замен.
-// Возвращает Map: sportsmanId → { onField, position }
-function buildPlayerState(lineup: any[], teamIsHome: boolean) {
-  const state = new Map<number, { onField: boolean; position: string }>()
+// Запасные (type=Reserve) для поля «Выходит на замену»
+// Кто сейчас на скамейке (с учётом всех уже сделанных замен).
+// Скамейка = исходные Reserve, которые ещё не выходили + ушедшие с поля Main.
+// Эти игроки могут быть выбраны для "Выходит на поле" в новой замене.
+const currentModalBench = computed(() => {
+  const lineup = eventModal.value.form.isHomeTeam
+    ? (match.value?.lineup ?? [])
+    : (match.value?.awayLineup ?? [])
+  // Стартовая скамейка — все Reserve
+  const bench = new Set<number>()
   lineup.forEach((e: any) => {
-    state.set(Number(e.sportsmanId), {
-      onField: e.type !== 'Reserve',
-      position: e.position,
-    })
+    if (e.type === 'Reserve') bench.add(Number(e.sportsmanId))
   })
+  // Применяем все Substitution в хронологии: ушедший возвращается на скамейку, вошедший уходит
   const subs = liveEvents.value
-    .filter(e => e.type === 'Substitution' && e.isHomeTeam === teamIsHome && e.sportsmanId && e.substituteSportsmanId)
+    .filter(e => e.type === 'Substitution' && e.isHomeTeam === eventModal.value.form.isHomeTeam && e.sportsmanId && e.substituteSportsmanId)
     .sort((a, b) => (a.minute ?? 0) - (b.minute ?? 0))
   subs.forEach(sub => {
-    const outRec = state.get(Number(sub.sportsmanId))
-    const inRec = state.get(Number(sub.substituteSportsmanId))
-    if (!outRec || !inRec) return
-    if (!outRec.onField || inRec.onField) return
-    outRec.onField = false
-    inRec.onField = true
-    inRec.position = outRec.position
+    bench.delete(Number(sub.substituteSportsmanId))
+    bench.add(Number(sub.sportsmanId))
   })
-  return state
-}
-
-// Игроки текущей команды (для модалки) — кто СЕЙЧАС на поле (с учётом замен).
-const onFieldPlayers = computed(() => {
-  const lineup = eventModal.value.form.isHomeTeam
-    ? (match.value?.lineup ?? [])
-    : (match.value?.awayLineup ?? [])
-  const state = buildPlayerState(lineup, eventModal.value.form.isHomeTeam)
-  return currentModalSportsmen.value.filter(s => state.get(s.id)?.onField)
+  return currentModalSportsmen.value.filter(s => bench.has(s.id))
 })
 
-// Для НЕ-Substitution событий — берём всех игроков из команды (можно гол/карточку и тем кто ушёл)
-// Для Substitution — только те, кто сейчас на поле
-const filteredModalSportsmenScoped = computed(() => {
-  if (eventModal.value.form.type === 'Substitution') {
-    return onFieldPlayers.value
-  }
-  return currentModalSportsmen.value
-})
-
-// Только запасные на скамейке (с учётом замен) с подходящей позицией
 const currentModalReserves = computed(() => {
-  const lineup = eventModal.value.form.isHomeTeam
-    ? (match.value?.lineup ?? [])
-    : (match.value?.awayLineup ?? [])
-  const state = buildPlayerState(lineup, eventModal.value.form.isHomeTeam)
-  const benchIds = new Set<number>()
-  state.forEach((rec, sid) => { if (!rec.onField) benchIds.add(sid) })
-  const pool = currentModalSportsmen.value.filter(s => benchIds.has(s.id))
-
-  // Если уже выбран "уходящий" — фильтруем по совместимости позиции
+  const pool = currentModalBench.value
+  // Если уже выбран "уходящий" — фильтруем по совместимости позиции (с учётом текущей позиции)
   const outId = Number(eventModal.value.form.sportsmanId) || 0
-  if (outId) {
-    const outRec = state.get(outId)
-    if (outRec) {
-      const allowed = POSITION_REPLACEMENTS[outRec.position] ?? [outRec.position]
-      return pool.filter(s => allowed.includes(s.position ?? ''))
-    }
-  }
-  return pool
+  if (!outId) return pool
+  // Текущая позиция уходящего: берём из liveLineupView (он учитывает замены)
+  const outRow = liveLineupView.value.find(r => r.sportsmanId === outId)
+  const outPos = outRow?.position
+  if (!outPos) return pool
+  const allowed = POSITION_REPLACEMENTS[outPos] ?? [outPos]
+  return pool.filter(s => allowed.includes(s.position ?? ''))
 })
 
 const filteredModalReserves = computed(() => {
@@ -995,10 +1018,6 @@ const filteredModalReserves = computed(() => {
   if (!q) return currentModalReserves.value
   return currentModalReserves.value.filter(s => s.fio?.toLowerCase().includes(q))
 })
-
-
-const playerSearch = ref('')
-const substituteSearch = ref('')
 
 const createForm = ref({ homeTeamId: '' as any, opponentTeamName: '', opponentTeamId: '' as any, type: 'Friendly', date: getLocalDateTimeString() })
 const finishForm = ref({ result: '', trainerComment: '' })
@@ -1091,6 +1110,8 @@ function setEventTeam(isHome: boolean) {
   eventModal.value.form.substituteSportsmanId = ''
   playerSearch.value = ''
   substituteSearch.value = ''
+  playerSelectOpen.value = false
+  substituteSelectOpen.value = false
 }
 
 // Синхронизация lineupEdit при смене вкладки редактора
@@ -1375,6 +1396,8 @@ async function confirmAndStart() {
 function openAddEvent(type: string) {
   playerSearch.value = ''
   substituteSearch.value = ''
+  playerSelectOpen.value = false
+  substituteSelectOpen.value = false
   eventModal.value = {
     open: true,
     editId: null,
@@ -1385,6 +1408,8 @@ function openAddEvent(type: string) {
 function openEditEvent(ev: any) {
   playerSearch.value = ''
   substituteSearch.value = ''
+  playerSelectOpen.value = false
+  substituteSelectOpen.value = false
   eventModal.value = {
     open: true,
     editId: ev.id,
