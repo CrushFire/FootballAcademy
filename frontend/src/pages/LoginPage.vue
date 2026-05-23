@@ -6,7 +6,7 @@
     <div class="card">
       <div class="logo-wrap">
         <div class="logo-box">
-          <span style="font-size:52px;line-height:1;">⚽</span>
+          <img :src="logoUrl" alt="Академия футбола" />
         </div>
         <h1>FootballAcademy</h1>
         <span class="tag">⚽ Твой путь к большому спорту!</span>
@@ -17,14 +17,14 @@
           <div class="mode-switch">
             <button type="button"
               class="mode-btn"
-              :class="{ active: loginMode === 'login' }"
-              @click="loginMode = 'login'"
-            >Логин</button>
-            <button type="button"
-              class="mode-btn"
               :class="{ active: loginMode === 'email' }"
               @click="loginMode = 'email'"
             >Email</button>
+            <button type="button"
+              class="mode-btn"
+              :class="{ active: loginMode === 'login' }"
+              @click="loginMode = 'login'"
+            >Логин</button>
           </div>
           <label>{{ loginMode === 'email' ? 'Электронная почта' : 'Логин' }}</label>
           <input
@@ -80,12 +80,13 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useAuth } from '@/composables/useAuth'
+import logoUrl from '@/assets/images/Академия_футбола.png'
 
 const { login, loading, error } = useAuth()
 const identifier = ref('')
 const password = ref('')
 const showPass = ref(false)
-const loginMode = ref<'login' | 'email'>('login')
+const loginMode = ref<'login' | 'email'>('email')
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 
 function togglePass() { showPass.value = !showPass.value }
@@ -247,7 +248,9 @@ onUnmounted(() => {
   display: flex; align-items: center; justify-content: center;
   border: 1px solid rgba(147,197,253,0.6);
   box-shadow: 0 8px 24px rgba(37,99,235,0.18), inset 0 1px 0 rgba(255,255,255,0.8);
+  overflow: hidden;
 }
+.logo-box img { width: 100%; height: 100%; object-fit: contain; padding: 8px; }
 h1 { font-size: 26px; font-weight: 800; color: #1e3a8a; letter-spacing: -0.5px; }
 .tag {
   font-size: 11px; font-weight: 600; color: #3b82f6;
@@ -271,15 +274,15 @@ h1 { font-size: 26px; font-weight: 800; color: #1e3a8a; letter-spacing: -0.5px; 
   padding: 8px 14px;
   border: none;
   border-radius: 9px;
-  background: transparent;
+  background: #94a3b8;
   font-size: 13px;
   font-weight: 600;
-  color: #64748b;
+  color: #f8fafc;
   cursor: pointer;
   font-family: inherit;
   transition: background .15s, color .15s, box-shadow .15s;
 }
-.mode-btn:hover:not(.active) { color: #475569; background: #e2e8f0; }
+.mode-btn:hover:not(.active) { background: #64748b; color: #ffffff; }
 .mode-btn.active {
   background: linear-gradient(135deg, #1d4ed8 0%, #3b82f6 100%);
   color: #fff;

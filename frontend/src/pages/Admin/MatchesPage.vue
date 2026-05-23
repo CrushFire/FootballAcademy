@@ -47,19 +47,35 @@
   </AdminListLayout>
 
   <EditModal v-if="createOpen" title="Новый матч" @save="saveCreate" @cancel="createOpen = false">
-    <FormField label="ID домашней команды">
-      <input v-model.number="createForm.homeTeamId" type="number" class="w-full px-3 py-2 text-sm rounded-xl border border-neutral-200 focus:outline-none focus:border-blue-400" />
-    </FormField>
-    <FormField label="Название соперника">
-      <input v-model="createForm.opponentTeamName" class="w-full px-3 py-2 text-sm rounded-xl border border-neutral-200 focus:outline-none focus:border-blue-400" />
-    </FormField>
-    <FormField label="Тип матча">
-      <select v-model="createForm.type" class="w-full px-3 py-2 text-sm rounded-xl border border-neutral-200 focus:outline-none focus:border-blue-400">
-        <option v-for="(label, val) in TYPE_LABEL" :key="val" :value="val">{{ label }}</option>
+    <FormField label="Домашняя команда">
+      <select v-model.number="createForm.homeTeamId" class="w-full px-3 py-2 text-sm rounded-xl border border-neutral-200 focus:outline-none focus:border-blue-400 bg-white">
+        <option :value="null" disabled>Выберите команду</option>
+        <optgroup v-for="g in teamsByAge" :key="g.age" :label="g.age">
+          <option v-for="t in g.teams" :key="t.id" :value="t.id">{{ t.name }}</option>
+        </optgroup>
       </select>
     </FormField>
-    <FormField label="Дата">
-      <input v-model="createForm.date" type="datetime-local" class="w-full px-3 py-2 text-sm rounded-xl border border-neutral-200 focus:outline-none focus:border-blue-400" />
+    <FormField label="Тип матча">
+      <select v-model="createForm.type" @change="onTypeChange" class="w-full px-3 py-2 text-sm rounded-xl border border-neutral-200 focus:outline-none focus:border-blue-400 bg-white">
+        <option v-for="(label, val) in MATCH_TYPE" :key="val" :value="val">{{ label }}</option>
+      </select>
+    </FormField>
+    <!-- Для Home (внутриакадемический) — выбираем вторую свою команду из списка -->
+    <FormField v-if="createForm.type === 'Home'" label="Команда соперника">
+      <select v-model.number="createForm.opponentTeamId" class="w-full px-3 py-2 text-sm rounded-xl border border-neutral-200 focus:outline-none focus:border-blue-400 bg-white">
+        <option :value="null" disabled>Выберите команду</option>
+        <optgroup v-for="g in opponentTeamsByAge" :key="g.age" :label="g.age">
+          <option v-for="t in g.teams" :key="t.id" :value="t.id">{{ t.name }}</option>
+        </optgroup>
+      </select>
+    </FormField>
+    <!-- Для остальных типов — название внешнего соперника текстом -->
+    <FormField v-else label="Название соперника">
+      <input v-model="createForm.opponentTeamName" class="w-full px-3 py-2 text-sm rounded-xl border border-neutral-200 focus:outline-none focus:border-blue-400" />
+    </FormField>
+    <FormField label="Дата (матч можно только запланировать, выбрать прошедшую дату нельзя)">
+      <input v-model="createForm.date" type="datetime-local" :min="minDate" class="w-full px-3 py-2 text-sm rounded-xl border border-neutral-200 focus:outline-none focus:border-blue-400" />
+      <div v-if="dateError" class="text-[10px] text-red-500 mt-1">{{ dateError }}</div>
     </FormField>
   </EditModal>
 
@@ -69,7 +85,7 @@
     </FormField>
     <FormField label="Тип матча">
       <select v-model="editForm.type" class="w-full px-3 py-2 text-sm rounded-xl border border-neutral-200 focus:outline-none focus:border-blue-400">
-        <option v-for="(label, val) in TYPE_LABEL" :key="val" :value="val">{{ label }}</option>
+        <option v-for="(label, val) in MATCH_TYPE" :key="val" :value="val">{{ label }}</option>
       </select>
     </FormField>
     <FormField label="Дата">
@@ -89,10 +105,11 @@ import AdminEntityCard from '@/components/ui/AdminEntityCard.vue'
 import ConfirmDeleteModal from '@/components/ui/ConfirmDeleteModal.vue'
 import EditModal from '@/components/ui/EditModal.vue'
 import FormField from '@/components/ui/FormField.vue'
+import { MATCH_TYPE } from '@/constants'
 
 const { toast, showToast } = useToast()
 
-const TYPE_LABEL: Record<string, string> = { Friendly: 'Товарищеский', League: 'Лига', Cup: 'Кубок', Tournament: 'Турнир' }
+const TYPE_LABEL = MATCH_TYPE
 const STATUS_LABEL: Record<string, string> = { Scheduled: 'Запланирован', InProgress: 'Идёт', Finished: 'Завершён' }
 const PER_PAGE = 15
 const sortOptions = [
@@ -102,6 +119,43 @@ const sortOptions = [
 
 const loading = ref(true)
 const items = ref<any[]>([])
+const teams = ref<any[]>([])
+
+// Команды сгруппированы по возрастной группе (U14, U16, ...) — для optgroup в селекте создания матча
+function groupTeamsByAge(list: any[]) {
+  const map = new Map<string, any[]>()
+  for (const t of list) {
+    const key = t.ageGroup ?? '—'
+    if (!map.has(key)) map.set(key, [])
+    map.get(key)!.push(t)
+  }
+  return [...map.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([age, items]) => ({ age, teams: items.sort((a, b) => (a.name ?? '').localeCompare(b.name ?? '')) }))
+}
+
+const teamsByAge = computed(() => groupTeamsByAge(teams.value))
+// Для Home-матча соперник = другая команда академии (исключая выбранную домашнюю)
+const opponentTeamsByAge = computed(() =>
+  groupTeamsByAge(teams.value.filter(t => t.id !== createForm.value.homeTeamId))
+)
+
+// Минимальное значение datetime-local = сейчас (с округлением до минуты).
+// Запланировать можно только матч в будущем.
+const minDate = computed(() => {
+  const d = new Date()
+  d.setSeconds(0, 0)
+  d.setMinutes(d.getMinutes() - d.getTimezoneOffset())
+  return d.toISOString().slice(0, 16)
+})
+
+const dateError = ref('')
+
+function onTypeChange() {
+  // Сброс полей соперника при смене типа, чтобы не отправлять оба сразу
+  createForm.value.opponentTeamId = null
+  createForm.value.opponentTeamName = ''
+}
 const search = ref('')
 const filterStatus = ref('')
 const sortBy = ref('date')
@@ -140,7 +194,8 @@ const paged = computed(() => filtered.value.slice((page.value - 1) * PER_PAGE, p
 
 function openCreate() {
   createOpen.value = true
-  createForm.value = { homeTeamId: null, opponentTeamName: '', type: 'Friendly', date: '' }
+  dateError.value = ''
+  createForm.value = { homeTeamId: null, opponentTeamId: null, opponentTeamName: '', type: 'Friendly', date: '' }
 }
 function openEdit(m: any) {
   editItem.value = m
@@ -154,12 +209,25 @@ function openEdit(m: any) {
 function openDelete(m: any) { deleteItem.value = m }
 
 async function saveCreate() {
-  await api.post('/match', {
+  dateError.value = ''
+  if (!createForm.value.date) {
+    dateError.value = 'Укажите дату матча'
+    return
+  }
+  const matchDate = new Date(createForm.value.date)
+  if (matchDate.getTime() <= Date.now()) {
+    dateError.value = 'Дата должна быть в будущем'
+    return
+  }
+  const isHome = createForm.value.type === 'Home'
+  const payload: any = {
     homeTeamId: createForm.value.homeTeamId,
-    opponentTeamName: createForm.value.opponentTeamName || null,
     type: createForm.value.type,
-    date: createForm.value.date ? new Date(createForm.value.date).toISOString() : null,
-  })
+    date: matchDate.toISOString(),
+  }
+  if (isHome) payload.opponentTeamId = createForm.value.opponentTeamId
+  else payload.opponentTeamName = createForm.value.opponentTeamName || null
+  await api.post('/match', payload)
   createOpen.value = false
   showToast('saved')
   await load()
@@ -185,8 +253,12 @@ async function confirmDelete() {
 
 async function load() {
   loading.value = true
-  const res = await api.get('/match').catch(() => null)
-  items.value = res?.data?.data ?? []
+  const [mRes, tRes] = await Promise.all([
+    api.get('/match').catch(() => null),
+    api.get('/team').catch(() => null),
+  ])
+  items.value = mRes?.data?.data ?? []
+  teams.value = tRes?.data?.data ?? []
   loading.value = false
 }
 

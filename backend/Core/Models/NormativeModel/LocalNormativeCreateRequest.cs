@@ -10,5 +10,6 @@ namespace Core.Models.NormativeModel
         public char Gender { get; set; }
         public double Value { get; set; }
         public bool IsMoreBetter { get; set; }
+        public bool IsAboveYearOfStudy { get; set; }
     }
 }

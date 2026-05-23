@@ -41,9 +41,9 @@
         <div v-if="match.status === 'Finished'" class="flex items-start gap-3 mb-6 mt-4">
           <!-- Эмблема домашней -->
           <div class="flex-1 flex items-center justify-center">
-            <div class="w-48 h-48 rounded-full overflow-hidden border-2 border-neutral-200 flex items-center justify-center bg-blue-50">
-              <img v-if="homeImage" :src="homeImage" class="w-full h-full object-cover" />
-              <span v-else class="text-4xl font-bold text-blue-500">{{ initials(match.homeTeamName) }}</span>
+            <img v-if="homeImage" :src="homeImage" class="w-48 h-48 object-contain" />
+            <div v-else class="w-48 h-48 rounded-full border-2 border-neutral-200 bg-neutral-50 flex items-center justify-center">
+              <span class="text-4xl font-bold text-blue-500">{{ initials(match.homeTeamName) }}</span>
             </div>
           </div>
           <!-- Плашки -->
@@ -61,9 +61,9 @@
           </div>
           <!-- Эмблема гостевой -->
           <div class="flex-1 flex items-center justify-center">
-            <div class="w-48 h-48 rounded-full overflow-hidden border-2 border-neutral-200 flex items-center justify-center bg-neutral-50">
-              <img v-if="awayImage" :src="awayImage" class="w-full h-full object-cover" />
-              <span v-else class="text-4xl font-bold text-neutral-400">{{ initials(match.opponentTeamName ?? '?') }}</span>
+            <img v-if="awayImage" :src="awayImage" class="w-48 h-48 object-contain" />
+            <div v-else class="w-48 h-48 rounded-full border-2 border-neutral-200 bg-neutral-50 flex items-center justify-center">
+              <span class="text-4xl font-bold text-neutral-400">{{ initials(match.opponentTeamName ?? '?') }}</span>
             </div>
           </div>
         </div>
@@ -105,6 +105,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '@/services/api'
 import { formatDate } from '@/utils/formatDate'
+import { imageUrl } from '@/utils/imageUrl'
 import AppCard from '@/components/ui/AppCard.vue'
 import { MATCH_TYPE, MATCH_RESULT } from '@/constants'
 
@@ -155,8 +156,8 @@ onMounted(async () => {
       api.get(`/team/${match.value.homeTeamId}`),
       match.value.opponentTeamId ? api.get(`/team/${match.value.opponentTeamId}`) : Promise.resolve(null),
     ])
-    if (hRes.status === 'fulfilled') homeImage.value = hRes.value?.data?.data?.images?.[0]?.path ?? null
-    if (aRes.status === 'fulfilled') awayImage.value = (aRes.value as any)?.data?.data?.images?.[0]?.path ?? null
+    if (hRes.status === 'fulfilled') homeImage.value = imageUrl(hRes.value?.data?.data?.images)
+    if (aRes.status === 'fulfilled') awayImage.value = imageUrl((aRes.value as any)?.data?.data?.images)
   }
   loading.value = false
 })

@@ -27,7 +27,9 @@ namespace Application.Services
 
         public async Task<Result<TeamResponse>> GetTeamAsync(long teamId)
         {
-            var team = await _context.Teams.FirstOrDefaultAsync(x => x.Id == teamId);
+            var team = await _context.Teams
+                .Include(x => x.Images)
+                .FirstOrDefaultAsync(x => x.Id == teamId);
             if (team == null)
                 return Result<TeamResponse>.Failure("Команда не найдена", 404);
 
@@ -37,6 +39,7 @@ namespace Application.Services
         public async Task<Result<List<TeamResponse>>> GetTeamsAsync(Filter? filter)
         {
             var teams = await _context.Teams
+                .Include(x => x.Images)
                 .ApplyFilter(filter)
                 .ToListAsync();
 

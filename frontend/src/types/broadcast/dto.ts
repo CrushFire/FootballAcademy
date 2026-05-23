@@ -20,6 +20,8 @@ export interface BroadcastDetailsResponse {
   id: number
   title: string
   text: string
+  createdById: number
+  createdByName?: string | null
   createdAt: string
   expireAt: string | null
   recipients: BroadcastRecipientDto[]

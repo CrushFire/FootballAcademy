@@ -73,9 +73,17 @@ namespace FootballAcademy.Controllers
         }
 
         [HttpGet("broadcast")]
-        public async Task<IActionResult> GetBroadcasts([FromQuery] Filter? filter)
+        public async Task<IActionResult> GetBroadcasts([FromQuery] Filter? filter, [FromQuery] bool onlyForMe = false)
         {
-            var result = await _messageService.GetBroadcastsAsync(filter);
+            // onlyForMe=true → возвращаем только те рассылки, где текущий юзер является получателем.
+            // Используется в колокольчике уведомлений, чтобы админ не видел свои же отправленные рассылки.
+            long? forUserId = null;
+            if (onlyForMe)
+            {
+                var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                if (long.TryParse(userIdClaim, out var uid)) forUserId = uid;
+            }
+            var result = await _messageService.GetBroadcastsAsync(filter, forUserId);
             return result.ToActionResult();
         }
 
@@ -90,6 +98,16 @@ namespace FootballAcademy.Controllers
         public async Task<IActionResult> DeleteBroadcast([FromRoute] long broadcastId)
         {
             var result = await _messageService.DeleteBroadcastAsync(broadcastId);
+            return result.ToActionResult();
+        }
+
+        // Пометить рассылку прочитанной для текущего пользователя (помечает Message с этим BroadcastId)
+        [HttpPut("broadcast/{broadcastId}/read")]
+        public async Task<IActionResult> MarkBroadcastRead([FromRoute] long broadcastId)
+        {
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!long.TryParse(userIdClaim, out var userId)) return Unauthorized();
+            var result = await _messageService.MarkBroadcastReadAsync(broadcastId, userId);
             return result.ToActionResult();
         }
 

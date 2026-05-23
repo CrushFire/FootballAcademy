@@ -4,24 +4,16 @@
 
       <div v-if="loading" class="flex-1 flex items-center justify-center text-sm text-neutral-400">Загрузка...</div>
 
-      <template v-else-if="profile">
+      <template v-else-if="userInfo">
         <!-- Левая колонка: аватар + имя + выход -->
         <div class="w-60 shrink-0 flex flex-col items-center pt-10 px-6 pb-6">
           <div class="flex flex-col items-center gap-4 flex-1">
-            <div class="relative group cursor-pointer" @click="avatarInput?.click()">
-              <div class="w-48 h-48 rounded-full overflow-hidden shrink-0 bg-neutral-700 flex items-center justify-center">
-                <img v-if="avatarUrl" :src="avatarUrl" class="w-full h-full object-cover" alt="Аватар" />
-                <span v-else class="text-white font-bold text-5xl">{{ initials(profile.fio) }}</span>
-              </div>
-              <div class="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" class="w-8 h-8 text-white">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/>
-                </svg>
-              </div>
-              <input ref="avatarInput" type="file" accept="image/*" class="hidden" @change="uploadAvatar" />
+            <!-- У админа нет записи Personal, аватар не загружается — показываем инициалы из login/email -->
+            <div class="w-48 h-48 rounded-full overflow-hidden shrink-0 bg-neutral-700 flex items-center justify-center">
+              <span class="text-white font-bold text-5xl">{{ initials(userInfo.login || userInfo.email) }}</span>
             </div>
             <div class="text-center">
-              <div class="text-base font-bold text-neutral-900 leading-snug">{{ profile.fio }}</div>
+              <div class="text-base font-bold text-neutral-900 leading-snug">{{ userInfo.login }}</div>
               <div class="text-xs text-neutral-500 mt-1">Администратор</div>
             </div>
           </div>
@@ -57,8 +49,9 @@
 
           <div class="space-y-3">
             <div class="text-base font-bold text-neutral-700 text-center mb-5">Основные данные</div>
-            <InfoRow label="Должность" :value="profile.position" />
-            <InfoRow label="Дата регистрации" :value="formatDate(profile.createdAt)" />
+            <InfoRow label="Логин" :value="userInfo.login" />
+            <InfoRow label="Роль" value="Администратор" />
+            <InfoRow label="Дата регистрации" :value="formatDate(userInfo.createdAt)" />
           </div>
 
           <div class="border-t border-neutral-900 my-6" />
@@ -107,7 +100,7 @@
         </div>
       </template>
 
-      <div v-else class="flex-1 flex items-center justify-center text-sm text-neutral-400">Профиль не найден</div>
+      <div v-else class="flex-1 flex items-center justify-center text-sm text-neutral-400">Не удалось загрузить профиль</div>
     </div>
   </div>
 </template>
@@ -131,10 +124,7 @@ const InfoRow = defineComponent({
 })
 
 const loading = ref(true)
-const profile = ref<any>(null)
 const userInfo = ref<any>(null)
-const avatarUrl = ref<string>('')
-const avatarInput = ref<HTMLInputElement | null>(null)
 
 const showPasswordForm = ref(false)
 const oldPassword = ref('')
@@ -157,30 +147,12 @@ function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })
 }
 
-async function uploadAvatar(e: Event) {
-  const file = (e.target as HTMLInputElement).files?.[0]
-  if (!file) return
-  const form = new FormData()
-  form.append('newImages', file)
-  try {
-    const res = await api.post('/personal/me/images', form, { headers: { 'Content-Type': 'multipart/form-data' } })
-    const images = res?.data?.data?.images ?? res?.data?.data ?? []
-    const last = Array.isArray(images) ? images[images.length - 1] : null
-    if (last?.path) avatarUrl.value = '/' + last.path
-  } catch { /* ignore */ }
-}
-
 async function load() {
   loading.value = true
   try {
-    const [pm, user] = await Promise.allSettled([
-      api.get('/personal/me'),
-      api.get('/users/me'),
-    ])
-    profile.value = (pm as any).value?.data?.data ?? null
-    userInfo.value = (user as any).value?.data?.data ?? null
-    const images = profile.value?.images ?? []
-    if (images.length > 0) avatarUrl.value = '/' + images[images.length - 1].path
+    // У админа нет записи в Personal — берём только данные User
+    const user = await api.get('/users/me').catch(() => null)
+    userInfo.value = user?.data?.data ?? null
   } finally {
     loading.value = false
   }

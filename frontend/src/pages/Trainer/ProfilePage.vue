@@ -10,7 +10,7 @@
           <div class="flex flex-col items-center gap-4 flex-1">
             <div class="relative group cursor-pointer" @click="avatarInput?.click()">
               <div class="w-48 h-48 rounded-full overflow-hidden shrink-0 bg-blue-600 flex items-center justify-center">
-                <img v-if="avatarUrl" :src="avatarUrl" class="w-full h-full object-cover" alt="Аватар" />
+                <img v-if="avatarUrl" :src="avatarUrl" class="w-full h-full object-cover object-top" alt="Аватар" />
                 <span v-else class="text-white font-bold text-5xl">{{ initials(profile.fio) }}</span>
               </div>
               <div class="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
@@ -124,6 +124,7 @@
 import { ref, onMounted, defineComponent, h } from 'vue'
 import api from '@/services/api'
 import { useAuthStore } from '@/store/auth'
+import { imageUrl } from '@/utils/imageUrl'
 
 const auth = useAuthStore()
 const showLogoutConfirm = ref(false)
@@ -176,7 +177,7 @@ async function uploadAvatar(e: Event) {
     const res = await api.post('/personal/me/images', form, { headers: { 'Content-Type': 'multipart/form-data' } })
     const images = res?.data?.data?.images ?? res?.data?.data ?? []
     const last = Array.isArray(images) ? images[images.length - 1] : null
-    if (last?.path) avatarUrl.value = '/' + last.path
+    if (last?.path) avatarUrl.value = imageUrl(last.path) ?? ''
   } catch { /* ignore */ }
 }
 
@@ -190,7 +191,7 @@ async function load() {
     profile.value = (pm as any).value?.data?.data ?? null
     userInfo.value = (user as any).value?.data?.data ?? null
     const images = profile.value?.images ?? []
-    if (images.length > 0) avatarUrl.value = '/' + images[images.length - 1].path
+    if (images.length > 0) avatarUrl.value = imageUrl(images) ?? ''
 
     if (profile.value?.id) {
       const tid = profile.value.id

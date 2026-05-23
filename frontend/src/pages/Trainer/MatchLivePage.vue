@@ -248,9 +248,9 @@
 
             <!-- Эмблема домашней -->
             <div class="flex-1 flex flex-col items-center gap-1.5">
-              <div class="w-36 h-36 min-w-[64px] min-h-[64px] rounded-full overflow-hidden border-2 border-neutral-200 bg-blue-50 flex items-center justify-center">
-                <img v-if="homeTeamImage" :src="homeTeamImage" class="w-full h-full object-cover" alt="" />
-                <span v-else class="text-lg font-bold text-blue-500 select-none">{{ initials(match.homeTeamName ?? '') }}</span>
+              <img v-if="homeTeamImage" :src="homeTeamImage" class="w-36 h-36 min-w-[64px] min-h-[64px] object-contain" alt="" />
+              <div v-else class="w-36 h-36 min-w-[64px] min-h-[64px] rounded-full border-2 border-neutral-200 bg-neutral-50 flex items-center justify-center">
+                <span class="text-lg font-bold text-blue-500 select-none">{{ initials(match.homeTeamName ?? '') }}</span>
               </div>
               <div class="text-sm font-semibold text-neutral-700 text-center max-w-[140px] leading-tight">{{ match.homeTeamName }}</div>
             </div>
@@ -292,9 +292,9 @@
 
             <!-- Эмблема гостей -->
             <div class="flex-1 flex flex-col items-center gap-1.5">
-              <div class="w-36 h-36 min-w-[64px] min-h-[64px] rounded-full overflow-hidden border-2 border-neutral-200 bg-neutral-50 flex items-center justify-center">
-                <img v-if="awayTeamImage" :src="awayTeamImage" class="w-full h-full object-cover" alt="" />
-                <span v-else class="text-lg font-bold text-neutral-400 select-none">{{ initials(match.opponentTeamName ?? '?') }}</span>
+              <img v-if="awayTeamImage" :src="awayTeamImage" class="w-36 h-36 min-w-[64px] min-h-[64px] object-contain" alt="" />
+              <div v-else class="w-36 h-36 min-w-[64px] min-h-[64px] rounded-full border-2 border-neutral-200 bg-neutral-50 flex items-center justify-center">
+                <span class="text-lg font-bold text-neutral-400 select-none">{{ initials(match.opponentTeamName ?? '?') }}</span>
               </div>
               <div class="text-sm font-semibold text-neutral-700 text-center max-w-[140px] leading-tight">{{ match.opponentTeamName ?? 'Соперник' }}</div>
             </div>
@@ -410,7 +410,7 @@
             <div v-if="!liveEvents.length" class="text-center text-xs text-neutral-400 py-4">Событий ещё нет</div>
             <div v-else class="divide-y divide-neutral-100">
               <div v-for="ev in sortedLiveEvents" :key="ev.id"
-                class="flex items-center gap-2 py-2.5"
+                class="relative flex items-center gap-2 py-2.5"
                 :class="ev.isHomeTeam ? 'flex-row' : 'flex-row-reverse'"
               >
                 <div class="flex items-center gap-2 flex-1 min-w-0" :class="ev.isHomeTeam ? 'justify-start' : 'justify-end'">
@@ -426,8 +426,8 @@
                     <div v-if="ev.comment" class="text-xs text-neutral-400 italic truncate">{{ ev.comment }}</div>
                   </div>
                 </div>
-                <div class="w-10 shrink-0 text-base font-bold text-neutral-400 tabular-nums flex items-baseline justify-center">
-                  <span class="inline-block min-w-[1.5em] text-right">{{ ev.minute }}</span><span>'</span>
+                <div class="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 text-base font-bold text-neutral-600 tabular-nums pointer-events-none">
+                  {{ ev.minute }}'
                 </div>
                 <div class="flex items-center gap-0.5 shrink-0">
                   <button @click="openEditEvent(ev)"
@@ -657,6 +657,7 @@ import { useRouter } from 'vue-router'
 import api from '@/services/api'
 import { POSITION_AND_GROUP_LABEL, MATCH_TYPE, POSITION_REPLACEMENTS } from '@/constants'
 import { formatDate } from '@/utils/formatDate'
+import { imageUrl } from '@/utils/imageUrl'
 import { useAuthStore } from '@/store/auth'
 import LiveMatchHeader from '@/components/trainer/LiveMatchHeader.vue'
 import MatchLineupDisplay from '@/components/trainer/MatchLineupDisplay.vue'
@@ -1199,10 +1200,10 @@ async function loadScheduled() {
 async function loadTeamImages(homeId: number, awayId?: number | null) {
   const loadOne = async (id: number, target: 'home' | 'away') => {
     const t = await api.get(`/team/${id}`).catch(() => null)
-    const img = t?.data?.data?.images?.[0]?.path ?? null
-    if (img) {
-      if (target === 'home') homeTeamImage.value = img
-      else awayTeamImage.value = img
+    const url = imageUrl(t?.data?.data?.images)
+    if (url) {
+      if (target === 'home') homeTeamImage.value = url
+      else awayTeamImage.value = url
     }
   }
   const tasks = [loadOne(homeId, 'home')]

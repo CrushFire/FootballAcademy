@@ -97,6 +97,14 @@ builder.Services.AddAuthentication(options =>
                     authorizationHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
                     context.Token = authorizationHeader["Bearer ".Length..].Trim();
 
+                // SignalR (WebSocket) передаёт токен через query string ?access_token=...
+                // потому что нативный WebSocket не поддерживает кастомные заголовки.
+                // Это позволяет ChatHub.Context.User получить идентификацию пользователя.
+                var accessToken = context.Request.Query["access_token"];
+                var path = context.HttpContext.Request.Path;
+                if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs"))
+                    context.Token = accessToken;
+
                 return Task.CompletedTask;
             }
         };

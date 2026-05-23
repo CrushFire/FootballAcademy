@@ -32,7 +32,9 @@ namespace Application.Services
 
         public async Task<Result<SportsmanResponse>> GetSportsmanByUserIdAsync(long userId)
         {
-            var sportsman = await _context.Sportsmen.FirstOrDefaultAsync(x => x.UserId == userId);
+            var sportsman = await _context.Sportsmen
+                .Include(x => x.Images)
+                .FirstOrDefaultAsync(x => x.UserId == userId);
             if (sportsman == null)
                 return Result<SportsmanResponse>.Failure("Данный спортсмен не найден", 404);
             return Result<SportsmanResponse>.Success(_mapper.Map<SportsmanResponse>(sportsman));
@@ -40,7 +42,9 @@ namespace Application.Services
 
         public async Task<Result<SportsmanResponse>> GetSportsmanAsync(long id)
         {
-            var sportsman = await _context.Sportsmen.FirstOrDefaultAsync(x => x.Id == id);
+            var sportsman = await _context.Sportsmen
+                .Include(x => x.Images)
+                .FirstOrDefaultAsync(x => x.Id == id);
 
             if (sportsman == null)
             {
@@ -55,6 +59,7 @@ namespace Application.Services
         public async Task<Result<List<SportsmanResponse>>> GetSportsmenAsync(Filter? filter)
         {
             var sportsmans = await _context.Sportsmen
+                .Include(x => x.Images)
                 .ApplyFilter(filter)
                 .ToListAsync();
 

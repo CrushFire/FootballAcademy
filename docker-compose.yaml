@@ -13,7 +13,8 @@ services:
       Redis__Host: "redis"
       OpenAI__ApiKey: "${OPENAI_API_KEY}"
     volumes:
-      - images_data:/app/wwwroot/images
+      # Bind mount — картинки видны на хосте по пути ./backend/FootballAcademy/wwwroot/images
+      - ./backend/FootballAcademy/wwwroot/images:/app/wwwroot/images
       - ./backend/FootballAcademy/knowledge:/app/knowledge
       - ./backend/FootballAcademy/uploads:/app/uploads
     depends_on:

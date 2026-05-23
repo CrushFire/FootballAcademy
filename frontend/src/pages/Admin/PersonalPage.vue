@@ -91,7 +91,7 @@
         <div v-for="img in existingImages" :key="img.path" class="relative w-16 h-16 rounded-xl overflow-hidden border border-neutral-200 group">
           <img :src="`/api/images/${img.path.replace('images/', '')}`" class="w-full h-full object-cover" />
           <button
-            @click.prevent="removeExistingImage(img)"
+            @click.prevent="askRemoveExistingImage(img)"
             class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
           >
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" class="w-5 h-5 text-white">
@@ -124,6 +124,7 @@
   </EditModal>
 
   <ConfirmDeleteModal v-if="deleteItem" :message="`Удалить «${deleteItem.fio}»?`" @confirm="confirmDelete" @cancel="deleteItem = null" />
+  <ConfirmDeleteModal v-if="pendingImageDelete" message="Удалить эту фотографию?" @confirm="confirmRemoveExistingImage" @cancel="cancelRemoveExistingImage" />
 </template>
 
 <script setup lang="ts">
@@ -271,8 +272,17 @@ function removeNewImage(i: number) {
   newImagePreviews.value.splice(i, 1)
 }
 
-function removeExistingImage(img: { path: string }) {
-  existingImages.value = existingImages.value.filter(x => x !== img)
+const pendingImageDelete = ref<{ path: string } | null>(null)
+function askRemoveExistingImage(img: { path: string }) {
+  pendingImageDelete.value = img
+}
+function confirmRemoveExistingImage() {
+  if (!pendingImageDelete.value) return
+  existingImages.value = existingImages.value.filter(x => x !== pendingImageDelete.value)
+  pendingImageDelete.value = null
+}
+function cancelRemoveExistingImage() {
+  pendingImageDelete.value = null
 }
 
 async function saveEdit() {
@@ -295,7 +305,7 @@ async function saveEdit() {
     // Upload new images
     if (newFiles.value.length) {
       const fd = new FormData()
-      newFiles.value.forEach(f => fd.append('images', f))
+      newFiles.value.forEach(f => fd.append('newImages', f))
       await api.post(`/personal/${editItem.value.id}/images`, fd, { headers: { 'Content-Type': 'multipart/form-data' } }).catch(() => null)
     }
   } else {

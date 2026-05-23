@@ -60,14 +60,17 @@
   />
 
   <EditModal v-if="editItem !== undefined" :title="editItem ? 'Редактировать группу' : 'Новая группа'" @save="saveEdit" @cancel="editItem = undefined">
-    <FormField label="Название (формат: Слово+Число, напр. Юниоры16)">
+    <FormField label="Название">
       <input v-model="editForm.name" class="w-full px-3 py-2 text-sm rounded-xl border border-neutral-200 focus:outline-none focus:border-blue-400" />
     </FormField>
     <FormField label="Описание">
       <input v-model="editForm.description" class="w-full px-3 py-2 text-sm rounded-xl border border-neutral-200 focus:outline-none focus:border-blue-400" />
     </FormField>
-    <FormField v-if="!editItem" label="ID тренера">
-      <input v-model.number="editForm.trainerId" type="number" class="w-full px-3 py-2 text-sm rounded-xl border border-neutral-200 focus:outline-none focus:border-blue-400" />
+    <FormField v-if="!editItem" label="Тренер">
+      <select v-model.number="editForm.trainerId" class="w-full px-3 py-2 text-sm rounded-xl border border-neutral-200 focus:outline-none focus:border-blue-400 bg-white">
+        <option :value="null" disabled>Выберите тренера</option>
+        <option v-for="t in trainers" :key="t.id" :value="t.id">{{ t.fio }}</option>
+      </select>
     </FormField>
   </EditModal>
 
@@ -117,6 +120,9 @@ const personalMap = computed<Record<number, string>>(() => {
   for (const p of personals.value) m[p.id] = p.fio
   return m
 })
+
+// В дропдауне группы — только тренеры (не медики). PersonalType.Trainer = 0 на бэке.
+const trainers = computed(() => personals.value.filter(p => p.type === 'Trainer' || p.type === 0))
 
 function trainerFio(trainerId: number | null | undefined): string {
   if (!trainerId) return 'Без тренера'

@@ -60,7 +60,7 @@
           <div class="w-9 h-9 rounded-full flex items-center justify-center text-white font-bold text-sm shrink-0" :class="roleColor(user.role)">{{ initials(user.login) }}</div>
           <div class="flex-1 min-w-0">
             <div class="text-sm font-semibold text-neutral-800 truncate">{{ user.login }}</div>
-            <div class="text-xs text-neutral-400 truncate">{{ roleLabel(user.role) }}</div>
+            <div class="text-xs text-neutral-400 truncate">{{ roleLabel(user.role, personalTypeFor(user.id)) }}</div>
           </div>
           <span v-if="unread[user.id]" class="bg-blue-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 shrink-0">
             {{ unread[user.id] > 99 ? '99+' : unread[user.id] }}
@@ -97,7 +97,7 @@
           <div class="w-9 h-9 rounded-full flex items-center justify-center text-white font-bold text-sm shrink-0" :class="roleColor(selectedUser.role)">{{ initials(selectedUser.login) }}</div>
           <div>
             <div class="font-semibold text-neutral-900 text-sm">{{ selectedUser.login }}</div>
-            <div class="text-xs text-neutral-400">{{ roleLabel(selectedUser.role) }}</div>
+            <div class="text-xs text-neutral-400">{{ roleLabel(selectedUser.role, personalTypeFor(selectedUser.id)) }}</div>
           </div>
         </div>
         <div ref="messagesEl" class="flex-1 overflow-y-auto p-4 space-y-2">
@@ -146,6 +146,9 @@
         <div class="flex-1 overflow-y-auto p-5 space-y-4">
           <div class="bg-white rounded-2xl border border-neutral-100 p-5 max-w-2xl">
             <div class="text-xs font-semibold text-neutral-400 uppercase tracking-wide mb-2">Содержание</div>
+            <div v-if="broadcastDetails?.createdByName || selectedBroadcast.createdByName" class="text-xs text-neutral-500 mb-2">
+              От: <span class="font-semibold text-neutral-700">{{ broadcastDetails?.createdByName ?? selectedBroadcast.createdByName }}</span>
+            </div>
             <p class="text-sm text-neutral-800 leading-relaxed whitespace-pre-wrap">{{ selectedBroadcast.text }}</p>
           </div>
           <div class="bg-white rounded-2xl border border-neutral-100 p-4 max-w-2xl">
@@ -153,7 +156,7 @@
             <div v-if="broadcastDetails" class="space-y-1.5">
               <div v-for="r in broadcastDetails.recipients" :key="r.userId"
                 class="flex items-center justify-between px-3 py-2 rounded-xl bg-neutral-50">
-                <span class="text-xs text-neutral-700">{{ r.userName ? `${r.userName} (ID ${r.userId})` : `ID ${r.userId}` }}</span>
+                <span class="text-xs text-neutral-700">{{ r.userName || `Пользователь #${r.userId}` }}</span>
                 <span class="text-xs font-semibold" :class="r.isRead ? 'text-green-600' : 'text-neutral-400'">{{ r.isRead ? 'Прочитано' : 'Не прочитано' }}</span>
               </div>
             </div>
@@ -185,10 +188,10 @@
         <div v-for="u in newChatUsers" :key="u.id"
           @click="selectUser(u); newChatModal = false"
           class="flex items-center gap-3 px-4 py-2.5 cursor-pointer hover:bg-neutral-50 transition-colors">
-          <div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0" :class="roleColor(u.role)">{{ initials(u.login) }}</div>
-          <div>
-            <div class="text-sm font-medium text-neutral-800">{{ u.login }}</div>
-            <div class="text-xs text-neutral-400">{{ roleLabel(u.role) }}</div>
+          <div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0" :class="roleColor(u.role)">{{ initials(u.fio || u.login) }}</div>
+          <div class="min-w-0">
+            <div class="text-sm font-medium text-neutral-800 truncate">{{ u.fio || u.login }}</div>
+            <div class="text-xs text-neutral-400">{{ roleLabel(u.role, u.personalType) }}{{ u.fio && u.fio !== u.login ? ` · ${u.login}` : '' }}</div>
           </div>
         </div>
         <div v-if="newChatUsers.length === 0" class="px-4 py-8 text-center text-xs text-neutral-400">Нет пользователей</div>
@@ -212,23 +215,56 @@
           <label class="block text-xs font-semibold text-neutral-500 mb-1">Кому</label>
           <div class="grid grid-cols-2 gap-2">
             <button v-for="t in targetTypes" :key="t.value"
-              @click="broadcastForm.targetType = t.value; broadcastForm.targetId = undefined; targetSearch = ''; targetResults = []"
+              @click="broadcastForm.targetType = t.value; broadcastForm.targetId = undefined; targetSearch = ''"
               class="py-2 text-xs font-semibold rounded-xl border transition-colors"
               :class="broadcastForm.targetType === t.value ? 'border-blue-400 bg-blue-50 text-blue-700' : 'border-neutral-200 text-neutral-600 hover:border-neutral-300'">
               {{ t.label }}
             </button>
           </div>
         </div>
-        <div v-if="broadcastForm.targetType !== 'All'">
-          <label class="block text-xs font-semibold text-neutral-500 mb-1">{{ targetTypeLabel }}</label>
-          <input v-model="targetSearch" @input="onSearchInput" :placeholder="targetPlaceholder"
-            class="w-full px-3 py-2 text-sm rounded-xl border border-neutral-200 focus:outline-none focus:border-blue-400"/>
-          <div v-if="targetResults.length" class="mt-1.5 border border-neutral-200 rounded-xl overflow-hidden bg-white max-h-32 overflow-y-auto">
-            <button v-for="r in targetResults" :key="r.id" @click="selectTarget(r)"
-              class="w-full text-left px-3 py-2 text-xs hover:bg-neutral-50 transition-colors flex items-center justify-between border-b border-neutral-100 last:border-0"
-              :class="broadcastForm.targetId === r.id ? 'bg-blue-50 text-blue-700' : 'text-neutral-700'">
-              <span>{{ r.name }}</span><span class="text-neutral-400 font-mono">ID {{ r.id }}</span>
-            </button>
+        <!-- Персонал: дропдаун подкатегории. Значение совпадает с BroadcastTargetType на бэке -->
+        <div v-if="broadcastForm.targetType === 'Personal' || broadcastForm.targetType === 'Trainers' || broadcastForm.targetType === 'Medical'">
+          <label class="block text-xs font-semibold text-neutral-500 mb-1">Категория</label>
+          <select v-model="broadcastForm.targetType" class="w-full px-3 py-2 text-sm rounded-xl border border-neutral-200 focus:outline-none focus:border-blue-400 bg-white">
+            <option value="Personal">Все</option>
+            <option value="Trainers">Только тренеры</option>
+            <option value="Medical">Только мед. персонал</option>
+          </select>
+        </div>
+
+        <!-- Группа / Команда: кастомный дропдаун с поиском и группировкой по age -->
+        <div v-if="broadcastForm.targetType === 'Group' || broadcastForm.targetType === 'Team'" class="relative" ref="targetDropdownRef">
+          <label class="block text-xs font-semibold text-neutral-500 mb-1">{{ broadcastForm.targetType === 'Group' ? 'Группа' : 'Команда' }}</label>
+          <button type="button" @click="targetDropdownOpen = !targetDropdownOpen"
+            class="w-full px-3 py-2 text-sm rounded-xl border border-neutral-200 focus:outline-none focus:border-blue-400 bg-white flex items-center justify-between hover:border-neutral-300 transition-colors">
+            <span :class="selectedTargetName ? 'text-neutral-800' : 'text-neutral-400'">
+              {{ selectedTargetName || (broadcastForm.targetType === 'Group' ? 'Выберите группу' : 'Выберите команду') }}
+            </span>
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"
+              class="w-3.5 h-3.5 text-neutral-400 transition-transform"
+              :class="targetDropdownOpen ? 'rotate-180' : ''">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/>
+            </svg>
+          </button>
+          <div v-if="targetDropdownOpen" class="absolute z-50 mt-1 w-full bg-white border border-neutral-200 rounded-xl shadow-lg overflow-hidden">
+            <input v-model="targetSearch" :placeholder="broadcastForm.targetType === 'Group' ? 'Поиск группы...' : 'Поиск команды...'"
+              class="w-full px-3 py-2 text-sm border-b border-neutral-100 focus:outline-none" />
+            <div class="max-h-56 overflow-y-auto">
+              <template v-for="g in (broadcastForm.targetType === 'Group' ? filteredGroupsByAge : filteredTeamsByAge)" :key="g.age">
+                <div class="px-3 py-1 text-[10px] font-bold text-neutral-500 uppercase tracking-wider bg-neutral-50 border-t border-neutral-100 first:border-t-0">
+                  {{ g.age }}
+                </div>
+                <button v-for="x in g.items" :key="x.id" type="button"
+                  @click="selectTargetItem(x)"
+                  class="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 transition-colors"
+                  :class="broadcastForm.targetId === x.id ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-neutral-700'">
+                  {{ x.name }}
+                </button>
+              </template>
+              <div v-if="!(broadcastForm.targetType === 'Group' ? filteredGroupsByAge : filteredTeamsByAge).length" class="px-3 py-4 text-center text-xs text-neutral-400 italic">
+                Ничего не найдено
+              </div>
+            </div>
           </div>
         </div>
         <div>
@@ -293,11 +329,73 @@ const newChatSearch = ref('')
 const broadcastModal = ref(false)
 const sendingBroadcast = ref(false)
 const targetSearch = ref('')
-const targetResults = ref<{ id: number; name: string }[]>([])
-let searchTimer: ReturnType<typeof setTimeout> | null = null
-
-const broadcastForm = ref<{ title: string; text: string; targetType: BroadcastTargetType; targetId: number | undefined }>({
+const broadcastForm = ref<{
+  title: string; text: string; targetType: BroadcastTargetType;
+  targetId: number | undefined;
+}>({
   title: '', text: '', targetType: 'All', targetId: undefined,
+})
+
+// Группы и команды для дропдаунов "Кому" — грузятся при открытии модалки рассылки
+const broadcastGroups = ref<any[]>([])
+const broadcastTeams = ref<any[]>([])
+
+// Состояние кастомного дропдауна выбора группы/команды
+const targetDropdownOpen = ref(false)
+const targetDropdownRef = ref<HTMLElement | null>(null)
+
+// Имя выбранной группы/команды для отображения в кнопке
+const selectedTargetName = computed(() => {
+  if (!broadcastForm.value.targetId) return ''
+  const list = broadcastForm.value.targetType === 'Group' ? broadcastGroups.value : broadcastTeams.value
+  return list.find(x => x.id === broadcastForm.value.targetId)?.name ?? ''
+})
+
+function selectTargetItem(item: any) {
+  broadcastForm.value.targetId = item.id
+  targetDropdownOpen.value = false
+  targetSearch.value = ''
+}
+
+// Закрытие дропдауна по клику вне
+function onClickOutsideDropdown(e: MouseEvent) {
+  if (!targetDropdownOpen.value) return
+  const el = targetDropdownRef.value
+  if (el && !el.contains(e.target as Node)) {
+    targetDropdownOpen.value = false
+  }
+}
+
+function groupByAge(list: any[]) {
+  const m = new Map<string, any[]>()
+  for (const x of list) {
+    const key = x.ageGroup ?? '—'
+    if (!m.has(key)) m.set(key, [])
+    m.get(key)!.push(x)
+  }
+  return [...m.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([age, items]) => ({ age, items: items.sort((a, b) => (a.name ?? '').localeCompare(b.name ?? '')) }))
+}
+
+// Группы и команды могут не иметь ageGroup (у Group поле отсутствует) — для групп age берём из имени (U14-А → U14)
+function ageFromName(name: string): string {
+  const m = name?.match(/^(U\d+)/i)
+  return m ? m[1].toUpperCase() : '—'
+}
+
+const filteredGroupsByAge = computed(() => {
+  const q = targetSearch.value.trim().toLowerCase()
+  const list = broadcastGroups.value
+    .filter(g => !q || g.name?.toLowerCase().includes(q))
+    .map(g => ({ ...g, ageGroup: g.ageGroup ?? ageFromName(g.name) }))
+  return groupByAge(list)
+})
+
+const filteredTeamsByAge = computed(() => {
+  const q = targetSearch.value.trim().toLowerCase()
+  const list = broadcastTeams.value.filter(t => !q || t.name?.toLowerCase().includes(q))
+  return groupByAge(list)
 })
 
 const targetTypes = [
@@ -307,25 +405,27 @@ const targetTypes = [
   { value: 'Team' as BroadcastTargetType, label: 'Команда' },
 ]
 
-const targetTypeLabel = computed(() => {
-  const map: Record<string, string> = { Group: 'Группа', Team: 'Команда', Individual: 'Пользователь' }
-  return map[broadcastForm.value.targetType] ?? ''
-})
-
-const targetPlaceholder = computed(() => {
-  const map: Record<string, string> = { Group: 'Поиск группы...', Team: 'Поиск команды...', Individual: 'Поиск пользователя...' }
-  return map[broadcastForm.value.targetType] ?? 'Поиск...'
-})
-
 const canSendBroadcast = computed(() => {
   if (!broadcastForm.value.title || !broadcastForm.value.text) return false
-  if (broadcastForm.value.targetType === 'All') return true
-  return !!broadcastForm.value.targetId
+  const t = broadcastForm.value.targetType
+  if (t === 'All' || t === 'Personal' || t === 'Trainers' || t === 'Medical') return true
+  return !!broadcastForm.value.targetId // Group / Team / Individual
 })
 
-function roleLabel(role: string): string {
-  const map: Record<string, string> = { admin: 'Администратор', personal: 'Сотрудник', trainer: 'Тренер', medical: 'Медик', sportsman: 'Спортсмен' }
-  return map[role?.toLowerCase()] ?? role
+function personalTypeFor(userId: number | undefined): string | null {
+  if (!userId) return null
+  return allUsers.value.find(u => u.id === userId)?.personalType ?? null
+}
+
+function roleLabel(role: string, personalType?: string | null): string {
+  const map: Record<string, string> = { admin: 'Администратор', personal: 'Сотрудник', trainer: 'Тренер', medical: 'Мед. персонал', sportsman: 'Спортсмен' }
+  const base = map[role?.toLowerCase()] ?? role
+  if (role?.toLowerCase() === 'personal' && personalType) {
+    const t = String(personalType).toLowerCase()
+    if (t === 'trainer' || t === '0') return `${base} (Тренер)`
+    if (t === 'medical' || t === '1') return `${base} (Мед. персонал)`
+  }
+  return base
 }
 function roleColor(role: string): string {
   const map: Record<string, string> = { admin: 'bg-red-400', personal: 'bg-blue-500', trainer: 'bg-green-500', medical: 'bg-teal-500', sportsman: 'bg-neutral-400' }
@@ -376,9 +476,16 @@ const filteredBroadcasts = computed(() => {
   })
 })
 
+// Все юзеры системы — для модалки "Новый чат". Грузим один раз.
+const allUsers = ref<any[]>([])
+
 const newChatUsers = computed(() => {
-  const q = newChatSearch.value.toLowerCase()
-  return users.value.filter(u => u.id !== myId.value && u.login?.toLowerCase().includes(q))
+  const q = newChatSearch.value.toLowerCase().trim()
+  return allUsers.value.filter(u => {
+    if (u.id === myId.value) return false
+    if (!q) return true
+    return (u.login?.toLowerCase().includes(q)) || (u.fio?.toLowerCase().includes(q))
+  })
 })
 
 async function loadUsers() {
@@ -397,6 +504,45 @@ async function loadUsers() {
     dialogs.forEach((d: any) => { unread.value[d.userId] = d.unreadCount ?? (d.hasUnread ? 1 : 0) })
     users.value.forEach((u: any) => { if (u.id && u.login) usersMap.value[u.id] = u.login })
   } finally { usersLoading.value = false }
+}
+
+// Загрузка групп и команд (для дропдаунов в модалке рассылки)
+async function loadGroupsTeams() {
+  const [gr, tm] = await Promise.allSettled([
+    api.get('/group'),
+    api.get('/team'),
+  ])
+  broadcastGroups.value = (gr as any).value?.data?.data ?? []
+  broadcastTeams.value = (tm as any).value?.data?.data ?? []
+}
+
+// Загрузка ВСЕХ юзеров системы (для "Новый чат"): User + связанные Sportsman/Personal для ФИО.
+async function loadAllUsers() {
+  const [usersRes, sportsmenRes, personalsRes] = await Promise.allSettled([
+    api.get('/users'),
+    api.get('/sportsman'),
+    api.get('/personal'),
+  ])
+  const usersList: any[] = (usersRes as any).value?.data?.data ?? []
+  const sportsmen: any[] = (sportsmenRes as any).value?.data?.data ?? []
+  const personals: any[] = (personalsRes as any).value?.data?.data ?? []
+  const fioByUserId = new Map<number, string>()
+  const personalTypeByUserId = new Map<number, string>()
+  sportsmen.forEach(s => { if (s.userId && s.fio) fioByUserId.set(s.userId, s.fio) })
+  personals.forEach(p => {
+    if (p.userId && p.fio) fioByUserId.set(p.userId, p.fio)
+    if (p.userId && p.type) personalTypeByUserId.set(p.userId, String(p.type))
+  })
+
+  allUsers.value = usersList.map(u => ({
+    id: u.id,
+    login: u.login,
+    role: u.role,
+    fio: fioByUserId.get(u.id) ?? u.login,
+    personalType: personalTypeByUserId.get(u.id) ?? null,
+  }))
+  // Заполняем глобальную мапу ФИО для отображения в диалогах
+  allUsers.value.forEach(u => { if (u.id && u.fio) usersMap.value[u.id] = u.fio })
 }
 
 function ensureUserInList(user: any) {
@@ -435,6 +581,7 @@ async function selectUser(user: any) {
 async function selectBroadcast(b: BroadcastResponse) {
   selectedBroadcast.value = b
   broadcastDetails.value = null
+  api.put(`/message/broadcast/${b.id}/read`).catch(() => null)
   const res = await api.get(`/message/broadcast/${b.id}`).catch(() => null)
   broadcastDetails.value = res?.data?.data ?? null
 }
@@ -459,35 +606,7 @@ async function scrollToBottom() {
 function openNewBroadcast() {
   broadcastForm.value = { title: '', text: '', targetType: 'All', targetId: undefined }
   targetSearch.value = ''
-  targetResults.value = []
   broadcastModal.value = true
-}
-
-function onSearchInput() {
-  broadcastForm.value.targetId = undefined
-  if (searchTimer) clearTimeout(searchTimer)
-  targetResults.value = []
-  const q = targetSearch.value.trim().toLowerCase()
-  if (!q) return
-  searchTimer = setTimeout(async () => {
-    const type = broadcastForm.value.targetType
-    if (type === 'Team') {
-      const res = await api.get('/team').catch(() => null)
-      targetResults.value = (res?.data?.data ?? []).filter((t: any) => t.name?.toLowerCase().includes(q)).map((t: any) => ({ id: t.id, name: t.name }))
-    } else if (type === 'Group') {
-      const res = await api.get('/group').catch(() => null)
-      targetResults.value = (res?.data?.data ?? []).filter((g: any) => g.name?.toLowerCase().includes(q)).map((g: any) => ({ id: g.id, name: g.name }))
-    } else if (type === 'Individual') {
-      const res = await api.get('/user').catch(() => null)
-      targetResults.value = (res?.data?.data ?? []).filter((u: any) => u.login?.toLowerCase().includes(q)).slice(0, 8).map((u: any) => ({ id: u.id, name: u.login }))
-    }
-  }, 300)
-}
-
-function selectTarget(r: { id: number; name: string }) {
-  broadcastForm.value.targetId = r.id
-  targetSearch.value = r.name
-  targetResults.value = []
 }
 
 async function sendBroadcast() {
@@ -509,7 +628,8 @@ async function deleteBroadcast(b: BroadcastResponse) {
 }
 
 onMounted(async () => {
-  await Promise.all([loadUsers(), loadBroadcasts()])
+  await Promise.all([loadUsers(), loadBroadcasts(), loadAllUsers(), loadGroupsTeams()])
+  document.addEventListener('click', onClickOutsideDropdown)
   await start()
   on<MessageResponse>('ReceiveMessage', (msg) => {
     if (selectedUser.value?.id === msg.senderId) {
@@ -524,7 +644,17 @@ onMounted(async () => {
     const msg = messages.value.find(m => m.id === messageId)
     if (msg) msg.isRead = true
   })
+  // Когда получатель прочитал рассылку — обновляем статус в открытых деталях
+  on<{ broadcastId: number; userId: number }>('BroadcastRead', (payload) => {
+    if (broadcastDetails.value?.id === payload.broadcastId) {
+      const r = broadcastDetails.value.recipients.find(x => x.userId === payload.userId)
+      if (r) r.isRead = true
+    }
+  })
 })
 
-onUnmounted(() => { off('ReceiveMessage'); off('MessageRead'); stop() })
+onUnmounted(() => {
+  document.removeEventListener('click', onClickOutsideDropdown)
+  off('ReceiveMessage'); off('MessageRead'); off('BroadcastRead'); stop()
+})
 </script>

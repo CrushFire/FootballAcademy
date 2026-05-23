@@ -36,9 +36,9 @@
         <div class="flex items-start gap-3">
           <!-- Эмблема домашней -->
           <div class="flex-1 flex items-center justify-center">
-            <div class="w-48 h-48 rounded-full overflow-hidden border-2 border-neutral-200 flex items-center justify-center bg-blue-50">
-              <img v-if="teamImages[match.homeTeamId]" :src="teamImages[match.homeTeamId]" class="w-full h-full object-cover" />
-              <span v-else class="text-4xl font-bold text-blue-500">{{ initials(match.homeTeamName ?? '') }}</span>
+            <img v-if="teamImages[match.homeTeamId]" :src="teamImages[match.homeTeamId]" class="w-48 h-48 object-contain" />
+            <div v-else class="w-48 h-48 rounded-full border-2 border-neutral-200 bg-neutral-50 flex items-center justify-center">
+              <span class="text-4xl font-bold text-blue-500">{{ initials(match.homeTeamName ?? '') }}</span>
             </div>
           </div>
           <!-- Счёт по центру -->
@@ -53,9 +53,9 @@
           </div>
           <!-- Эмблема гостевой -->
           <div class="flex-1 flex items-center justify-center">
-            <div class="w-48 h-48 rounded-full overflow-hidden border-2 border-neutral-200 flex items-center justify-center bg-neutral-50">
-              <img v-if="match.opponentTeamId && teamImages[match.opponentTeamId]" :src="teamImages[match.opponentTeamId]" class="w-full h-full object-cover" />
-              <span v-else class="text-4xl font-bold text-neutral-400">{{ initials(match.opponentTeamName ?? '?') }}</span>
+            <img v-if="match.opponentTeamId && teamImages[match.opponentTeamId]" :src="teamImages[match.opponentTeamId]" class="w-48 h-48 object-contain" />
+            <div v-else class="w-48 h-48 rounded-full border-2 border-neutral-200 bg-neutral-50 flex items-center justify-center">
+              <span class="text-4xl font-bold text-neutral-400">{{ initials(match.opponentTeamName ?? '?') }}</span>
             </div>
           </div>
         </div>
@@ -129,6 +129,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { formatDate } from '@/utils/formatDate'
+import { imageUrl } from '@/utils/imageUrl'
 import api from '@/services/api'
 import { POSITION_AND_GROUP_LABEL, MATCH_TYPE, MATCH_STATUS, MATCH_RESULT } from '@/constants'
 import FootballField from '@/components/trainer/FootballField.vue'
@@ -284,8 +285,8 @@ onMounted(async () => {
   const ids = [match.value.homeTeamId, match.value.opponentTeamId].filter(Boolean)
   await Promise.allSettled(ids.map(async (tid: number) => {
     const t = await api.get(`/team/${tid}`).catch(() => null)
-    const img = t?.data?.data?.images?.[0]?.path ?? null
-    if (img) teamImages.value[tid] = img
+    const url = imageUrl(t?.data?.data?.images)
+    if (url) teamImages.value[tid] = url
   }))
 
   const lineup: { sportsmanId: number }[] = match.value.lineup ?? []

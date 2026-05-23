@@ -31,3 +31,4 @@
 defineProps<{ noEdit?: boolean }>()
 defineEmits<{ edit: [], delete: [] }>()
 </script>
+  

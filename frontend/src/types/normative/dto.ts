@@ -5,7 +5,6 @@ export interface NormativeCreateRequest {
   gender: string
   type: string
   unit: string
-  isAboveYearOfStudy: boolean
   gradeExcellent: number
   gradeGood: number
   gradeSatisfactory: number
@@ -23,7 +22,6 @@ export interface NormativeResponse {
   gender: string
   type: string
   unit: string
-  isAboveYearOfStudy: boolean
   gradeExcellent: number
   gradeGood: number
   gradeSatisfactory: number
@@ -37,11 +35,13 @@ export interface LocalNormativeCreateRequest {
   gender: string
   value: number
   isMoreBetter: boolean
+  isAboveYearOfStudy: boolean
 }
 
 export interface LocalNormativeUpdateRequest {
   value?: number
   isMoreBetter?: boolean
+  isAboveYearOfStudy?: boolean
 }
 
 export interface LocalNormativeResponse {
@@ -52,6 +52,7 @@ export interface LocalNormativeResponse {
   gender: string
   value: number
   isMoreBetter: boolean
+  isAboveYearOfStudy: boolean
   createdAt: string
 }
 

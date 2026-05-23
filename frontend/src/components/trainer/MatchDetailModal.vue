@@ -22,9 +22,9 @@
         <div class="flex items-center justify-between gap-4">
           <!-- Домашняя команда -->
           <div class="flex flex-col items-center gap-2 flex-1">
-            <div class="w-16 h-16 rounded-full overflow-hidden border-2 border-neutral-200 flex items-center justify-center bg-blue-50 flex-shrink-0">
-              <img v-if="teamImages[match.homeTeamId]" :src="teamImages[match.homeTeamId]" class="w-full h-full object-cover" />
-              <span v-else class="text-lg font-bold text-blue-600">{{ initials(match.homeTeamName) }}</span>
+            <img v-if="teamImages[match.homeTeamId]" :src="teamImages[match.homeTeamId]" class="w-16 h-16 object-contain flex-shrink-0" />
+            <div v-else class="w-16 h-16 rounded-full border-2 border-neutral-200 bg-blue-50 flex items-center justify-center flex-shrink-0">
+              <span class="text-lg font-bold text-blue-600">{{ initials(match.homeTeamName) }}</span>
             </div>
             <span class="text-sm font-semibold text-neutral-800 text-center leading-tight">{{ match.homeTeamName }}</span>
           </div>
@@ -44,9 +44,9 @@
 
           <!-- Гостевая команда -->
           <div class="flex flex-col items-center gap-2 flex-1">
-            <div class="w-16 h-16 rounded-full overflow-hidden border-2 border-neutral-200 flex items-center justify-center bg-neutral-50 flex-shrink-0">
-              <img v-if="match.opponentTeamId && teamImages[match.opponentTeamId]" :src="teamImages[match.opponentTeamId]" class="w-full h-full object-cover" />
-              <span v-else class="text-lg font-bold text-neutral-500">{{ initials(match.opponentTeamName ?? '?') }}</span>
+            <img v-if="match.opponentTeamId && teamImages[match.opponentTeamId]" :src="teamImages[match.opponentTeamId]" class="w-16 h-16 object-contain flex-shrink-0" />
+            <div v-else class="w-16 h-16 rounded-full border-2 border-neutral-200 bg-neutral-50 flex items-center justify-center flex-shrink-0">
+              <span class="text-lg font-bold text-neutral-500">{{ initials(match.opponentTeamName ?? '?') }}</span>
             </div>
             <span class="text-sm font-semibold text-neutral-800 text-center leading-tight">{{ match.opponentTeamName ?? 'Соперник' }}</span>
           </div>

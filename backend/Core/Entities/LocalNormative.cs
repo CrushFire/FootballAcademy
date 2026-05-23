@@ -13,6 +13,7 @@ namespace Core.Entities
         public bool IsMoreBetter { get; set; }
         // true = не менее, false = не более
         // для норматива например пробежать не более прыгнуть не менее
+        public bool IsAboveYearOfStudy { get; set; }
         public DateTime CreatedAt { get; set; }
         public List<LocalNormativeSportsman> LocalNormativeSportsmen { get; set; } = new();
     }

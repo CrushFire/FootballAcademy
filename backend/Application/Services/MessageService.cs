@@ -147,6 +147,20 @@ namespace Application.Services
             return Result<bool>.Success(true);
         }
 
+        // Пометить сообщение от рассылки прочитанным для текущего пользователя
+        public async Task<Result<bool>> MarkBroadcastReadAsync(long broadcastId, long userId)
+        {
+            var msg = await _context.Messages
+                .FirstOrDefaultAsync(m => m.BroadcastId == broadcastId && m.ReceiverId == userId);
+            if (msg == null) return Result<bool>.Failure("Рассылка не найдена для этого пользователя", 404);
+            if (msg.IsRead) return Result<bool>.Success(true);
+            msg.IsRead = true;
+            await _context.SaveChangesAsync();
+            // Уведомляем автора рассылки что один получатель прочитал
+            await _notification.NotifyUserAsync(msg.SenderId, "BroadcastRead", new { broadcastId, userId });
+            return Result<bool>.Success(true);
+        }
+
         public async Task<Result<int>> GetTotalCountAsync()
         {
             var messages = await _context.Messages.CountAsync();
@@ -207,11 +221,24 @@ namespace Application.Services
             return Result<BroadcastResponse>.Success(response);
         }
 
-        public async Task<Result<List<BroadcastResponse>>> GetBroadcastsAsync(Filter? filter)
+        public async Task<Result<List<BroadcastResponse>>> GetBroadcastsAsync(Filter? filter, long? forUserId = null)
         {
-            var broadcasts = await _context.Broadcasts
-                .ApplyFilter(filter)
-                .ToListAsync();
+            IQueryable<Broadcast> query = _context.Broadcasts;
+
+            // Если forUserId задан — возвращаем только рассылки где этот юзер является получателем.
+            // Используется в колокольчике уведомлений, чтобы админ не видел свои же отправленные рассылки
+            // как «непрочитанные входящие». Без этого параметра — возвращаем все (для админ-страницы).
+            if (forUserId.HasValue)
+            {
+                var userBroadcastIds = await _context.Messages
+                    .Where(m => m.BroadcastId != null && m.ReceiverId == forUserId.Value)
+                    .Select(m => m.BroadcastId!.Value)
+                    .Distinct()
+                    .ToListAsync();
+                query = query.Where(b => userBroadcastIds.Contains(b.Id));
+            }
+
+            var broadcasts = await query.ApplyFilter(filter).ToListAsync();
 
             var broadcastIds = broadcasts.Select(b => b.Id).ToList();
 
@@ -221,14 +248,47 @@ namespace Application.Services
                 .Select(g => new { BroadcastId = g.Key, Count = g.Count() })
                 .ToDictionaryAsync(x => x.BroadcastId, x => x.Count);
 
+            // Подтягиваем ФИО создателей рассылок (Sportsman / Personal / fallback User.Login)
+            var creatorIds = broadcasts.Select(b => b.CreatedById).Distinct().ToList();
+            var creatorNames = await BuildUserNamesAsync(creatorIds);
+
+            // Если запрос от лица юзера — подтягиваем индивидуальный статус IsRead.
+            Dictionary<long, bool> readStatus = new();
+            if (forUserId.HasValue)
+            {
+                readStatus = await _context.Messages
+                    .Where(m => m.BroadcastId != null && broadcastIds.Contains(m.BroadcastId!.Value) && m.ReceiverId == forUserId.Value)
+                    .Select(m => new { BroadcastId = m.BroadcastId!.Value, m.IsRead })
+                    .ToDictionaryAsync(x => x.BroadcastId, x => x.IsRead);
+            }
+
             var result = broadcasts.Select(b =>
             {
                 var r = _mapper.Map<BroadcastResponse>(b);
                 r.RecipientsCount = counts.GetValueOrDefault(b.Id, 0);
+                r.CreatedByName = creatorNames.GetValueOrDefault(b.CreatedById);
+                r.IsReadByMe = forUserId.HasValue ? readStatus.GetValueOrDefault(b.Id, false) : (bool?)null;
                 return r;
             }).ToList();
 
             return Result<List<BroadcastResponse>>.Success(result);
+        }
+
+        // Возвращает мапу userId → отображаемое имя (FIO из Sportsman/Personal, иначе Login)
+        private async Task<Dictionary<long, string>> BuildUserNamesAsync(List<long> userIds)
+        {
+            if (userIds.Count == 0) return new Dictionary<long, string>();
+            var users = await _context.Users.Where(u => userIds.Contains(u.Id))
+                .Select(u => new { u.Id, u.Login }).ToListAsync();
+            var sportsmen = await _context.Sportsmen.Where(s => userIds.Contains(s.UserId))
+                .Select(s => new { s.UserId, s.FIO }).ToListAsync();
+            var personals = await _context.Personal.Where(p => userIds.Contains(p.UserId))
+                .Select(p => new { p.UserId, p.FIO }).ToListAsync();
+            var map = new Dictionary<long, string>();
+            foreach (var u in users) map[u.Id] = u.Login;
+            foreach (var s in sportsmen) map[s.UserId] = s.FIO;
+            foreach (var p in personals) map[p.UserId] = p.FIO;
+            return map;
         }
 
         public async Task<Result<BroadcastDetailsResponse>> GetBroadcastDetailsAsync(long broadcastId, Filter? filter)
@@ -237,34 +297,33 @@ namespace Application.Services
             if (broadcast == null)
                 return Result<BroadcastDetailsResponse>.Failure("Рассылка не найдена", 404);
 
+            // EF Core 9 не транслирует GroupJoin → FirstOrDefault() в SQL.
+            // Поэтому делаем простой Join к Users + подзапросы для ФИО через коррелированные SELECT.
             var recipients = await _context.Messages
                 .Where(m => m.BroadcastId == broadcastId)
                 .ApplyFilter(filter)
                 .Join(_context.Users,
                     m => m.ReceiverId,
                     u => u.Id,
-                    (m, u) => new { m, u })
-                .GroupJoin(_context.Sportsmen,
-                    x => x.u.Id,
-                    s => s.UserId,
-                    (x, sportsmen) => new { x.m, x.u, Sportsman = sportsmen.FirstOrDefault() })
-                .GroupJoin(_context.Personal,
-                    x => x.u.Id,
-                    p => p.UserId,
-                    (x, personals) => new { x.m, x.u, x.Sportsman, Personal = personals.FirstOrDefault() })
-                .Select(x => new BroadcastRecipientDto
-                {
-                    UserId = x.m.ReceiverId,
-                    UserName = x.Sportsman != null ? x.Sportsman.FIO : x.Personal != null ? x.Personal.FIO : x.u.Login,
-                    IsRead = x.m.IsRead
-                })
+                    (m, u) => new BroadcastRecipientDto
+                    {
+                        UserId = m.ReceiverId,
+                        UserName =
+                            _context.Sportsmen.Where(s => s.UserId == u.Id).Select(s => s.FIO).FirstOrDefault()
+                            ?? _context.Personal.Where(p => p.UserId == u.Id).Select(p => p.FIO).FirstOrDefault()
+                            ?? u.Login,
+                        IsRead = m.IsRead,
+                    })
                 .ToListAsync();
 
+            var creatorNames = await BuildUserNamesAsync(new List<long> { broadcast.CreatedById });
             var response = new BroadcastDetailsResponse
             {
                 Id = broadcast.Id,
                 Title = broadcast.Title,
                 Text = broadcast.Text,
+                CreatedById = broadcast.CreatedById,
+                CreatedByName = creatorNames.GetValueOrDefault(broadcast.CreatedById),
                 CreatedAt = broadcast.CreatedAt,
                 ExpireAt = broadcast.ExpireAt,
                 Recipients = recipients
@@ -313,6 +372,18 @@ namespace Application.Services
                     _context.Users
                         .Where(u => u.Role == "personal")
                         .Select(u => u.Id),
+
+                // Trainers — только тренеры (Personal.Type = Trainer)
+                BroadcastTargetType.Trainers =>
+                    _context.Personal
+                        .Where(p => p.Type == Core.Enums.PersonalType.Trainer)
+                        .Select(p => p.UserId),
+
+                // Medical — только мед. персонал (Personal.Type = Medical)
+                BroadcastTargetType.Medical =>
+                    _context.Personal
+                        .Where(p => p.Type == Core.Enums.PersonalType.Medical)
+                        .Select(p => p.UserId),
 
                 // All — только спортсмены
                 _ => _context.Sportsmen.Select(s => s.UserId)

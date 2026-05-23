@@ -10,7 +10,6 @@ namespace Core.Models.NormativeModel
         public double GradeExcellent { get; set; }
         public double GradeGood { get; set; }
         public double GradeSatisfactory { get; set; }
-        public bool IsAboveYearOfStudy { get; set; }
         public DateTime CreatedAt { get; set; }
     }
 }

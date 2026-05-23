@@ -6,7 +6,6 @@ export interface Normative {
   gender: string
   type: string
   unit: string
-  isAboveYearOfStudy: boolean
   gradeExcellent: number
   gradeGood: number
   gradeSatisfactory: number
@@ -21,5 +20,6 @@ export interface LocalNormative {
   gender: string
   value: number
   isMoreBetter: boolean
+  isAboveYearOfStudy: boolean
   createdAt: string
 }

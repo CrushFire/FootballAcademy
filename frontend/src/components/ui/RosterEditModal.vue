@@ -92,6 +92,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { POSITION_AND_GROUP_LABEL } from '@/constants'
 
 interface Item { id: number | string; [k: string]: any }
 
@@ -117,7 +118,12 @@ function itemLabel(it: Item): string {
   return String(it[props.labelField || 'name'] ?? '')
 }
 function itemSub(it: Item): string {
-  return props.subField ? String(it[props.subField] ?? '') : ''
+  if (!props.subField) return ''
+  const raw = String(it[props.subField] ?? '')
+  if (!raw) return ''
+  // Если в subField лежит код позиции (ST, CB, GK...) — дописываем русский лейбл в скобках
+  const ru = POSITION_AND_GROUP_LABEL[raw]
+  return ru ? `${raw} (${ru})` : raw
 }
 function matches(it: Item, q: string): boolean {
   const query = q.trim().toLowerCase()

@@ -84,6 +84,13 @@ export const useAuthStore = defineStore('auth', () => {
       userLogin.value = identifier
       localStorage.setItem('userLogin', identifier)
     }
+    // Сбрасываем колокольчик прошлого юзера (если был) и загружаем уведомления нового.
+    // Ленивый import чтобы избежать циклической зависимости с composable, который использует api.
+    try {
+      const { useNotifications } = await import('@/composables/useNotifications')
+      await useNotifications().reset()
+    } catch { /* ignore */ }
+
     const role = userRole.value
     const pType = personalType.value?.toLowerCase()
     if (role === 'admin') router.push({ name: 'AdminDashboard' })
@@ -92,7 +99,7 @@ export const useAuthStore = defineStore('auth', () => {
     else router.push({ name: 'Dashboard' })
   }
 
-  function logout() {
+  async function logout() {
     token.value = null
     userId.value = null
     userLogin.value = null
@@ -105,6 +112,17 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem('userRole')
     localStorage.removeItem('personalId')
     localStorage.removeItem('personalType')
+    // Чистим колокольчик предыдущего юзера, чтобы новый не увидел чужие уведомления.
+    // Также останавливаем SignalR — он подключён под старым токеном.
+    try {
+      const mod = await import('@/composables/useNotifications')
+      const { notifications } = mod.useNotifications()
+      notifications.value = []
+    } catch { /* ignore */ }
+    try {
+      const sig = await import('@/composables/useSignalR')
+      await sig.useSignalR().stop()
+    } catch { /* ignore */ }
     router.push({ name: 'Login' })
   }
 

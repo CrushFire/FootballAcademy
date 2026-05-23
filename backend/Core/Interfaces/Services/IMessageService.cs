@@ -13,11 +13,12 @@ namespace Core.Interfaces.Services
         Task<Result<List<DialogPreviewResponse>>> GetDialogListAsync(long userId);
         Task<Result<DialogResponse>> GetDialogAsync(long userId, long withUserId, Filter? filter);
         Task<Result<bool>> MarkReadAsync(long messageId, long userId);
+        Task<Result<bool>> MarkBroadcastReadAsync(long broadcastId, long userId);
         Task<Result<int>> GetTotalCountAsync();
 
         // Broadcast
         Task<Result<BroadcastResponse>> SendBroadcastAsync(long createdById, SenderRole createdByRole, BroadcastCreateRequest req);
-        Task<Result<List<BroadcastResponse>>> GetBroadcastsAsync(Filter? filter);
+        Task<Result<List<BroadcastResponse>>> GetBroadcastsAsync(Filter? filter, long? forUserId = null);
         Task<Result<BroadcastDetailsResponse>> GetBroadcastDetailsAsync(long broadcastId, Filter? filter);
         Task<Result<bool>> DeleteBroadcastAsync(long broadcastId);
     }

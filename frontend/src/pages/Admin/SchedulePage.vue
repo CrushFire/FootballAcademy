@@ -64,7 +64,7 @@
     <FormField label="Время начала (ЧЧ:ММ)">
       <input v-model="editForm.beginTime" type="time" class="w-full px-3 py-2 text-sm rounded-xl border border-neutral-200 focus:outline-none focus:border-blue-400" />
     </FormField>
-    <FormField label="Тип недели">
+    <FormField label="Периодичность занятий">
       <select v-model="editForm.weekType" class="w-full px-3 py-2 text-sm rounded-xl border border-neutral-200 focus:outline-none focus:border-blue-400">
         <option v-for="(label, val) in WEEK_LABEL" :key="val" :value="val">{{ label }}</option>
       </select>

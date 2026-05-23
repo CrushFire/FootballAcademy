@@ -1,7 +1,7 @@
 <template>
   <header class="flex items-center justify-between px-6 shrink-0 bg-primary-700 dark:bg-blue-900 shadow-lg" style="height:60px">
     <div class="flex items-center gap-3">
-      <div class="w-10 h-10 rounded-xl flex items-center justify-center text-2xl bg-white/15">⚽</div>
+      <img :src="logoUrl" alt="Академия футбола" class="h-10 w-10 object-cover rounded-xl block" />
       <span class="text-lg font-bold text-white tracking-tight">FootballAcademy</span>
     </div>
 
@@ -26,7 +26,7 @@
           <div
             v-if="drawerOpen"
             class="absolute right-0 top-12 w-80 bg-white rounded-2xl shadow-2xl border border-neutral-100 z-50 overflow-hidden flex flex-col"
-            style="max-height: 480px"
+            style="max-height: 320px"
           >
             <!-- Хедер панели -->
             <div class="flex items-center justify-between px-4 py-3 border-b border-neutral-100 bg-neutral-50">
@@ -128,8 +128,9 @@
       </button>
 
       <!-- Профиль -->
-      <RouterLink :to="profileRoute" class="flex items-center gap-2 px-3 py-1.5 rounded-full no-underline transition-colors bg-white/10 hover:bg-white/20">
-        <div class="w-8 h-8 rounded-full flex items-center justify-center bg-white/20 text-white" v-html="ICON_USER" />
+      <RouterLink :to="profileRoute" class="flex items-center gap-2 pr-3 rounded-full no-underline transition-colors bg-white/10 hover:bg-white/20" :class="avatarUrl ? 'pl-0' : 'pl-1 py-1'">
+        <img v-if="avatarUrl" :src="avatarUrl" class="w-11 h-11 rounded-full object-cover object-top border border-white/30" />
+        <div v-else class="w-8 h-8 rounded-full flex items-center justify-center bg-white/20 text-white" v-html="ICON_USER" />
         <span class="text-sm font-semibold text-white">{{ userName }}</span>
       </RouterLink>
     </div>
@@ -146,6 +147,9 @@ import { useAuthStore } from '@/store/auth'
 import { useNotifications } from '@/composables/useNotifications'
 import { useTheme } from '@/composables/useTheme'
 import type { NotificationItem } from '@/composables/useNotifications'
+import logoUrl from '@/assets/images/Академия_футбола.png'
+import api from '@/services/api'
+import { imageUrl } from '@/utils/imageUrl'
 
 const auth = useAuthStore()
 const router = useRouter()
@@ -153,6 +157,7 @@ const { notifications, unreadCount, init, markRead, markAllRead } = useNotificat
 const { theme, toggle: toggleTheme } = useTheme()
 
 const drawerOpen = ref(false)
+const avatarUrl = ref<string | null>(null)
 
 const userName = computed(() => {
   const fio = auth.userLogin ?? `ID ${auth.userId}`
@@ -177,18 +182,30 @@ const messagesRoute = computed(() => {
   return '/messages'
 })
 
-const sortedNotifications = computed(() =>
-  [...notifications.value].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-)
+// В колокольчике: все непрочитанные (даже старые) + прочитанные за последние 24 часа.
+const sortedNotifications = computed(() => {
+  const dayAgoMs = Date.now() - 24 * 60 * 60 * 1000
+  const toUtc = (iso: string) => /[Zz]|[+-]\d{2}:?\d{2}$/.test(iso) ? iso : `${iso}Z`
+  return [...notifications.value]
+    .filter(n => !n.isRead || new Date(toUtc(n.createdAt)).getTime() >= dayAgoMs)
+    .sort((a, b) => new Date(toUtc(b.createdAt)).getTime() - new Date(toUtc(a.createdAt)).getTime())
+})
 
 function toggleDrawer() {
   drawerOpen.value = !drawerOpen.value
+  // При открытии — помечаем все непрочитанные как прочитанные (локально + на бэке)
+  if (drawerOpen.value && unreadCount.value > 0) {
+    markAllRead()
+  }
 }
 
 function formatTime(iso: string): string {
-  const d = new Date(iso)
+  // Бэк отдаёт UTC, но без явного 'Z' — добавляем чтобы парсить как UTC, иначе браузер считает локальным.
+  const utcIso = /[Zz]|[+-]\d{2}:?\d{2}$/.test(iso) ? iso : `${iso}Z`
+  const d = new Date(utcIso)
   const now = new Date()
   const diffMs = now.getTime() - d.getTime()
+  if (diffMs < 0) return 'только что'
   const diffMin = Math.floor(diffMs / 60000)
   if (diffMin < 1) return 'только что'
   if (diffMin < 60) return `${diffMin} мин. назад`
@@ -203,12 +220,24 @@ function openNotification(n: NotificationItem) {
   if (n.type === 'message' && n.senderId) {
     router.push(messagesRoute.value)
   } else if (n.type === 'broadcast') {
+    // Помечаем рассылку прочитанной на бэке (Message с этим BroadcastId для текущего юзера → IsRead=true).
+    // Это нужно чтобы автор рассылки видел статус "Прочитано" в деталях.
+    if (n.broadcastId) api.put(`/message/broadcast/${n.broadcastId}/read`).catch(() => null)
     router.push(messagesRoute.value)
   }
 }
 
+async function loadAvatar() {
+  const role = auth.userRole
+  if (role === 'admin') return
+  const endpoint = role === 'personal' ? '/personal/me' : '/sportsman/me'
+  const res = await api.get(endpoint).catch(() => null)
+  avatarUrl.value = imageUrl(res?.data?.data?.images)
+}
+
 onMounted(() => {
   init()
+  loadAvatar()
 })
 
 const ICON_USER = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="width:18px;height:18px"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>`

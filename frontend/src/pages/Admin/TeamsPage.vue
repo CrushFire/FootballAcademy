@@ -75,8 +75,11 @@
         <option v-for="a in AGE_GROUPS" :key="a" :value="a">{{ a }}</option>
       </select>
     </FormField>
-    <FormField v-if="!editItem" label="ID тренера">
-      <input v-model.number="editForm.trainerId" type="number" class="w-full px-3 py-2 text-sm rounded-xl border border-neutral-200 focus:outline-none focus:border-blue-400" />
+    <FormField v-if="!editItem" label="Тренер">
+      <select v-model.number="editForm.trainerId" class="w-full px-3 py-2 text-sm rounded-xl border border-neutral-200 focus:outline-none focus:border-blue-400 bg-white">
+        <option :value="null" disabled>Выберите тренера</option>
+        <option v-for="t in trainers" :key="t.id" :value="t.id">{{ t.fio }}</option>
+      </select>
     </FormField>
 
     <!-- Images -->
@@ -85,7 +88,7 @@
         <div v-for="img in existingImages" :key="img.path" class="relative w-16 h-16 rounded-xl overflow-hidden border border-neutral-200 group">
           <img :src="`/api/images/${img.path.replace('images/', '')}`" class="w-full h-full object-cover" />
           <button
-            @click.prevent="removeExistingImage(img)"
+            @click.prevent="askRemoveExistingImage(img)"
             class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
           >
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" class="w-5 h-5 text-white">
@@ -118,6 +121,7 @@
   </EditModal>
 
   <ConfirmDeleteModal v-if="deleteItem" :message="`Удалить команду «${deleteItem.name}»?`" @confirm="confirmDelete" @cancel="deleteItem = null" />
+  <ConfirmDeleteModal v-if="pendingImageDelete" message="Удалить эту фотографию?" @confirm="confirmRemoveExistingImage" @cancel="cancelRemoveExistingImage" />
 </template>
 
 <script setup lang="ts">
@@ -173,6 +177,9 @@ function trainerFio(trainerId: number | null | undefined): string {
   if (!trainerId) return 'Без тренера'
   return personalMap.value[trainerId] ?? `Тренер #${trainerId}`
 }
+
+// В дропдауне команды — только тренеры (не медики)
+const trainers = computed(() => personals.value.filter(p => p.type === 'Trainer' || p.type === 0))
 
 async function openRoster(t: any) {
   rosterTeam.value = t
@@ -254,8 +261,17 @@ function removeNewImage(i: number) {
   newImagePreviews.value.splice(i, 1)
 }
 
-function removeExistingImage(img: { path: string }) {
-  existingImages.value = existingImages.value.filter(x => x !== img)
+const pendingImageDelete = ref<{ path: string } | null>(null)
+function askRemoveExistingImage(img: { path: string }) {
+  pendingImageDelete.value = img
+}
+function confirmRemoveExistingImage() {
+  if (!pendingImageDelete.value) return
+  existingImages.value = existingImages.value.filter(x => x !== pendingImageDelete.value)
+  pendingImageDelete.value = null
+}
+function cancelRemoveExistingImage() {
+  pendingImageDelete.value = null
 }
 
 async function saveEdit() {
@@ -273,14 +289,21 @@ async function saveEdit() {
     // Upload new images
     if (newFiles.value.length) {
       const fd = new FormData()
-      newFiles.value.forEach(f => fd.append('images', f))
-      await api.post(`/team/${editItem.value.id}/images`, fd, { headers: { 'Content-Type': 'multipart/form-data' } }).catch(() => null)
+      newFiles.value.forEach(f => fd.append('newImages', f))
+      try {
+        await api.post(`/team/${editItem.value.id}/images`, fd, { headers: { 'Content-Type': 'multipart/form-data' } })
+      } catch (e: any) {
+        const msg = e?.response?.data?.message || e?.response?.data?.error || e?.message || 'Не удалось загрузить картинки'
+        console.error('Ошибка загрузки картинок команды:', e?.response?.status, e?.response?.data)
+        alert(`Ошибка загрузки картинок: ${msg}`)
+      }
     }
   } else {
     const fd = new FormData()
     fd.append('name', editForm.value.name)
     fd.append('ageGroup', editForm.value.ageGroup)
     fd.append('trainerId', String(editForm.value.trainerId))
+    // Бэк ждёт ключ "Images" (TeamCreateRequest.Images), биндинг регистронезависим — оставляем как есть
     newFiles.value.forEach(f => fd.append('images', f))
     await api.post('/team', fd)
   }

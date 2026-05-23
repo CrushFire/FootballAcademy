@@ -36,9 +36,9 @@
 
           <div class="flex items-center justify-between gap-3">
             <div class="flex flex-col items-center gap-1 flex-1">
-              <div class="w-16 h-16 rounded-full overflow-hidden border-2 border-neutral-200 flex items-center justify-center bg-blue-50 flex-shrink-0">
-                <img v-if="teamImage(match.homeTeamId)" :src="teamImage(match.homeTeamId)" class="w-full h-full object-cover" />
-                <span v-else class="text-lg font-bold text-blue-600">{{ initials(match.homeTeamName) }}</span>
+              <img v-if="teamImage(match.homeTeamId)" :src="teamImage(match.homeTeamId)" class="w-[68px] h-[68px] object-contain flex-shrink-0" />
+              <div v-else class="w-[68px] h-[68px] rounded-full border-2 border-neutral-200 bg-neutral-50 flex items-center justify-center flex-shrink-0">
+                <span class="text-lg font-bold text-blue-600">{{ initials(match.homeTeamName) }}</span>
               </div>
               <span class="text-xs text-neutral-600 text-center leading-tight max-w-[120px] line-clamp-2">{{ match.homeTeamName }}</span>
             </div>
@@ -55,9 +55,9 @@
             </div>
 
             <div class="flex flex-col items-center gap-1 flex-1">
-              <div class="w-16 h-16 rounded-full overflow-hidden border-2 border-neutral-200 flex items-center justify-center bg-neutral-50 flex-shrink-0">
-                <img v-if="match.opponentTeamId && teamImage(match.opponentTeamId)" :src="teamImage(match.opponentTeamId)" class="w-full h-full object-cover" />
-                <span v-else class="text-lg font-bold text-neutral-500">{{ initials(match.opponentTeamName ?? '?') }}</span>
+              <img v-if="match.opponentTeamId && teamImage(match.opponentTeamId)" :src="teamImage(match.opponentTeamId)" class="w-[68px] h-[68px] object-contain flex-shrink-0" />
+              <div v-else class="w-[68px] h-[68px] rounded-full border-2 border-neutral-200 bg-neutral-50 flex items-center justify-center flex-shrink-0">
+                <span class="text-lg font-bold text-neutral-500">{{ initials(match.opponentTeamName ?? '?') }}</span>
               </div>
               <span class="text-xs text-neutral-600 text-center leading-tight max-w-[120px] line-clamp-2">{{ match.opponentTeamName ?? 'Соперник' }}</span>
             </div>
@@ -71,13 +71,14 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import api from '@/services/api'
 import { formatDate } from '@/utils/formatDate'
 import AppCard from '@/components/ui/AppCard.vue'
 import { MATCH_TYPE, MATCH_STATUS, MATCH_RESULT } from '@/constants'
 
 const router = useRouter()
+const route = useRoute()
 const loading = ref(true)
 const matches = ref<any[]>([])
 const teamImages = ref<Record<number, string>>({})
@@ -116,14 +117,35 @@ function teamImage(id: number) {
 }
 
 onMounted(async () => {
+  // Определяем команды спортсмена, чтобы показать только релевантные матчи.
+  // Если в роуте есть :id (тренер смотрит чужого спортсмена) — тянем по нему.
+  // Иначе (сам спортсмен на /matches) — тянем sportsman/me.
+  let sportsmanTeamIds = new Set<number>()
+  const routeId = route.params.id ? Number(route.params.id) : null
+  const sportsmanRes = routeId
+    ? await api.get(`/sportsman/${routeId}`).catch(() => null)
+    : await api.get('/sportsman/me').catch(() => null)
+  const sportsman = sportsmanRes?.data?.data
+  if (sportsman?.teamId) sportsmanTeamIds.add(Number(sportsman.teamId))
+
   const res = await api.get('/match').catch(() => null)
   if (res) {
-    matches.value = (res.data.data ?? []).sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    const all = (res.data.data ?? [])
+    // Фильтруем только матчи команд спортсмена (либо home, либо opponent).
+    // Если команд у спортсмена нет — не показываем ничего.
+    const filtered = sportsmanTeamIds.size > 0
+      ? all.filter((m: any) =>
+          sportsmanTeamIds.has(Number(m.homeTeamId)) ||
+          (m.opponentTeamId && sportsmanTeamIds.has(Number(m.opponentTeamId)))
+        )
+      : []
+    matches.value = filtered.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())
     const ids = [...new Set(matches.value.flatMap((m: any) => [m.homeTeamId, m.opponentTeamId].filter(Boolean)))] as number[]
     await Promise.allSettled(ids.map(async id => {
       const t = await api.get(`/team/${id}`).catch(() => null)
-      const img = t?.data?.data?.images?.[0]?.path ?? null
-      if (img) teamImages.value[id] = img
+      const imgs = t?.data?.data?.images ?? []
+      const last = imgs.length > 0 ? imgs[imgs.length - 1].path : null
+      if (last) teamImages.value[id] = `/api/images/${last.replace('images/', '')}`
     }))
   }
   loading.value = false

@@ -216,6 +216,9 @@
         <div class="flex-1 overflow-y-auto p-5">
           <div class="bg-white rounded-2xl border border-neutral-100 p-5 max-w-2xl">
             <div class="text-xs font-semibold text-neutral-400 uppercase tracking-wide mb-2">Содержание</div>
+            <div v-if="broadcastDetails?.createdByName || selectedBroadcast.createdByName" class="text-xs text-neutral-500 mb-2">
+              От: <span class="font-semibold text-neutral-700">{{ broadcastDetails?.createdByName ?? selectedBroadcast.createdByName }}</span>
+            </div>
             <p class="text-sm text-neutral-800 leading-relaxed whitespace-pre-wrap">{{ selectedBroadcast.text }}</p>
             <div v-if="selectedBroadcast.expireAt" class="mt-3 text-xs text-neutral-400">
               Истекает: {{ formatDate(selectedBroadcast.expireAt) }}
@@ -227,7 +230,7 @@
             <div v-if="broadcastDetails" class="space-y-1.5">
               <div v-for="r in broadcastDetails.recipients" :key="r.userId"
                 class="flex items-center justify-between px-3 py-2 rounded-xl bg-neutral-50">
-                <span class="text-xs text-neutral-700">{{ r.userName ? `${r.userName} (ID ${r.userId})` : `ID ${r.userId}` }}</span>
+                <span class="text-xs text-neutral-700">{{ r.userName || `Пользователь #${r.userId}` }}</span>
                 <span class="text-xs font-semibold" :class="r.isRead ? 'text-green-600' : 'text-neutral-400'">
                   {{ r.isRead ? 'Прочитано' : 'Не прочитано' }}
                 </span>
@@ -758,6 +761,8 @@ async function selectUser(user: any) {
 async function selectBroadcast(b: BroadcastResponse) {
   selectedBroadcast.value = b
   broadcastDetails.value = null
+  // Помечаем рассылку прочитанной для текущего юзера (если он получатель)
+  api.put(`/message/broadcast/${b.id}/read`).catch(() => null)
   const res = await api.get(`/message/broadcast/${b.id}`).catch(() => null)
   broadcastDetails.value = res?.data?.data ?? null
 }

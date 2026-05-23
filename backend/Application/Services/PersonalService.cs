@@ -51,6 +51,7 @@ namespace Application.Services
         public async Task<Result<List<PersonalResponse>>> GetPersonalsAsync(Filter? filter)
         {
             var personals = await _context.Personal
+                .Include(p => p.Images)
                 .ApplyFilter(filter)
                 .ToListAsync();
 

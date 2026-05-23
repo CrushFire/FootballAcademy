@@ -277,7 +277,7 @@ async function saveEdit() {
     // 3. Upload new images
     if (newFiles.value.length) {
       const fd = new FormData()
-      newFiles.value.forEach(f => fd.append('images', f))
+      newFiles.value.forEach(f => fd.append('newImages', f))
       await api.post(`/sportsman/${editItem.value.id}/images`, fd, { headers: { 'Content-Type': 'multipart/form-data' } }).catch(() => null)
     }
   } else {

@@ -271,6 +271,8 @@ async function selectItem(item: any) {
   } else {
     messages.value = []
     selectedBroadcast.value = broadcasts.value.find(b => b.id === item.id) ?? null
+    // Помечаем рассылку прочитанной на бэке (Message с этим BroadcastId для текущего юзера → IsRead=true)
+    if (item.id) api.put(`/message/broadcast/${item.id}/read`).catch(() => null)
   }
 }
 

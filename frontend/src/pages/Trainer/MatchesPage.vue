@@ -46,9 +46,9 @@
         
         <div class="flex items-center justify-between gap-4">
           <div class="flex flex-col items-center gap-2 flex-1">
-            <div class="w-14 h-14 rounded-full overflow-hidden border-2 border-neutral-200 flex items-center justify-center bg-neutral-50 flex-shrink-0">
-              <img v-if="teamImages[m.homeTeamId]" :src="teamImages[m.homeTeamId]" class="w-full h-full object-cover" />
-              <span v-else class="text-sm font-bold text-blue-600">{{ initials(m.homeTeamName) }}</span>
+            <img v-if="teamImages[m.homeTeamId]" :src="teamImages[m.homeTeamId]" class="w-14 h-14 object-contain flex-shrink-0" />
+            <div v-else class="w-14 h-14 rounded-full border-2 border-neutral-200 bg-neutral-50 flex items-center justify-center flex-shrink-0">
+              <span class="text-sm font-bold text-blue-600">{{ initials(m.homeTeamName) }}</span>
             </div>
             <span class="text-xs font-semibold text-neutral-800 text-center leading-tight max-w-[100px] line-clamp-2">{{ m.homeTeamName }}</span>
           </div>
@@ -65,9 +65,9 @@
           </div>
 
           <div class="flex flex-col items-center gap-2 flex-1">
-            <div class="w-14 h-14 rounded-full overflow-hidden border-2 border-neutral-200 flex items-center justify-center bg-neutral-50 flex-shrink-0">
-              <img v-if="m.opponentTeamId && teamImages[m.opponentTeamId]" :src="teamImages[m.opponentTeamId]" class="w-full h-full object-cover" />
-              <span v-else class="text-sm font-bold text-neutral-500">{{ initials(m.opponentTeamName ?? '?') }}</span>
+            <img v-if="m.opponentTeamId && teamImages[m.opponentTeamId]" :src="teamImages[m.opponentTeamId]" class="w-14 h-14 object-contain flex-shrink-0" />
+            <div v-else class="w-14 h-14 rounded-full border-2 border-neutral-200 bg-neutral-50 flex items-center justify-center flex-shrink-0">
+              <span class="text-sm font-bold text-neutral-500">{{ initials(m.opponentTeamName ?? '?') }}</span>
             </div>
             <span class="text-xs font-semibold text-neutral-800 text-center leading-tight max-w-[100px] line-clamp-2">{{ m.opponentTeamName ?? 'Соперник' }}</span>
           </div>
@@ -86,6 +86,7 @@ import { useAuthStore } from '@/store/auth'
 import AdminListLayout from '@/components/ui/AdminListLayout.vue'
 import TrainerPageCard from '@/components/trainer/TrainerPageCard.vue'
 import { formatDate } from '@/utils/formatDate'
+import { imageUrl } from '@/utils/imageUrl'
 import { MATCH_TYPE, MATCH_STATUS, MATCH_RESULT } from '@/constants'
 
 const PER_PAGE = 15
@@ -186,8 +187,9 @@ async function load() {
     const ids = [...new Set(matches.value.flatMap((m: any) => [m.homeTeamId, m.opponentTeamId].filter(Boolean)))] as number[]
     await Promise.allSettled(ids.map(async id => {
       const t = await api.get(`/team/${id}`).catch(() => null)
-      const img = t?.data?.data?.images?.[0]?.path ?? null
-      if (img) teamImages.value[id] = img
+      const imgs = t?.data?.data?.images ?? []
+      const url = imageUrl(imgs)
+      if (url) teamImages.value[id] = url
     }))
   }
   

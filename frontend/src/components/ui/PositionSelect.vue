@@ -22,7 +22,7 @@
       </button>
       <!-- Группы -->
       <template v-for="group in GROUPS" :key="group.label">
-        <div class="px-3 py-1 text-[10px] font-bold text-neutral-300 uppercase tracking-wider bg-neutral-50 border-t border-neutral-100">
+        <div class="px-3 py-1 text-[10px] font-bold text-neutral-600 uppercase tracking-wider bg-neutral-50 border-t border-neutral-100">
           {{ group.label }}
         </div>
         <button type="button" v-for="p in group.positions" :key="p"

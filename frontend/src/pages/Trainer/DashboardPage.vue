@@ -4,9 +4,9 @@
 
       <!-- Шапка тренера -->
       <div class="rounded-2xl border border-neutral-100 bg-white px-5 py-4 flex items-center gap-5">
-        <div class="w-14 h-14 rounded-2xl bg-blue-600 flex items-center justify-center shrink-0 overflow-hidden">
-          <img v-if="avatarUrl" :src="avatarUrl" class="w-full h-full object-cover" alt="Аватар" />
-          <span v-else class="text-white font-bold text-xl">{{ initials(profile?.fio ?? '') }}</span>
+        <div class="w-28 h-28 rounded-2xl bg-blue-600 flex items-center justify-center shrink-0 overflow-hidden">
+          <img v-if="avatarUrl" :src="avatarUrl" class="w-full h-full object-cover object-top" alt="Аватар" />
+          <span v-else class="text-white font-bold text-3xl">{{ initials(profile?.fio ?? '') }}</span>
         </div>
         <div class="flex-1 min-w-0">
           <div class="text-base font-bold text-neutral-900 truncate">{{ profile?.fio ?? '—' }}</div>
@@ -93,6 +93,7 @@ export default { name: 'TrainerDashboard' }
 import { ref, onMounted, computed, defineComponent, h } from 'vue'
 import { RouterLink } from 'vue-router'
 import api from '@/services/api'
+import { imageUrl } from '@/utils/imageUrl'
 import TrainerPageCard from '@/components/trainer/TrainerPageCard.vue'
 
 interface Profile { fio: string; position?: string; id?: number; images?: { path: string }[] }
@@ -152,7 +153,7 @@ async function load() {
   const [pm] = await Promise.allSettled([api.get('/personal/me')])
   profile.value = (pm as any).value?.data?.data ?? null
   const images = profile.value?.images ?? []
-  if (images.length > 0) avatarUrl.value = '/' + images[images.length - 1].path
+  if (images.length > 0) avatarUrl.value = imageUrl(images) ?? ''
 
   if (profile.value?.id) {
     const tid = profile.value.id

@@ -312,37 +312,70 @@ const activeUnit        = computed(() => normTab.value === 'gto' ? (selectedGtoN
 // Фильтр нормативов по возрасту и полу группы
 const showAllNorms = ref(false)
 
-// Возраст и пол группы — берутся с любого спортсмена (все в группе одного возраста и пола)
-const groupAge    = computed(() => groupSportsmen.value[0]?.age ?? null)
+// Возраст группы: сначала пробуем взять из AgeGroup команды ("U16" → 16),
+// затем из названия группы/команды (regex /U(\d+)/), затем — fallback на возраст спортсмена.
+// Пол — берётся с любого спортсмена (все в группе одного пола).
+const groupAge = computed(() => {
+  const sel = selectedGroup.value
+  if (sel) {
+    const fromEnum = typeof sel.ageGroup === 'string' ? parseInt(sel.ageGroup.replace(/\D/g, ''), 10) : null
+    if (fromEnum && !isNaN(fromEnum)) return fromEnum
+    const fromName = typeof sel.name === 'string' ? sel.name.match(/U(\d+)/i)?.[1] : null
+    if (fromName) return parseInt(fromName, 10)
+  }
+  return groupSportsmen.value[0]?.age ?? null
+})
 const groupGender = computed(() => groupSportsmen.value[0]?.gender ?? null)
 
-// Год обучения: считается по самой старой метрике спортсменов группы.
-// Если у хотя бы одного есть тренировка старше года назад — для всей группы IsAboveYearOfStudy=true.
-const firstMetricDateBySportsman = ref<Record<number, string>>({})
-
+// Год обучения: смотрим Sportsman.CreatedAt — если у хотя бы одного спортсмена группы
+// CreatedAt старше года — для группы считается "выше года обучения".
+// (Старое поведение через первую метрику — отказались в пользу простого CreatedAt.)
 const groupIsAboveYear = computed(() => {
   if (!groupSportsmen.value.length) return false
   const yearAgo = Date.now() - 365 * 24 * 60 * 60 * 1000
   return groupSportsmen.value.some(s => {
-    const firstMetric = firstMetricDateBySportsman.value[s.id]
-    if (!firstMetric) return false
-    return new Date(firstMetric).getTime() < yearAgo
+    if (!s.createdAt) return false
+    return new Date(s.createdAt).getTime() < yearAgo
   })
 })
 
-// Подходит ли норматив под группу: фильтр по полу, возрасту (±1) и году обучения
+// Подходит ли норматив под группу.
+// ГТО (с ageGroup): фильтр по полу + возрасту ±1.
+// Локальный (с isAboveYearOfStudy): фильтр по полу + флагу года обучения.
+// Если для локального типа в БД есть две версии (true и false) — берём по году группы.
+// Если только одна — она и подойдёт (флаг с другой стороны не отсеет, см. ниже filterLocal).
 function matchesGroup(n: any): boolean {
-  if (!groupAge.value || !groupGender.value) return true
-  if (n.gender && n.gender !== groupGender.value) return false
-  if (n.ageGroup) {
+  if (n.gender && groupGender.value && n.gender !== groupGender.value) return false
+  if (n.ageGroup && groupAge.value) {
     const diff = Math.abs(n.ageGroup - groupAge.value)
     if (diff > 1) return false
   }
-  // Год обучения (только у ГТО нормативов)
-  if (typeof n.isAboveYearOfStudy === 'boolean' && n.isAboveYearOfStudy !== groupIsAboveYear.value) {
-    return false
-  }
+  // Год обучения проверяется отдельно после, см. filterLocalNormsByYear ниже
   return true
+}
+
+// Среди локальных нормативов: если есть две версии одного type+spec+gender — выбираем подходящую
+// по году обучения; иначе берём единственную доступную.
+function filterLocalNormsByYear(list: any[]): any[] {
+  if (!list.length) return list
+  // Группируем по уникальному ключу (type + specialization + gender)
+  const groups = new Map<string, any[]>()
+  for (const n of list) {
+    const key = `${n.type}|${n.specialization}|${n.gender}`
+    if (!groups.has(key)) groups.set(key, [])
+    groups.get(key)!.push(n)
+  }
+  const result: any[] = []
+  groups.forEach(variants => {
+    if (variants.length === 1) {
+      result.push(variants[0])
+      return
+    }
+    // Несколько версий — выбираем подходящую по году обучения группы
+    const match = variants.find(v => !!v.isAboveYearOfStudy === groupIsAboveYear.value)
+    result.push(match ?? variants[0])
+  })
+  return result
 }
 
 const filteredGtoNorms = computed(() => {
@@ -353,7 +386,9 @@ const filteredGtoNorms = computed(() => {
 
 const filteredLocalNorms = computed(() => {
   if (showAllNorms.value) return localNorms.value
-  const filtered = localNorms.value.filter(matchesGroup)
+  // 1) Фильтр по полу/возрасту 2) Выбор подходящего по году обучения если есть две версии
+  const byBase = localNorms.value.filter(matchesGroup)
+  const filtered = filterLocalNormsByYear(byBase)
   return filtered.length > 0 ? filtered : localNorms.value
 })
 
@@ -558,7 +593,6 @@ async function selectGroup(g: any) {
   absent.value  = {}
   retake.value  = {}
   recentResults.value = {}
-  firstMetricDateBySportsman.value = {}
   loadingGroupSportsmen.value = true
   const res = g._type === 'team'
     ? await api.get('/sportsman', { params: { filters: { teamId: [g.id] } } }).catch(() => null)
@@ -566,21 +600,7 @@ async function selectGroup(g: any) {
   groupSportsmen.value = res?.data?.data ?? []
   loadingGroupSportsmen.value = false
   loadRecentResults()
-
-  // Подгружаем все метрики группы одним запросом для определения года обучения
-  const metricsKey = g._type === 'team' ? 'teamId' : 'groupId'
-  const metricsRes = await api.get('/metric', { params: { filters: { [metricsKey]: [g.id] } } }).catch(() => null)
-  const metrics: any[] = metricsRes?.data?.data ?? []
-  const minBySportsman: Record<number, string> = {}
-  for (const m of metrics) {
-    const sid = m.sportsmanId ?? m.SportsmanId
-    const date = m.training?.date ?? m.Training?.Date ?? m.trainingDate
-    if (!sid || !date) continue
-    if (!minBySportsman[sid] || new Date(date) < new Date(minBySportsman[sid])) {
-      minBySportsman[sid] = date
-    }
-  }
-  firstMetricDateBySportsman.value = minBySportsman
+  // Год обучения теперь определяется по Sportsman.CreatedAt (см. groupIsAboveYear computed выше).
 }
 
 async function saveResults() {

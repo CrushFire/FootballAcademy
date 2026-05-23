@@ -1,6 +1,6 @@
 <template>
   <AdminListLayout
-    title="Нормативы ГТО"
+    title="Нормативы"
     :toast="toast"
     :search="search"
     :loading="loading"
@@ -16,23 +16,40 @@
     @toggle-dir="sortDir = sortDir === 'asc' ? 'desc' : 'asc'"
   >
     <template #actions>
-      <button @click="openCreate" class="text-xs px-3 py-1.5 rounded-xl bg-blue-500 text-white hover:bg-blue-600 transition-colors">+ Добавить</button>
+      <div class="flex items-center gap-2">
+        <button @click="openCreate('gto')" class="text-xs px-3 py-1.5 rounded-xl bg-blue-500 text-white hover:bg-blue-600 transition-colors">+ ГТО</button>
+        <button @click="openCreate('local')" class="text-xs px-3 py-1.5 rounded-xl bg-blue-500 text-white hover:bg-blue-600 transition-colors">+ Локальный</button>
+      </div>
     </template>
 
     <template #filter>
-      <select v-model="filterGender" @change="page = 1" class="text-xs rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-2 focus:outline-none focus:border-blue-400 text-neutral-600">
-        <option value="">Все</option>
-        <option value="M">Мужской</option>
-        <option value="F">Женской</option>
-      </select>
+      <div class="flex items-center gap-2">
+        <select v-model="filterKind" @change="page = 1" class="text-xs rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-2 focus:outline-none focus:border-blue-400 text-neutral-600">
+          <option value="">Все нормативы</option>
+          <option value="gto">ГТО</option>
+          <option value="local">Локальные</option>
+        </select>
+        <select v-model="filterGender" @change="page = 1" class="text-xs rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-2 focus:outline-none focus:border-blue-400 text-neutral-600">
+          <option value="">Все полы</option>
+          <option value="M">Мужской</option>
+          <option value="F">Женский</option>
+        </select>
+      </div>
     </template>
 
     <template #sort="{ close }">
-      <!-- По типу -->
+      <!-- По названию упражнения -->
       <button @click="sortBy = 'type'; close()"
         class="w-full text-left px-4 py-2 text-xs hover:bg-neutral-50 transition-colors"
         :class="sortBy === 'type' ? 'text-blue-600 font-semibold' : 'text-neutral-600'">
-        По типу
+        По названию
+      </button>
+
+      <!-- По виду норматива (ГТО/Локальный) -->
+      <button @click="sortBy = 'kind'; close()"
+        class="w-full text-left px-4 py-2 text-xs hover:bg-neutral-50 transition-colors"
+        :class="sortBy === 'kind' ? 'text-blue-600 font-semibold' : 'text-neutral-600'">
+        По виду (ГТО / Локальный)
       </button>
 
       <!-- По полу -->
@@ -81,16 +98,28 @@
     </template>
 
     <template #items>
-      <AdminEntityCard v-for="n in paged" :key="n.id" @edit="openEdit(n)" @delete="openDelete(n)">
-        <div class="text-sm font-semibold text-neutral-800">{{ n.type }} <span class="text-neutral-400 font-normal">({{ n.unit }})</span></div>
+      <AdminEntityCard v-for="n in paged" :key="`${n._kind}-${n.id}`" @edit="openEdit(n)" @delete="openDelete(n)">
+        <div class="text-sm font-semibold text-neutral-800 flex items-center gap-2">
+          <span class="text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider"
+            :class="n._kind === 'gto' ? 'bg-blue-100 text-blue-700' : 'bg-emerald-100 text-emerald-700'">
+            {{ n._kind === 'gto' ? 'ГТО' : 'Локальный' }}
+          </span>
+          {{ n.type }} <span class="text-neutral-400 font-normal">({{ n.unit }})</span>
+        </div>
         <div class="text-xs text-neutral-400 mt-0.5">
-          {{ n.ageGroup }} лет · {{ genderLabel(n.gender) }} · Отл: {{ n.gradeExcellent }} · Хор: {{ n.gradeGood }} · Уд: {{ n.gradeSatisfactory }}
+          <template v-if="n._kind === 'gto'">
+            {{ n.ageGroup }} лет · {{ genderLabel(n.gender) }} · Отл: {{ n.gradeExcellent }} · Хор: {{ n.gradeGood }} · Уд: {{ n.gradeSatisfactory }}
+          </template>
+          <template v-else>
+            {{ genderLabel(n.gender) }} · Норма: {{ n.isMoreBetter ? '≥' : '≤' }} {{ n.value }}
+          </template>
         </div>
       </AdminEntityCard>
     </template>
   </AdminListLayout>
 
-  <EditModal v-if="editItem !== undefined" :title="editItem ? 'Редактировать норматив' : 'Новый норматив'" @save="saveEdit" @cancel="editItem = undefined">
+  <!-- Модалка ГТО норматива (возраст + 3 оценки + флаг выше года) -->
+  <EditModal v-if="editItem !== undefined && editKind === 'gto'" :title="editItem ? 'Редактировать норматив ГТО' : 'Новый норматив ГТО'" @save="saveEdit" @cancel="closeEdit">
     <FormField label="Тип (название упражнения)">
       <input v-model="editForm.type" class="w-full px-3 py-2 text-sm rounded-xl border border-neutral-200 focus:outline-none focus:border-blue-400" />
     </FormField>
@@ -98,7 +127,7 @@
       <input v-model="editForm.unit" class="w-full px-3 py-2 text-sm rounded-xl border border-neutral-200 focus:outline-none focus:border-blue-400" placeholder="сек, м, раз..." />
     </FormField>
     <div class="grid grid-cols-2 gap-3">
-      <FormField label="Возрастная группа (лет)">
+      <FormField label="Возраст">
         <input v-model.number="editForm.ageGroup" type="number" class="w-full px-3 py-2 text-sm rounded-xl border border-neutral-200 focus:outline-none focus:border-blue-400" />
       </FormField>
       <FormField label="Пол">
@@ -117,6 +146,41 @@
       </FormField>
       <FormField label="Удовл.">
         <input v-model.number="editForm.gradeSatisfactory" type="number" step="0.01" class="w-full px-3 py-2 text-sm rounded-xl border border-neutral-200 focus:outline-none focus:border-blue-400" />
+      </FormField>
+    </div>
+  </EditModal>
+
+  <!-- Модалка локального норматива: одна норма (Value + флаг ≥/≤) -->
+  <EditModal v-if="editItem !== undefined && editKind === 'local'" :title="editItem ? 'Редактировать локальный норматив' : 'Новый локальный норматив'" @save="saveEdit" @cancel="closeEdit">
+    <FormField label="Тип (название упражнения)">
+      <input v-model="editForm.type" class="w-full px-3 py-2 text-sm rounded-xl border border-neutral-200 focus:outline-none focus:border-blue-400" />
+    </FormField>
+    <FormField label="Единица измерения">
+      <input v-model="editForm.unit" class="w-full px-3 py-2 text-sm rounded-xl border border-neutral-200 focus:outline-none focus:border-blue-400" placeholder="сек, м, раз..." />
+    </FormField>
+    <div class="grid grid-cols-2 gap-3">
+      <FormField label="Специализация">
+        <select v-model.number="editForm.specialization" class="w-full px-3 py-2 text-sm rounded-xl border border-neutral-200 focus:outline-none focus:border-blue-400">
+          <option :value="0">Футбол</option>
+          <option :value="1">Мини-футбол</option>
+        </select>
+      </FormField>
+      <FormField label="Пол">
+        <select v-model="editForm.gender" class="w-full px-3 py-2 text-sm rounded-xl border border-neutral-200 focus:outline-none focus:border-blue-400">
+          <option value="M">Мужской</option>
+          <option value="F">Женский</option>
+        </select>
+      </FormField>
+    </div>
+    <div class="grid grid-cols-2 gap-3">
+      <FormField label="Норма (число)">
+        <input v-model.number="editForm.value" type="number" step="0.01" class="w-full px-3 py-2 text-sm rounded-xl border border-neutral-200 focus:outline-none focus:border-blue-400" />
+      </FormField>
+      <FormField label="Сравнение">
+        <select v-model="editForm.isMoreBetter" class="w-full px-3 py-2 text-sm rounded-xl border border-neutral-200 focus:outline-none focus:border-blue-400">
+          <option :value="true">Не менее (≥)</option>
+          <option :value="false">Не более (≤)</option>
+        </select>
       </FormField>
     </div>
     <FormField label="">
@@ -168,7 +232,8 @@ function genderLabel(g: any): string {
 const loading      = ref(true)
 const items        = ref<any[]>([])
 const search       = ref('')
-const filterGender   = ref('')
+const filterGender = ref('')
+const filterKind   = ref<'' | 'gto' | 'local'>('')
 const filterAgeRange = ref<{ label: string, min: number, max: number } | null>(null)
 const ageSubmenu     = ref(false)
 const sortBy       = ref('type')
@@ -176,26 +241,31 @@ const sortDir      = ref<'asc'|'desc'>('asc')
 const page         = ref(1)
 const editItem     = ref<any>(undefined)
 const editForm     = ref<any>({})
+const editKind     = ref<'gto' | 'local'>('gto')
 const deleteItem   = ref<any>(null)
 
 const currentSortLabel = computed(() => {
   if (sortBy.value === 'gender') return 'По полу'
-  if (sortBy.value === 'age') return filterAgeRange.value ? filterAgeRange.value.label : 'По возрасту'
-  return 'По типу'
+  if (sortBy.value === 'age')    return filterAgeRange.value ? filterAgeRange.value.label : 'По возрасту'
+  if (sortBy.value === 'kind')   return 'По виду'
+  return 'По названию'
 })
 
 const filtered = computed(() => {
   let list = items.value
+  if (filterKind.value) list = list.filter(n => n._kind === filterKind.value)
   if (search.value.trim()) {
     const q = search.value.toLowerCase()
     list = list.filter(n => n.type?.toLowerCase().includes(q) || n.unit?.toLowerCase().includes(q))
   }
   if (filterGender.value) list = list.filter(n => normalizeGender(n.gender) === filterGender.value)
-  if (filterAgeRange.value) list = list.filter(n => n.ageGroup >= filterAgeRange.value!.min && n.ageGroup <= filterAgeRange.value!.max)
+  // Возраст есть только у ГТО — у локальных n.ageGroup undefined, исключаем их из фильтра
+  if (filterAgeRange.value) list = list.filter(n => n._kind === 'gto' && n.ageGroup >= filterAgeRange.value!.min && n.ageGroup <= filterAgeRange.value!.max)
   return [...list].sort((a, b) => {
     let res = 0
     if (sortBy.value === 'age')         res = (a.ageGroup ?? 0) - (b.ageGroup ?? 0)
     else if (sortBy.value === 'gender') res = normalizeGender(a.gender).localeCompare(normalizeGender(b.gender))
+    else if (sortBy.value === 'kind')   res = (a._kind ?? '').localeCompare(b._kind ?? '')
     else                                res = (a.type ?? '').localeCompare(b.type ?? '')
     if (res === 0) res = (a.type ?? '').localeCompare(b.type ?? '')
     return sortDir.value === 'asc' ? res : -res
@@ -205,21 +275,42 @@ const filtered = computed(() => {
 const totalPages = computed(() => Math.max(1, Math.ceil(filtered.value.length / PER_PAGE)))
 const paged = computed(() => filtered.value.slice((page.value - 1) * PER_PAGE, page.value * PER_PAGE))
 
-function openCreate() {
+function openCreate(kind: 'gto' | 'local') {
   editItem.value = null
-  editForm.value = { type: '', unit: '', ageGroup: 14, gender: 'M', gradeExcellent: 0, gradeGood: 0, gradeSatisfactory: 0, isAboveYearOfStudy: false }
+  editKind.value = kind
+  if (kind === 'gto') {
+    editForm.value = { type: '', unit: '', ageGroup: 14, gender: 'M', gradeExcellent: 0, gradeGood: 0, gradeSatisfactory: 0 }
+  } else {
+    editForm.value = { type: '', unit: '', specialization: 0, gender: 'M', value: 0, isMoreBetter: true, isAboveYearOfStudy: false }
+  }
 }
 function openEdit(n: any) {
   editItem.value = n
-  editForm.value = { type: n.type, unit: n.unit, ageGroup: n.ageGroup, gender: normalizeGender(n.gender), gradeExcellent: n.gradeExcellent, gradeGood: n.gradeGood, gradeSatisfactory: n.gradeSatisfactory, isAboveYearOfStudy: n.isAboveYearOfStudy }
+  editKind.value = n._kind
+  if (n._kind === 'gto') {
+    editForm.value = {
+      type: n.type, unit: n.unit, ageGroup: n.ageGroup, gender: normalizeGender(n.gender),
+      gradeExcellent: n.gradeExcellent, gradeGood: n.gradeGood, gradeSatisfactory: n.gradeSatisfactory,
+    }
+  } else {
+    editForm.value = {
+      type: n.type, unit: n.unit,
+      specialization: typeof n.specialization === 'number' ? n.specialization : 0,
+      gender: normalizeGender(n.gender),
+      value: n.value, isMoreBetter: n.isMoreBetter,
+      isAboveYearOfStudy: !!n.isAboveYearOfStudy,
+    }
+  }
 }
 function openDelete(n: any) { deleteItem.value = n }
+function closeEdit() { editItem.value = undefined }
 
 async function saveEdit() {
+  const url = editKind.value === 'gto' ? '/normative/gto' : '/normative/local'
   if (editItem.value) {
-    await api.put(`/normative/gto/${editItem.value.id}`, editForm.value)
+    await api.put(`${url}/${editItem.value.id}`, editForm.value)
   } else {
-    await api.post('/normative/gto', editForm.value)
+    await api.post(url, editForm.value)
   }
   editItem.value = undefined
   showToast('saved')
@@ -227,7 +318,8 @@ async function saveEdit() {
 }
 
 async function confirmDelete() {
-  await api.delete(`/normative/gto/${deleteItem.value.id}`)
+  const url = deleteItem.value._kind === 'gto' ? '/normative/gto' : '/normative/local'
+  await api.delete(`${url}/${deleteItem.value.id}`)
   deleteItem.value = null
   showToast('deleted')
   await load()
@@ -235,8 +327,13 @@ async function confirmDelete() {
 
 async function load() {
   loading.value = true
-  const res = await api.get('/normative/gto').catch(() => null)
-  items.value = res?.data?.data ?? []
+  const [gtoRes, localRes] = await Promise.all([
+    api.get('/normative/gto').catch(() => null),
+    api.get('/normative/local').catch(() => null),
+  ])
+  const gto = (gtoRes?.data?.data ?? []).map((n: any) => ({ ...n, _kind: 'gto' }))
+  const locals = (localRes?.data?.data ?? []).map((n: any) => ({ ...n, _kind: 'local' }))
+  items.value = [...gto, ...locals]
   loading.value = false
 }
 

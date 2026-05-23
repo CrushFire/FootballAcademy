@@ -11,7 +11,7 @@
             <!-- Аватарка с возможностью загрузки -->
             <div class="relative group cursor-pointer" @click="avatarInput?.click()">
               <div class="w-48 h-48 rounded-full overflow-hidden shrink-0 bg-blue-500 flex items-center justify-center">
-                <img v-if="avatarUrl" :src="avatarUrl" class="w-full h-full object-cover" alt="Аватар" />
+                <img v-if="avatarUrl" :src="avatarUrl" class="w-full h-full object-cover object-top" alt="Аватар" />
                 <span v-else class="text-white font-bold text-5xl">{{ initials(profile.fio) }}</span>
               </div>
               <div class="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
@@ -134,6 +134,7 @@ import { ref, onMounted, defineComponent, h } from 'vue'
 import api from '@/services/api'
 import { POSITION_AND_GROUP_LABEL } from '@/constants'
 import { useAuthStore } from '@/store/auth'
+import { imageUrl } from '@/utils/imageUrl'
 
 const auth = useAuthStore()
 const showLogoutConfirm = ref(false)
@@ -199,9 +200,12 @@ async function uploadAvatar(e: Event) {
   form.append('newImages', file)
   try {
     const res = await api.post('/sportsman/me/images', form, { headers: { 'Content-Type': 'multipart/form-data' } })
-    const images = res?.data?.data?.images ?? res?.data?.data ?? []
-    const last = Array.isArray(images) ? images[images.length - 1] : null
-    if (last?.path) avatarUrl.value = '/' + last.path
+    // Бэк возвращает либо массив строк (List<string> paths), либо массив объектов { path }
+    const data = res?.data?.data ?? []
+    const lastPath = Array.isArray(data)
+      ? (typeof data[data.length - 1] === 'string' ? data[data.length - 1] : data[data.length - 1]?.path)
+      : null
+    if (lastPath) avatarUrl.value = imageUrl(lastPath) ?? ''
   } catch { /* ignore */ }
 }
 
@@ -215,7 +219,7 @@ async function load() {
     profile.value = (sm as any).value?.data?.data ?? null
     userInfo.value = (user as any).value?.data?.data ?? null
     const images = profile.value?.images ?? []
-    if (images.length > 0) avatarUrl.value = '/' + images[images.length - 1].path
+    if (images.length > 0) avatarUrl.value = imageUrl(images) ?? ''
 
     if (profile.value?.id) {
       const [gr, tm] = await Promise.allSettled([

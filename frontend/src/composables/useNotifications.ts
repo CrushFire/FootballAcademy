@@ -21,28 +21,44 @@ const started = ref(false)
 export function useNotifications() {
   const { start, on } = useSignalR()
 
-  const unreadCount = computed(() => notifications.value.filter(n => !n.isRead).length)
+  // Считаем только непрочитанные, которые ещё не «протухли» (старше 24ч).
+  // Иначе старое непрочитанное из глобального state раздувает счётчик даже когда в выпадашке пусто.
+  const unreadCount = computed(() => {
+    const dayAgoMs = Date.now() - 24 * 60 * 60 * 1000
+    const toUtc = (iso: string) => /[Zz]|[+-]\d{2}:?\d{2}$/.test(iso) ? iso : `${iso}Z`
+    return notifications.value.filter(n =>
+      !n.isRead && new Date(toUtc(n.createdAt)).getTime() >= dayAgoMs
+    ).length
+  })
 
   async function init() {
     if (started.value) return
     started.value = true
 
-    // Загружаем непрочитанные рассылки
+    // В колокольчик кладём: все непрочитанные рассылки (без ограничения по дате — важное не пропустить),
+    // прочитанные за последние 24 часа отфильтруются в UI (см. sortedNotifications в AppHeader).
+    // Старое прочитанное в БД не подгружаем вообще.
+    const toUtc = (iso: string) => /[Zz]|[+-]\d{2}:?\d{2}$/.test(iso) ? iso : `${iso}Z`
+    const dayAgoMs = Date.now() - 24 * 60 * 60 * 1000
+
     try {
-      const res = await api.get('/message/broadcast').catch(() => null)
+      const res = await api.get('/message/broadcast', { params: { onlyForMe: true } }).catch(() => null)
       const broadcasts: BroadcastResponse[] = res?.data?.data ?? []
       for (const b of broadcasts) {
-        if (!notifications.value.find(n => n.broadcastId === b.id)) {
-          notifications.value.push({
-            id: `broadcast-${b.id}`,
-            type: 'broadcast',
-            title: b.title,
-            preview: b.text.slice(0, 80),
-            createdAt: b.createdAt,
-            isRead: false,
-            broadcastId: b.id,
-          })
-        }
+        if (notifications.value.find(n => n.broadcastId === b.id)) continue
+        const isRead = !!b.isReadByMe
+        const createdMs = new Date(toUtc(b.createdAt)).getTime()
+        // Прочитанные старше 24ч не показываем; непрочитанные — всегда (даже старые).
+        if (isRead && createdMs < dayAgoMs) continue
+        notifications.value.push({
+          id: `broadcast-${b.id}`,
+          type: 'broadcast',
+          title: b.title,
+          preview: b.text.slice(0, 80),
+          createdAt: b.createdAt,
+          isRead,
+          broadcastId: b.id,
+        })
       }
     } catch { /* ignore */ }
 
@@ -51,17 +67,17 @@ export function useNotifications() {
       const res = await api.get('/message/dialogs').catch(() => null)
       const dialogs: any[] = res?.data?.data ?? []
       for (const d of dialogs) {
-        if (d.hasUnread && !notifications.value.find(n => n.type === 'message' && n.senderId === d.userId)) {
-          notifications.value.push({
-            id: `msg-${d.userId}`,
-            type: 'message',
-            title: d.userName || `Пользователь ${d.userId}`,
-            preview: d.lastMessage?.slice(0, 80) ?? '',
-            createdAt: d.lastMessageAt,
-            isRead: false,
-            senderId: d.userId,
-          })
-        }
+        if (!d.hasUnread) continue
+        if (notifications.value.find(n => n.type === 'message' && n.senderId === d.userId)) continue
+        notifications.value.push({
+          id: `msg-${d.userId}`,
+          type: 'message',
+          title: d.userName || `Пользователь ${d.userId}`,
+          preview: d.lastMessage?.slice(0, 80) ?? '',
+          createdAt: d.lastMessageAt,
+          isRead: false,
+          senderId: d.userId,
+        })
       }
     } catch { /* ignore */ }
 
@@ -107,8 +123,43 @@ export function useNotifications() {
     if (n) n.isRead = true
   }
 
-  function markAllRead() {
+  async function markAllRead() {
+    // Помечаем локально + дёргаем бэк.
+    const unreadBroadcasts = notifications.value.filter(n => !n.isRead && n.type === 'broadcast' && n.broadcastId)
+    const unreadMessageSenders = notifications.value.filter(n => !n.isRead && n.type === 'message' && n.senderId)
     notifications.value.forEach(n => { n.isRead = true })
+
+    // Рассылки — PUT /message/broadcast/{id}/read
+    for (const n of unreadBroadcasts) {
+      api.put(`/message/broadcast/${n.broadcastId}/read`).catch(() => null)
+    }
+    // Личные — для каждого собеседника отмечаем все его непрочитанные сообщения как прочитанные.
+    // Подгружаем dialog → берём msg.senderId === собеседник && !isRead → PUT по каждому.
+    for (const n of unreadMessageSenders) {
+      try {
+        const res = await api.get(`/message/dialog/${n.senderId}`)
+        const msgs: any[] = res?.data?.data?.messages ?? []
+        for (const msg of msgs) {
+          if (msg.senderId === n.senderId && !msg.isRead) {
+            api.put(`/message/${msg.id}/read`).catch(() => null)
+          }
+        }
+      } catch { /* ignore */ }
+    }
+
+    // Чистим протухшее (старше 24ч) — чтобы счётчик гарантированно обнулился
+    const dayAgoMs = Date.now() - 24 * 60 * 60 * 1000
+    const toUtc = (iso: string) => /[Zz]|[+-]\d{2}:?\d{2}$/.test(iso) ? iso : `${iso}Z`
+    notifications.value = notifications.value.filter(n =>
+      new Date(toUtc(n.createdAt)).getTime() >= dayAgoMs
+    )
+  }
+
+  // Полный сброс состояния (вызывается при логине, чтобы новый юзер получил свои уведомления).
+  async function reset() {
+    notifications.value = []
+    started.value = false
+    await init()
   }
 
   // Вызывается когда пользователь открыл диалог с senderId
@@ -118,5 +169,5 @@ export function useNotifications() {
       .forEach(n => { n.isRead = true })
   }
 
-  return { notifications, unreadCount, init, markRead, markAllRead, markMessageReadBySender }
+  return { notifications, unreadCount, init, reset, markRead, markAllRead, markMessageReadBySender }
 }

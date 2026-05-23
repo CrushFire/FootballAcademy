@@ -1,7 +1,10 @@
+using Application.Services.MetricAnalytic;
 using Core.Entities;
 using Core.Enums;
 using Core.Enums.Match;
 using Core.Interfaces.Services;
+using Core.Models.MetricModel.Pentagon;
+using Core.Models.MetricModel.Profile;
 using Core.Models.RagModel;
 using Core.Results;
 using DataAccess;
@@ -22,14 +25,18 @@ namespace Application.Services
         private readonly ApplicationDbContext _context;
         private readonly IConfiguration _config;
         private readonly ArticleKnowledgeService _articles;
+        private readonly IProfileService _profiles;
+        private readonly IPentagonService _pentagon;
 
         private string OpenAiKey => _config["OpenAI:ApiKey"] ?? "";
 
-        public RagService(ApplicationDbContext context, IConfiguration config, ArticleKnowledgeService articles)
+        public RagService(ApplicationDbContext context, IConfiguration config, ArticleKnowledgeService articles, IProfileService profiles, IPentagonService pentagon)
         {
             _context = context;
             _config = config;
             _articles = articles;
+            _profiles = profiles;
+            _pentagon = pentagon;
         }
 
         // ─────────────────────────────────────────────────────
@@ -279,13 +286,14 @@ namespace Application.Services
                         }
 
                         // ── 4. Векторный fallback ────────────────────────────────
-                        if (sb.Length == 0)
+                        // Запускаем всегда, если по имени/команде/группе никого не нашли —
+                        // вопрос мог быть про "вингеров", "вратарей", "лучших спринтеров" и т.п.
                         {
                             var queryVec = await GetEmbeddingAsync(message);
                             var pgVec = new Vector(queryVec);
                             var byVector = await _context.PlayerEmbeddings
                                 .OrderBy(e => e.Embedding.CosineDistance(pgVec))
-                                .Take(5)
+                                .Take(8)
                                 .ToListAsync();
                             if (byVector.Count > 0)
                             {
@@ -612,6 +620,13 @@ namespace Application.Services
                 .Where(m => m.SportsmanId == sportsmanId)
                 .ToListAsync();
 
+            // Последние 30 тренировок с датами — для запросов "за неделю/месяц".
+            // Для квартала/полугода/года достаточно помесячных агрегатов ниже.
+            var recentTrainings = allMetrics
+                .OrderByDescending(m => m.CreatedAt)
+                .Take(30)
+                .ToList();
+
             if (!metrics.Any() && !allMetrics.Any())
                 return Result<bool>.Success(false);
 
@@ -635,6 +650,12 @@ namespace Application.Services
                 .ToListAsync();
             var allPresentCount = allAttendances.Count(a => a.Status == AttendanceStatus.Present || a.Status == AttendanceStatus.Late);
 
+            // Последние 30 посещений с датами — для запросов "когда пропускал" в актуальном горизонте.
+            var recentAttendances = allAttendances
+                .OrderByDescending(a => a.CreatedAt)
+                .Take(30)
+                .ToList();
+
             // Нормативы: последний результат по каждому
             var normResults = await _context.NormativeSportsmen
                 .Where(n => n.SportsmanId == sportsmanId)
@@ -647,7 +668,18 @@ namespace Application.Services
             var matchCount = await _context.Matches
                 .CountAsync(m => m.Lineup.Any(l => l.SportsmanId == sportsmanId) && m.Status == MatchStatus.Finished);
 
-            var text = BuildEmbeddingText(sportsman, metrics, allMetrics, groups, presentCount, lastAttendances.Count, allPresentCount, allAttendances.Count, normResults, matchCount);
+            // Аналитика: профили игрока + пятиугольник по текущей позиции (если она задана)
+            var profileResult = await _profiles.GetSportsmanProfileAsync(sportsmanId);
+            var profiles = profileResult.IsSuccess ? profileResult.Data?.Profiles : null;
+
+            PentagonScores? pentagon = null;
+            if (sportsman.Position.HasValue)
+            {
+                var pentagonRes = await _pentagon.GetSportsmanPentagonAsync(sportsmanId);
+                if (pentagonRes.IsSuccess) pentagon = pentagonRes.Data?.Pentagon;
+            }
+
+            var text = BuildEmbeddingText(sportsman, metrics, allMetrics, groups, presentCount, lastAttendances.Count, allPresentCount, allAttendances.Count, normResults, matchCount, lastAttendances, recentTrainings, recentAttendances, pentagon);
             var vector = await GetEmbeddingAsync(text);
 
             var existing = await _context.PlayerEmbeddings
@@ -708,6 +740,59 @@ namespace Application.Services
 
         // ВСПОМОГАТЕЛЬНЫЕ
 
+        // Русские названия + синонимы позиции — нужны для семантического поиска
+        // (пользователь спрашивает "вингер", в БД хранится "LW"/"RW").
+        private static string PositionRu(Position? p) => p switch
+        {
+            Position.GK  => "вратарь, голкипер",
+            Position.CB  => "центральный защитник, центрбек",
+            Position.LB  => "левый защитник, левый бек",
+            Position.RB  => "правый защитник, правый бек",
+            Position.LWB => "левый латераль, левый вингбек",
+            Position.RWB => "правый латераль, правый вингбек",
+            Position.CDM => "опорный полузащитник, опорник",
+            Position.CM  => "центральный полузащитник",
+            Position.CAM => "атакующий полузащитник, плеймейкер",
+            Position.LW  => "левый вингер, левый крайний нападающий, левый фланговый",
+            Position.RW  => "правый вингер, правый крайний нападающий, правый фланговый",
+            Position.ST  => "центральный нападающий, форвард, страйкер",
+            Position.CF  => "центрфорвард, нападающий",
+            Position.SS  => "оттянутый нападающий, второй форвард",
+            _ => "позиция не указана"
+        };
+
+        // Русские названия профилей игрока — для семантического поиска
+        // ("выносливый игрок", "взрывной", "универсал" и т.п.).
+        private static string ProfileRu(PlayerProfile p) => p switch
+        {
+            PlayerProfile.Sprinter            => "спринтер",
+            PlayerProfile.EnduranceRunner     => "выносливый игрок",
+            PlayerProfile.PowerPlayer         => "силовой игрок",
+            PlayerProfile.ExplosivePlayer     => "взрывной игрок",
+            PlayerProfile.FlankPlayer         => "фланговый игрок",
+            PlayerProfile.DefenderType        => "защитного типа",
+            PlayerProfile.Universal           => "универсал",
+            PlayerProfile.CentralMidfielder   => "центральный полузащитник по профилю",
+            PlayerProfile.DefensiveMidfielder => "опорный полузащитник по профилю",
+            PlayerProfile.AttackingMidfielder => "атакующий полузащитник по профилю",
+            PlayerProfile.Forward             => "нападающий по профилю",
+            PlayerProfile.Goalkeeper          => "вратарский профиль",
+            PlayerProfile.DynamicPlayer       => "динамичный игрок",
+            PlayerProfile.StaticPlayer        => "статичный игрок",
+            PlayerProfile.Offensive           => "атакующего типа",
+            PlayerProfile.Defensive           => "оборонительного типа",
+            _ => ""
+        };
+
+        // Дельта со знаком и комментарием словами — для блока динамики.
+        private static string Delta(double d) =>
+            Math.Abs(d) < 0.5 ? "стабильна"
+            : (d > 0 ? $"+{d:F0} (рост)" : $"{d:F0} (спад)");
+
+        private static string DeltaUnit(double d, string unit) =>
+            Math.Abs(d) < 0.3 ? "стабильна"
+            : (d > 0 ? $"+{d:F1} {unit} (рост)" : $"{d:F1} {unit} (спад)");
+
         private static string BuildEmbeddingText(
             Sportsman s,
             List<TrainingMetrics> metrics,
@@ -718,18 +803,81 @@ namespace Application.Services
             int allPresentCount,
             int allTotalAttendance,
             List<NormativeSportsman> normResults,
-            int matchCount)
+            int matchCount,
+            List<Attendance> lastAttendances,
+            List<TrainingMetrics> recentTrainings,
+            List<Attendance> recentAttendances,
+            //List<PlayerProfile>? profiles,
+            PentagonScores? pentagon)
         {
             var sb = new StringBuilder();
+            var ruMonths = new[] { "", "январь", "февраль", "март", "апрель", "май", "июнь", "июль", "август", "сентябрь", "октябрь", "ноябрь", "декабрь" };
 
-            sb.Append($"{s.FIO}, {s.Age} лет, {s.Position}, рост {s.Height} см, вес {s.Weight} кг, пол {(s.Gender == 'M' ? "мужской" : "женский")}");
+            sb.Append($"{s.FIO}, {s.Age} лет, позиция {s.Position} ({PositionRu(s.Position)}), рост {s.Height} см, вес {s.Weight} кг, пол {(s.Gender == 'M' ? "мужской" : "женский")}");
             if (s.Team != null) sb.Append($", команда «{s.Team.Name}» ({s.Team.AgeGroup})");
             if (groups.Count > 0) sb.Append($", группы: {string.Join(", ", groups)}");
             sb.AppendLine($". Сыграл матчей: {matchCount}.");
+
+            // Аналитический профиль игрока (выносливый / взрывной / универсал и т.п.)
+            //if (profiles != null && profiles.Count > 0)
+            //{
+            //    var ru = string.Join(", ", profiles.Select(ProfileRu).Where(x => !string.IsNullOrEmpty(x)));
+            //    if (!string.IsNullOrEmpty(ru))
+            //        sb.AppendLine($"Тип игрока: {ru}.");
+            //}
+
+            // Пятиугольник по текущей позиции (0-100 по каждой оси, считается под позицию игрока)
+            if (pentagon != null)
+            {
+                sb.AppendLine(
+                    $"Профиль качеств (0-100): скорость {pentagon.Speed:F0}, " +
+                    $"мощность {pentagon.Power:F0}, " +
+                    $"спринты {pentagon.Sprints:F0}, " +
+                    $"выносливость {pentagon.Endurance:F0}, " +
+                    $"взрывная сила {pentagon.Explosive:F0}."
+                );
+            }
             if (totalAttendance > 0)
                 sb.AppendLine($"Посещаемость за последние 6 месяцев: {presentCount} из {totalAttendance} тренировок.");
             else if (allTotalAttendance > 0)
                 sb.AppendLine($"Посещаемость за всё время: {allPresentCount} из {allTotalAttendance} тренировок.");
+
+            // Помесячная разбивка посещаемости за 6 месяцев: пришёл / опоздал / прогулял / по уважительной
+            if (lastAttendances.Count > 0)
+            {
+                sb.AppendLine("Посещаемость по месяцам (за последние 6 месяцев):");
+                var byMonth = lastAttendances
+                    .GroupBy(a => new { a.CreatedAt.Year, a.CreatedAt.Month })
+                    .OrderBy(g => g.Key.Year).ThenBy(g => g.Key.Month);
+                foreach (var m in byMonth)
+                {
+                    var total = m.Count();
+                    var present = m.Count(a => a.Status == AttendanceStatus.Present);
+                    var late = m.Count(a => a.Status == AttendanceStatus.Late);
+                    var absent = m.Count(a => a.Status == AttendanceStatus.Absent);
+                    var excused = m.Count(a => a.Status == AttendanceStatus.ExcusedAbsent);
+                    sb.AppendLine($"  - {ruMonths[m.Key.Month]} {m.Key.Year}: всего {total} тренировок, пришёл {present}, опоздал {late}, пропустил {absent}, по уважительной {excused}.");
+                }
+            }
+
+            // Помесячные показатели скорости за 6 месяцев (макс. и средняя скорость, спринты)
+            if (metrics.Count > 0)
+            {
+                sb.AppendLine("Скорость по месяцам (за последние 6 месяцев):");
+                var speedByMonth = metrics
+                    .GroupBy(x => new { x.CreatedAt.Year, x.CreatedAt.Month })
+                    .OrderBy(g => g.Key.Year).ThenBy(g => g.Key.Month);
+                foreach (var m in speedByMonth)
+                {
+                    sb.AppendLine(
+                        $"  - {ruMonths[m.Key.Month]} {m.Key.Year} ({m.Count()} трен.): " +
+                        $"макс. скорость {m.Max(x => x.MaximumSpeed):F1} км/ч, " +
+                        $"средняя макс. скорость {m.Average(x => x.MaximumSpeed):F1} км/ч, " +
+                        $"спринтов в среднем {m.Average(x => x.SprintEfforts):F0}, " +
+                        $"высокоинтенсивная дистанция {m.Average(x => x.HighSpeedDistance / 1000.0):F2} км."
+                    );
+                }
+            }
 
             // Разбиваем метрики на два периода для отслеживания динамики
             var now = DateTime.UtcNow;
@@ -739,45 +887,31 @@ namespace Application.Services
 
             if (recent.Count > 0 && older.Count > 0)
             {
-                // Есть обе группы — показываем динамику
+                // Сравнение последних 3 мес с 4–6 мес назад: компактная динамика словами + средние.
+                double dLoad  = recent.Average(m => m.PlayerLoad) - older.Average(m => m.PlayerLoad);
+                double dSpeed = recent.Max(m => m.MaximumSpeed) - older.Max(m => m.MaximumSpeed);
+                double dSpr   = recent.Average(m => m.SprintEfforts) - older.Average(m => m.SprintEfforts);
                 sb.AppendLine(
-                    $"Последние 3 месяца ({recent.Count} тренировок): " +
-                    $"дистанция {recent.Average(m => m.TotalDistance / 1000.0):F2} км, " +
-                    $"высокоинтенсивная нагрузка {recent.Average(m => m.HighSpeedDistance / 1000.0):F2} км, " +
-                    $"нагрузка {recent.Average(m => m.PlayerLoad):F1}, " +
-                    $"ускорений {recent.Average(m => m.AccelerationCount):F0}, " +
+                    $"Последние 3 месяца ({recent.Count} трен.): нагрузка {recent.Average(m => m.PlayerLoad):F0}, " +
+                    $"макс. скорость {recent.Max(m => m.MaximumSpeed):F1} км/ч, " +
                     $"спринтов {recent.Average(m => m.SprintEfforts):F0}, " +
-                    $"взрывной силы {recent.Average(m => m.ExplosiveEfforts):F0}, " +
-                    $"средний пульс {recent.Average(m => m.AverageHeartRate):F0}, " +
-                    $"макс. пульс {recent.Max(m => m.MaxHeartRate)}, " +
-                    $"макс. скорость {recent.Max(m => m.MaximumSpeed):F1} км/ч."
+                    $"средний пульс {recent.Average(m => m.AverageHeartRate):F0}."
                 );
                 sb.AppendLine(
-                    $"4–6 месяцев назад ({older.Count} тренировок): " +
-                    $"дистанция {older.Average(m => m.TotalDistance / 1000.0):F2} км, " +
-                    $"высокоинтенсивная нагрузка {older.Average(m => m.HighSpeedDistance / 1000.0):F2} км, " +
-                    $"нагрузка {older.Average(m => m.PlayerLoad):F1}, " +
-                    $"ускорений {older.Average(m => m.AccelerationCount):F0}, " +
-                    $"спринтов {older.Average(m => m.SprintEfforts):F0}, " +
-                    $"взрывной силы {older.Average(m => m.ExplosiveEfforts):F0}, " +
-                    $"средний пульс {older.Average(m => m.AverageHeartRate):F0}, " +
-                    $"макс. скорость {older.Max(m => m.MaximumSpeed):F1} км/ч."
+                    $"Динамика vs 4–6 мес назад: нагрузка {Delta(dLoad)}, " +
+                    $"макс. скорость {DeltaUnit(dSpeed, "км/ч")}, " +
+                    $"спринты {Delta(dSpr)}."
                 );
             }
             else
             {
-                // Только один период — общая сводка
+                // Один период — общая компактная сводка
                 sb.AppendLine(
-                    $"Средняя дистанция за тренировку — {metrics.Average(m => m.TotalDistance / 1000.0):F2} км, " +
-                    $"из них высокоинтенсивная — {metrics.Average(m => m.HighSpeedDistance / 1000.0):F2} км, спринтовая — {metrics.Average(m => m.SprintDistance / 1000.0):F2} км. " +
-                    $"Максимальная скорость {metrics.Max(m => m.MaximumSpeed):F1} км/ч. " +
-                    $"В среднем {metrics.Average(m => m.AccelerationCount):F0} ускорений и {metrics.Average(m => m.SprintEfforts):F0} спринтов за тренировку, " +
-                    $"взрывной силы — {metrics.Average(m => m.ExplosiveEfforts):F0}."
-                );
-                sb.AppendLine(
-                    $"Нагрузка в среднем {metrics.Average(m => m.PlayerLoad):F1}. " +
-                    $"Пульс: средний {metrics.Average(m => m.AverageHeartRate):F0}, максимальный {metrics.Max(m => m.MaxHeartRate)}. " +
-                    $"Время в пульсовых зонах 4–5 — {metrics.Average(m => m.TimeInHRZone4 + m.TimeInHRZone5):F0} секунд."
+                    $"В среднем за тренировку: дистанция {metrics.Average(m => m.TotalDistance / 1000.0):F2} км, " +
+                    $"нагрузка {metrics.Average(m => m.PlayerLoad):F0}, " +
+                    $"спринтов {metrics.Average(m => m.SprintEfforts):F0}, " +
+                    $"макс. скорость {metrics.Max(m => m.MaximumSpeed):F1} км/ч, " +
+                    $"средний пульс {metrics.Average(m => m.AverageHeartRate):F0}."
                 );
             }
 
@@ -793,10 +927,50 @@ namespace Application.Services
                 );
             }
 
-            if (normResults.Count > 0)
+            // Нормативы с оценкой (отл/хор/удовл) по порогам ГТО.
+            //if (normResults.Count > 0)
+            //{
+            //    sb.Append("Нормативы: ");
+            //    sb.AppendLine(string.Join(", ", normResults.Select(n =>
+            //    {
+            //        var grade = GradeNormative(n);
+            //        return string.IsNullOrEmpty(grade)
+            //            ? $"{n.Normative.Type} — {n.Result} {n.Normative.Unit}"
+            //            : $"{n.Normative.Type} — {n.Result} {n.Normative.Unit} ({grade})";
+            //    })));
+            //}
+
+            // Детальный лог последних 30 тренировок — только ключевые поля (дата, нагрузка, скорость, спринты).
+            // Помесячные блоки выше покрывают всё остальное.
+            if (recentTrainings.Count > 0)
             {
-                sb.Append("Нормативы: ");
-                sb.AppendLine(string.Join(", ", normResults.Select(n => $"{n.Normative.Type} — {n.Result} {n.Normative.Unit}")));
+                sb.AppendLine($"Последние тренировки ({recentTrainings.Count}):");
+                foreach (var m in recentTrainings.OrderByDescending(t => t.CreatedAt))
+                {
+                    sb.AppendLine(
+                        $"  - {m.CreatedAt:dd.MM.yyyy}: нагрузка {m.PlayerLoad:F0}, " +
+                        $"макс. скорость {m.MaximumSpeed:F1} км/ч, " +
+                        $"спринтов {m.SprintEfforts}."
+                    );
+                }
+            }
+
+            // Детальный лог последних посещений с датами — для вопросов "когда пропускал".
+            if (recentAttendances.Count > 0)
+            {
+                sb.AppendLine($"Последние посещения с датами (всего {recentAttendances.Count}):");
+                foreach (var a in recentAttendances.OrderByDescending(x => x.CreatedAt))
+                {
+                    var statusRu = a.Status switch
+                    {
+                        AttendanceStatus.Present => "пришёл",
+                        AttendanceStatus.Late => "опоздал",
+                        AttendanceStatus.Absent => "пропустил",
+                        AttendanceStatus.ExcusedAbsent => "пропустил по уважительной",
+                        _ => a.Status.ToString()
+                    };
+                    sb.AppendLine($"  - {a.CreatedAt:dd.MM.yyyy}: {statusRu}.");
+                }
             }
 
             return sb.ToString();
