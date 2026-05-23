@@ -141,10 +141,22 @@ namespace DataAccess
                 .WithMany(pt => pt.Trainings)
                 .HasForeignKey(t => t.PlanTrainingId);
 
+            // Training ↔ Group (nullable): обычные тренировки привязаны к группе.
+            // Тренировки-матчи могут быть привязаны не к группе, а к команде (см. ниже).
             modelBuilder.Entity<Training>()
                 .HasOne(t => t.Group)
                 .WithMany()
-                .HasForeignKey(t => t.GroupId);
+                .HasForeignKey(t => t.GroupId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // Training ↔ Team (nullable): тренировки-матчи привязаны к команде целиком,
+            // когда у команды нет соответствующей группы или матч идёт двумя своими командами.
+            // Импорт XLSX матчит файл по имени группы ИЛИ команды.
+            modelBuilder.Entity<Training>()
+                .HasOne(t => t.Team)
+                .WithMany()
+                .HasForeignKey(t => t.TeamId)
+                .OnDelete(DeleteBehavior.SetNull);
 
             // TrainingMetrics
             modelBuilder.Entity<TrainingMetrics>()

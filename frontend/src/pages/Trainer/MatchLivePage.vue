@@ -89,24 +89,6 @@
                   <input v-model="createForm.date" type="datetime-local"
                     class="w-full text-sm rounded-xl border border-neutral-200 px-3 py-2.5 focus:outline-none focus:border-blue-400" />
                 </div>
-                <div>
-                  <label class="block text-xs font-semibold text-neutral-500 mb-1">Группа нашей команды для метрик</label>
-                  <select v-model="createForm.homeGroupId"
-                    class="w-full text-sm rounded-xl border border-neutral-200 px-3 py-2.5 focus:outline-none focus:border-blue-400">
-                    <option value="">Без привязки</option>
-                    <option v-for="g in myGroups" :key="g.id" :value="g.id">{{ g.name }}</option>
-                  </select>
-                  <div class="text-[10px] text-neutral-400 mt-1">Создастся тренировка типа «Матч» для импорта GPS-метрик</div>
-                </div>
-                <div v-if="createForm.type === 'Home'">
-                  <label class="block text-xs font-semibold text-neutral-500 mb-1">Группа соперника для метрик</label>
-                  <select v-model="createForm.opponentGroupId"
-                    class="w-full text-sm rounded-xl border border-neutral-200 px-3 py-2.5 focus:outline-none focus:border-blue-400">
-                    <option value="">Без привязки</option>
-                    <option v-for="g in myGroups" :key="g.id" :value="g.id">{{ g.name }}</option>
-                  </select>
-                  <div class="text-[10px] text-neutral-400 mt-1">Только для матчей между нашими командами</div>
-                </div>
               </div>
               <button
                 @click="goToLineup"
@@ -166,40 +148,69 @@
             </button>
           </div>
 
-          <!-- Список игроков состава -->
+          <!-- Список игроков состава — только основа (Main). Запасные подбираются через бейдж "Замены". -->
           <div class="space-y-2 max-h-80 overflow-y-auto pr-1">
-            <div v-for="(entry, idx) in lineupEdit" :key="idx"
-              class="flex items-center gap-2 p-2 rounded-xl border border-neutral-100 bg-neutral-50">
-              <!-- Левая часть: основной игрок + select замены -->
-              <div class="flex-1 min-w-0 flex flex-col gap-1">
-                <!-- Основной игрок — статично, серый -->
-                <div class="text-xs text-neutral-500 px-1 truncate">
+            <div v-for="{ entry, idx } in lineupMainEntries" :key="idx"
+              class="rounded-xl border border-neutral-100 bg-neutral-50">
+              <div class="flex items-center gap-2 p-2">
+                <!-- ФИО игрока -->
+                <div class="flex-1 min-w-0 text-xs font-semibold text-neutral-700 px-1 truncate">
                   {{ sportsmenMap[entry.sportsmanId] ?? (entry.sportsmanId ? `#${entry.sportsmanId}` : '—') }}
                 </div>
-                <!-- Замена — выпадающий только замены -->
-                <select v-model="entry.substituteId"
-                  class="w-full text-xs rounded-lg border border-neutral-200 px-2 py-1 bg-white focus:outline-none focus:border-blue-400 text-neutral-600">
-                  <option :value="undefined">Замена не выбрана</option>
-                  <option v-for="s in lineupSubstitutes" :key="s.id" :value="s.id">
-                    {{ s.fio }}{{ s.position ? ` · ${positionRu[s.position] ?? s.position}` : '' }}
-                  </option>
-                </select>
-              </div>
-              <!-- Позиция -->
-              <div class="shrink-0">
-                <div class="text-xs font-bold text-neutral-600 px-2 py-1 rounded border border-neutral-300 bg-white min-w-[40px] text-center">
-                  {{ entry.position }}
+                <!-- Бейдж замены — слева от позиции -->
+                <template v-if="getPossibleReplacements(entry.position).length > 0">
+                  <!-- Выбран конкретный запасной — отображаем как обычного игрока: ФИО + позиция -->
+                  <button v-if="entry.substituteId" type="button"
+                    @click="toggleSubstitutes(idx)"
+                    class="shrink-0 flex items-center gap-2 px-2 py-1 rounded-lg border border-green-300 bg-green-50 hover:bg-green-100 transition-colors max-w-[180px]"
+                    :title="sportsmenMap[entry.substituteId]">
+                    <span class="text-xs font-semibold text-neutral-700 truncate">
+                      {{ sportsmenMap[entry.substituteId] ?? `#${entry.substituteId}` }}
+                    </span>
+                    <span class="text-[10px] font-bold text-neutral-500 shrink-0">
+                      {{ substitutePositionFor(entry.substituteId) }}
+                    </span>
+                  </button>
+                  <!-- Не выбран — показываем счётчик -->
+                  <button v-else type="button"
+                    @click="toggleSubstitutes(idx)"
+                    class="shrink-0 px-2 py-1 rounded-lg border border-green-400 bg-green-50 text-green-700 text-[10px] font-bold hover:bg-green-100 transition-colors">
+                    Замены: {{ getPossibleReplacements(entry.position).length }}
+                  </button>
+                </template>
+                <span v-else class="shrink-0 px-2 py-1 rounded-lg border border-neutral-200 bg-neutral-100 text-neutral-400 text-[10px] font-semibold">
+                  Нет замен
+                </span>
+                <!-- Позиция -->
+                <div class="shrink-0">
+                  <div class="text-xs font-bold text-neutral-600 px-2 py-1 rounded border border-neutral-300 bg-white min-w-[40px] text-center">
+                    {{ entry.position }}
+                  </div>
                 </div>
               </div>
-              <!-- Тип -->
-              <div class="shrink-0">
-                <div class="text-xs font-bold px-2 py-1 rounded border min-w-[40px] text-center"
-                  :class="entry.type === 'Main' ? 'border-blue-400 bg-blue-50 text-blue-600' : 'border-green-400 bg-green-50 text-green-600'">
-                  {{ entry.type === 'Main' ? 'Осн.' : 'Зап.' }}
+              <!-- Раскрытый список потенциальных замен — выбираем конкретного -->
+              <div v-if="openSubstitutesFor === idx"
+                class="px-3 pb-2 pt-1 border-t border-neutral-200 bg-white rounded-b-xl">
+                <div class="text-[10px] text-neutral-400 mb-1.5">Выберите конкретного запасного для {{ entry.position }}:</div>
+                <div class="space-y-1">
+                  <button type="button"
+                    @click="assignSubstitute(idx, undefined); openSubstitutesFor = null"
+                    class="w-full flex items-center justify-between text-xs px-2 py-1.5 rounded transition-colors"
+                    :class="!entry.substituteId ? 'bg-blue-50 text-blue-700 font-semibold' : 'hover:bg-neutral-50 text-neutral-400'">
+                    <span>Не назначена</span>
+                  </button>
+                  <button v-for="s in getPossibleReplacements(entry.position)" :key="s.id"
+                    type="button"
+                    @click="assignSubstitute(idx, s.id); openSubstitutesFor = null"
+                    class="w-full flex items-center justify-between text-xs px-2 py-1.5 rounded transition-colors"
+                    :class="entry.substituteId === s.id ? 'bg-green-50 text-green-700 font-semibold' : 'hover:bg-neutral-50 text-neutral-700'">
+                    <span class="truncate">{{ s.fio }}</span>
+                    <span class="text-[10px] font-bold text-neutral-500 ml-2 shrink-0">{{ s.position }}</span>
+                  </button>
                 </div>
               </div>
             </div>
-            <div v-if="!lineupEdit.length" class="text-center text-xs text-neutral-400 py-4">Нет игроков в составе</div>
+            <div v-if="!lineupMainEntries.length" class="text-center text-xs text-neutral-400 py-4">Нет игроков в составе</div>
           </div>
 
           <!-- Кнопка начать -->
@@ -338,50 +349,57 @@
               {{ showFieldEdit ? 'Скрыть состав' : 'Просмотреть состав' }}
             </button>
 
-            <!-- Редактор состава -->
+            <!-- Состав (read-only после старта матча, обновляется при заменах) -->
             <div v-if="showFieldEdit" class="mt-3 space-y-2">
-              <!-- Переключатель команды в редакторе для Home-матча -->
+              <!-- Переключатель команды для Home-матча -->
               <div v-if="isHomeMatch" class="flex gap-2 mb-2">
                 <button
-                  @click="editTeamSide = 'home'; syncLineupEdit()"
+                  @click="editTeamSide = 'home'"
                   class="flex-1 py-1.5 rounded-xl border text-xs font-semibold transition-colors"
                   :class="editTeamSide === 'home' ? 'border-blue-400 bg-blue-50 text-blue-700' : 'border-neutral-200 text-neutral-500'"
                 >{{ match.homeTeamName }}</button>
                 <button
-                  @click="editTeamSide = 'away'; syncLineupEdit()"
+                  @click="editTeamSide = 'away'"
                   class="flex-1 py-1.5 rounded-xl border text-xs font-semibold transition-colors"
                   :class="editTeamSide === 'away' ? 'border-blue-400 bg-blue-50 text-blue-700' : 'border-neutral-200 text-neutral-500'"
                 >{{ match.opponentTeamName }}</button>
               </div>
 
               <div class="space-y-2 max-h-64 overflow-y-auto pr-1">
-                <div v-for="(entry, idx) in lineupEdit" :key="idx"
-                  class="flex items-center gap-2 p-2 rounded-xl border border-neutral-100 bg-neutral-50">
-                  <!-- Имя игрока -->
-                  <div class="flex-1 min-w-0">
-                    <select v-model="entry.sportsmanId"
-                      class="w-full text-xs rounded-lg border border-neutral-200 px-2 py-1.5 focus:outline-none focus:border-blue-400">
-                      <option value="">Игрок</option>
-                      <option v-for="s in currentEditSportsmen" :key="s.id" :value="s.id">
-                        {{ s.fio }}{{ s.position ? ` · ${s.position} (${positionRu[s.position] ?? s.position})` : '' }}
-                      </option>
-                    </select>
+                <div v-for="row in liveLineupView" :key="row.sportsmanId"
+                  class="flex items-center gap-2 p-2 rounded-xl border bg-neutral-50"
+                  :class="{
+                    'border-neutral-100': !row.cameOnFromBench && !row.offField,
+                    'border-purple-200 bg-purple-50': row.cameOnFromBench,
+                    'border-neutral-300 opacity-60': row.offField,
+                  }">
+                  <!-- ФИО и позиция текстом -->
+                  <div class="flex-1 min-w-0 text-xs px-1 truncate"
+                    :class="row.offField ? 'line-through text-neutral-500' : 'font-semibold text-neutral-700'">
+                    {{ row.fio }}
+                    <span class="text-neutral-400 font-normal">· {{ row.position }} ({{ positionRu[row.position] ?? row.position }})</span>
+                    <span v-if="row.cameOnFromBench" class="ml-1 text-[10px] font-bold text-purple-600">↑ {{ row.subMinute }}′</span>
+                    <span v-if="row.offField" class="ml-1 text-[10px] font-bold text-neutral-500">↓ {{ row.subMinute }}′</span>
                   </div>
-                  <!-- Позиция -->
+                  <!-- Позиция (короткий код) -->
                   <div class="shrink-0">
                     <div class="text-xs font-bold text-neutral-600 px-2 py-1 rounded border border-neutral-300 bg-white min-w-[48px] text-center">
-                      {{ entry.position }}
+                      {{ row.position }}
                     </div>
                   </div>
                   <!-- Тип -->
                   <div class="shrink-0">
                     <div class="text-xs font-bold px-2 py-1 rounded border min-w-[48px] text-center"
-                      :class="entry.type === 'Main' ? 'border-blue-400 bg-blue-50 text-blue-600' : 'border-green-400 bg-green-50 text-green-600'">
-                      {{ entry.type === 'Main' ? 'Осн.' : 'Зап.' }}
+                      :class="row.offField
+                        ? 'border-neutral-300 bg-neutral-100 text-neutral-500'
+                        : row.type === 'Main'
+                          ? 'border-blue-400 bg-blue-50 text-blue-600'
+                          : 'border-green-400 bg-green-50 text-green-600'">
+                      {{ row.offField ? 'Ушёл' : (row.type === 'Main' ? 'Осн.' : 'Зап.') }}
                     </div>
                   </div>
                 </div>
-                <div v-if="!lineupEdit.length" class="text-center text-xs text-neutral-400 py-3">
+                <div v-if="!liveLineupView.length" class="text-center text-xs text-neutral-400 py-3">
                   Нет игроков в составе
                 </div>
               </div>
@@ -629,7 +647,7 @@
 import { ref, computed, reactive, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '@/services/api'
-import { POSITION_AND_GROUP_LABEL, MATCH_TYPE } from '@/constants'
+import { POSITION_AND_GROUP_LABEL, MATCH_TYPE, POSITION_REPLACEMENTS } from '@/constants'
 import { formatDate } from '@/utils/formatDate'
 import { useAuthStore } from '@/store/auth'
 import LiveMatchHeader from '@/components/trainer/LiveMatchHeader.vue'
@@ -732,14 +750,22 @@ const lineupEdit = computed({
   set: (v) => { if (editTeamSide.value === 'home') homeLineupEdit.value = v; else awayLineupEdit.value = v },
 })
 
-// Текущий lineup для отображения поля
+// Текущий lineup для отображения поля.
+// Дополняем substituteId из локального homeLineupEdit/awayLineupEdit — выбор тренера
+// на шаге утверждения хранится только во фронте (не уходит на бэк), но не должен теряться
+// между шагом утверждения и live. Связка нужна для парной отрисовки на карте (Main + замена).
 const currentFieldLineup = computed(() => {
   if (!match.value) return []
-  if (!isHomeMatch.value || fieldTeamSide.value === 'home') {
-    return match.value.lineup ?? []
-  }
-  // Away lineup для Home-матча берём из awayLineup
-  return match.value.awayLineup ?? []
+  const isHomeSide = !isHomeMatch.value || fieldTeamSide.value === 'home'
+  const baseLineup = isHomeSide
+    ? (match.value.lineup ?? [])
+    : (match.value.awayLineup ?? [])
+  const localEdit = isHomeSide ? homeLineupEdit.value : awayLineupEdit.value
+  // Мерджим substituteId по sportsmanId
+  return baseLineup.map((e: any) => {
+    const local = localEdit.find(l => Number(l.sportsmanId) === Number(e.sportsmanId))
+    return { ...e, substituteId: local?.substituteId ?? undefined }
+  })
 })
 
 // Спортсмены для текущего редактора состава
@@ -747,11 +773,92 @@ const currentEditSportsmen = computed(() =>
   editTeamSide.value === 'home' ? homeSportsmen.value : awaySportsmen.value
 )
 
-// Только спортсмены с типом Reserve в lineupEdit — для select на шаге lineup
-const lineupSubstitutes = computed(() => {
-  const reserveIds = new Set(lineupEdit.value.filter(e => e.type === 'Reserve').map(e => Number(e.sportsmanId)))
-  return currentEditSportsmen.value.filter(s => reserveIds.has(s.id))
-})
+// Позиция запасного игрока по id (для отображения в бейдже выбранной замены)
+function substitutePositionFor(sportsmanId: any) {
+  const id = Number(sportsmanId)
+  if (!id) return ''
+  const entry = lineupEdit.value.find(e => Number(e.sportsmanId) === id)
+  return entry?.position ?? ''
+}
+
+// На шаге утверждения показываем ТОЛЬКО основу (Main).
+// Запасные не нужны как отдельные строки — они подбираются через бейдж "Замены".
+// Сохраняем оригинальный индекс в lineupEdit для двухсторонней связи через v-model.
+const lineupMainEntries = computed(() =>
+  lineupEdit.value
+    .map((e, i) => ({ entry: e, idx: i }))
+    .filter(x => x.entry.type === 'Main')
+)
+
+// Возвращает список Reserve-игроков, подходящих по позиции для подмены данной.
+// Если в таблице нет позиции — допускаем только точное совпадение.
+function getPossibleReplacements(mainPosition: string) {
+  const allowed = POSITION_REPLACEMENTS[mainPosition] ?? [mainPosition]
+  const reserveEntries = lineupEdit.value.filter(e => e.type === 'Reserve')
+  return reserveEntries
+    .filter(r => allowed.includes(r.position))
+    .map(r => {
+      const s = currentEditSportsmen.value.find(x => x.id === Number(r.sportsmanId))
+      return { id: Number(r.sportsmanId), fio: s?.fio ?? `#${r.sportsmanId}`, position: r.position }
+    })
+}
+
+// Индекс строки с раскрытым списком замен (для бейджа на шаге утверждения)
+const openSubstitutesFor = ref<number | null>(null)
+function toggleSubstitutes(idx: number) {
+  openSubstitutesFor.value = openSubstitutesFor.value === idx ? null : idx
+}
+
+// Назначение замены: свопаем роли Main ↔ Reserve.
+// Тренер хочет видеть выбранного запасного на позиции основного, а основной уходит в резерв.
+// Связь "кого заменил" сохраняем через substituteId — нужно для парного отображения в бейдже и на карте.
+function assignSubstitute(mainIdx: number, substituteId: number | undefined) {
+  const mainEntry = lineupEdit.value[mainIdx]
+  if (!mainEntry) return
+
+  // Если был ранее назначен другой запасной — сначала восстанавливаем его как Reserve
+  const previousSubId = mainEntry.substituteId ? Number(mainEntry.substituteId) : null
+
+  if (!substituteId) {
+    // Сброс — если кто-то был Main по чужой позиции, надо его вернуть на Reserve
+    // и mainEntry вернуть как Main на свою позицию (если был свопнут).
+    // Проще: если mainEntry.type === 'Reserve' (его свопнули) — вернуть в Main
+    if (mainEntry.type === 'Reserve' && previousSubId) {
+      // Находим того кто сейчас Main на позиции mainEntry.position и был свопнут — вернуть в Reserve
+      const onPosMainIdx = lineupEdit.value.findIndex((e, i) => i !== mainIdx && e.type === 'Main' && Number(e.sportsmanId) === previousSubId)
+      if (onPosMainIdx !== -1) {
+        lineupEdit.value[onPosMainIdx].type = 'Reserve'
+        // Восстанавливаем оригинальную позицию запасного (по умолчанию его исходная, но мы её не помним —
+        // оставим как есть, тренер сам разрулит при необходимости)
+      }
+      mainEntry.type = 'Main'
+    }
+    mainEntry.substituteId = undefined
+    return
+  }
+
+  // Назначаем нового
+  const subIdx = lineupEdit.value.findIndex(e => Number(e.sportsmanId) === Number(substituteId) && e.type === 'Reserve')
+  if (subIdx === -1) {
+    // Запасной не найден — просто запоминаем substituteId без свопа
+    mainEntry.substituteId = substituteId
+    return
+  }
+  // Если был выбран другой ранее — вернуть его в Reserve
+  if (previousSubId && previousSubId !== Number(substituteId)) {
+    const prevIdx = lineupEdit.value.findIndex(e => Number(e.sportsmanId) === previousSubId && e.type === 'Main')
+    if (prevIdx !== -1) lineupEdit.value[prevIdx].type = 'Reserve'
+  }
+  // Свопаем роли
+  const subEntry = lineupEdit.value[subIdx]
+  subEntry.type = 'Main'
+  subEntry.position = mainEntry.position
+  // mainEntry уходит в Reserve, но substituteId остаётся для отображения пары
+  mainEntry.type = 'Reserve'
+  mainEntry.substituteId = substituteId
+  // Связку: у нового Main substituteId указывает на бывшего (чтобы пара отображалась)
+  subEntry.substituteId = mainEntry.sportsmanId
+}
 
 // Спортсмены для модалки события (основные + запасные, для поля «уходит»)
 const currentModalSportsmen = computed(() => {
@@ -764,21 +871,123 @@ const currentModalSportsmen = computed(() => {
 })
 
 const filteredModalSportsmen = computed(() => {
+  const pool = filteredModalSportsmenScoped.value
   const q = playerSearch.value.trim().toLowerCase()
-  if (!q) return currentModalSportsmen.value
-  return currentModalSportsmen.value.filter(s => s.fio?.toLowerCase().includes(q))
+  if (!q) return pool
+  return pool.filter(s => s.fio?.toLowerCase().includes(q))
 })
 
-// Только запасные — для поля «выходит на замену»
+// Read-only представление текущего состава для блока «Просмотреть состав» на live-странице.
+// Берёт match.lineup (или awayLineup), применяет события Substitution в хронологии:
+//   - ушедший с поля становится 'OffField' (был Main, теперь не играет)
+//   - запасной, вышедший заменой, становится 'Main' (на позиции ушедшего)
+// Reserve без выхода — остаются 'Reserve'.
+const liveLineupView = computed(() => {
+  if (!match.value || step.value !== 'live') return []
+  const isHome = !isHomeMatch.value || editTeamSide.value === 'home'
+  const lineup = isHome
+    ? (match.value.lineup ?? [])
+    : (match.value.awayLineup ?? [])
+  if (!lineup.length) return []
+  const sportsmenPool = isHome ? homeSportsmen.value : awaySportsmen.value
+
+  type Row = { sportsmanId: number; fio: string; position: string; type: string; cameOnFromBench?: boolean; offField?: boolean; subMinute?: number }
+  const rows: Row[] = lineup.map((e: any) => ({
+    sportsmanId: Number(e.sportsmanId),
+    fio: sportsmenPool.find(s => s.id === Number(e.sportsmanId))?.fio ?? sportsmenMap[Number(e.sportsmanId)] ?? `#${e.sportsmanId}`,
+    position: e.position,
+    type: e.type ?? 'Main',
+  }))
+
+  const subs = liveEvents.value
+    .filter(e => e.type === 'Substitution' && e.isHomeTeam === isHome && e.sportsmanId && e.substituteSportsmanId)
+    .sort((a, b) => (a.minute ?? 0) - (b.minute ?? 0))
+
+  subs.forEach(sub => {
+    const out = rows.find(r => r.sportsmanId === Number(sub.sportsmanId) && r.type === 'Main' && !r.offField)
+    const inP = rows.find(r => r.sportsmanId === Number(sub.substituteSportsmanId) && r.type === 'Reserve' && !r.cameOnFromBench)
+    if (!out || !inP) return
+    out.offField = true
+    out.subMinute = sub.minute
+    inP.type = 'Main'
+    inP.position = out.position
+    inP.cameOnFromBench = true
+    inP.subMinute = sub.minute
+  })
+
+  // Сортируем: Main на поле → вышедшие заменой → ушедшие → Reserve на скамейке
+  return rows.sort((a, b) => {
+    const order = (r: Row) =>
+      r.type === 'Main' && !r.cameOnFromBench && !r.offField ? 0 :
+      r.cameOnFromBench ? 1 :
+      r.offField ? 2 : 3
+    return order(a) - order(b)
+  })
+})
+
+// Состояние игроков (на поле / на скамейке) с учётом сыгранных замен.
+// Возвращает Map: sportsmanId → { onField, position }
+function buildPlayerState(lineup: any[], teamIsHome: boolean) {
+  const state = new Map<number, { onField: boolean; position: string }>()
+  lineup.forEach((e: any) => {
+    state.set(Number(e.sportsmanId), {
+      onField: e.type !== 'Reserve',
+      position: e.position,
+    })
+  })
+  const subs = liveEvents.value
+    .filter(e => e.type === 'Substitution' && e.isHomeTeam === teamIsHome && e.sportsmanId && e.substituteSportsmanId)
+    .sort((a, b) => (a.minute ?? 0) - (b.minute ?? 0))
+  subs.forEach(sub => {
+    const outRec = state.get(Number(sub.sportsmanId))
+    const inRec = state.get(Number(sub.substituteSportsmanId))
+    if (!outRec || !inRec) return
+    if (!outRec.onField || inRec.onField) return
+    outRec.onField = false
+    inRec.onField = true
+    inRec.position = outRec.position
+  })
+  return state
+}
+
+// Игроки текущей команды (для модалки) — кто СЕЙЧАС на поле (с учётом замен).
+const onFieldPlayers = computed(() => {
+  const lineup = eventModal.value.form.isHomeTeam
+    ? (match.value?.lineup ?? [])
+    : (match.value?.awayLineup ?? [])
+  const state = buildPlayerState(lineup, eventModal.value.form.isHomeTeam)
+  return currentModalSportsmen.value.filter(s => state.get(s.id)?.onField)
+})
+
+// Для НЕ-Substitution событий — берём всех игроков из команды (можно гол/карточку и тем кто ушёл)
+// Для Substitution — только те, кто сейчас на поле
+const filteredModalSportsmenScoped = computed(() => {
+  if (eventModal.value.form.type === 'Substitution') {
+    return onFieldPlayers.value
+  }
+  return currentModalSportsmen.value
+})
+
+// Только запасные на скамейке (с учётом замен) с подходящей позицией
 const currentModalReserves = computed(() => {
   const lineup = eventModal.value.form.isHomeTeam
     ? (match.value?.lineup ?? [])
     : (match.value?.awayLineup ?? [])
-  const reserveIds = new Set(
-    lineup.filter((e: any) => e.type === 'Reserve').map((e: any) => e.sportsmanId)
-  )
-  const pool = currentModalSportsmen.value
-  return pool.filter(s => reserveIds.has(s.id))
+  const state = buildPlayerState(lineup, eventModal.value.form.isHomeTeam)
+  const benchIds = new Set<number>()
+  state.forEach((rec, sid) => { if (!rec.onField) benchIds.add(sid) })
+  const pool = currentModalSportsmen.value.filter(s => benchIds.has(s.id))
+
+  // Если уже выбран "уходящий" — фильтруем по совместимости позиции
+  const outId = Number(eventModal.value.form.sportsmanId) || 0
+  if (outId) {
+    const outRec = state.get(outId)
+    if (outRec) {
+      const allowed = POSITION_REPLACEMENTS[outRec.position] ?? [outRec.position]
+      return pool.filter(s => allowed.includes(s.position ?? ''))
+    }
+  }
+  return pool
 })
 
 const filteredModalReserves = computed(() => {
@@ -791,7 +1000,7 @@ const filteredModalReserves = computed(() => {
 const playerSearch = ref('')
 const substituteSearch = ref('')
 
-const createForm = ref({ homeTeamId: '' as any, opponentTeamName: '', opponentTeamId: '' as any, homeGroupId: '' as any, opponentGroupId: '' as any, type: 'Friendly', date: getLocalDateTimeString() })
+const createForm = ref({ homeTeamId: '' as any, opponentTeamName: '', opponentTeamId: '' as any, type: 'Friendly', date: getLocalDateTimeString() })
 const finishForm = ref({ result: '', trainerComment: '' })
 
 const eventModal = ref({
@@ -996,11 +1205,10 @@ async function loadEventSportsmenNames(events: any[]) {
 function initAwayLineupEdit() {
   if (!awaySportsmen.value.length) { awayLineupEdit.value = []; return }
   const fallbackPositions = ['GK', 'CB', 'CB2', 'LB', 'RB', 'CDM', 'CM', 'CM2', 'LW', 'RW', 'ST']
-  let idx = 0
-  awayLineupEdit.value = awaySportsmen.value.map(s => ({
+  awayLineupEdit.value = awaySportsmen.value.map((s, i) => ({
     sportsmanId: s.id,
-    position: s.position ?? fallbackPositions[idx++ % fallbackPositions.length],
-    type: idx <= 11 ? 'Main' : 'Reserve',
+    position: s.position ?? fallbackPositions[i % fallbackPositions.length],
+    type: i < 11 ? 'Main' : 'Reserve',
   }))
   // Синхронизируем в match.value для отображения поля
   if (match.value) {
@@ -1057,8 +1265,6 @@ async function selectMatch(m: any) {
       homeTeamId: fullMatch.homeTeamId,
       opponentTeamName: fullMatch.opponentTeamName ?? '',
       opponentTeamId: fullMatch.opponentTeamId ?? '',
-      homeGroupId: '',
-      opponentGroupId: '',
       type: fullMatch.type,
       date: fullMatch.date,
     }
@@ -1085,21 +1291,20 @@ async function goToLineup() {
 }
 
 function buildLocalLineup(_homeTeamId: number, awayTeamId?: number | null) {
+  // Первые 11 — основа, остальные — запас. Позиция: из БД, если нет — fallback по индексу.
   const fallback = ['GK', 'CB', 'CB2', 'LB', 'RB', 'CDM', 'CM', 'CM2', 'LW', 'RW', 'ST']
 
-  let idx = 0
-  homeLineupEdit.value = homeSportsmen.value.map((s: any) => ({
+  homeLineupEdit.value = homeSportsmen.value.map((s: any, i: number) => ({
     sportsmanId: s.id,
-    position: s.position ?? fallback[idx++ % fallback.length],
-    type: idx <= 11 ? 'Main' : 'Reserve',
+    position: s.position ?? fallback[i % fallback.length],
+    type: i < 11 ? 'Main' : 'Reserve',
   }))
 
   if (awayTeamId) {
-    let aidx = 0
-    awayLineupEdit.value = awaySportsmen.value.map((s: any) => ({
+    awayLineupEdit.value = awaySportsmen.value.map((s: any, i: number) => ({
       sportsmanId: s.id,
-      position: s.position ?? fallback[aidx++ % fallback.length],
-      type: aidx <= 11 ? 'Main' : 'Reserve',
+      position: s.position ?? fallback[i % fallback.length],
+      type: i < 11 ? 'Main' : 'Reserve',
     }))
   } else {
     awayLineupEdit.value = []
@@ -1124,9 +1329,7 @@ async function confirmAndStart() {
       } else {
         if (createForm.value.opponentTeamName) payload.opponentTeamName = createForm.value.opponentTeamName
       }
-      // Если выбраны группы — бэк автоматически создаст Training (Type="Матч") на каждую и привяжет
-      if (createForm.value.homeGroupId) payload.homeGroupId = Number(createForm.value.homeGroupId)
-      if (createForm.value.opponentGroupId) payload.opponentGroupId = Number(createForm.value.opponentGroupId)
+      // Бэк автоматически создаст Training (Type="Матч") для каждой команды матча (привязка через TeamId)
       const res = await api.post('/match', payload)
       const created = res.data.data
       if (!created) return

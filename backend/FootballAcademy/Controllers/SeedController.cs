@@ -408,7 +408,7 @@ namespace FootballAcademy.Controllers
                 ("Борисов Никита Андреевич",       new DateTime(2010, 7, 7),  168, 62, Position.CDM, teamU14Trainer.Id, gU14Trainer.Id),
                 ("Зубков Тимофей Иванович",        new DateTime(2011, 5, 25), 162, 55, Position.CAM, teamU14Trainer.Id, gU14Trainer.Id),
 
-                // U16 Сергеев (8 человек, teamU16Trainer)
+                // U16 Сергеев (13 человек, teamU16Trainer) — основа + 5 замен (LW, CB, CM, ST, RW)
                 ("Фёдоров Дмитрий Иванович",       new DateTime(2008, 3, 25), 174, 67, Position.CDM, teamU16Trainer.Id, gU16Trainer.Id),
                 ("Александров Павел Романович",    new DateTime(2008, 5, 18), 177, 71, Position.RB,  teamU16Trainer.Id, gU16Trainer.Id),
                 ("Николаев Кирилл Викторович",     new DateTime(2008, 7, 12), 175, 69, Position.CAM, teamU16Trainer.Id, gU16Trainer.Id),
@@ -417,6 +417,12 @@ namespace FootballAcademy.Controllers
                 ("Матвеев Игорь Петрович",         new DateTime(2009, 2, 14), 178, 72, Position.CM,  teamU16Trainer.Id, gU16Trainer.Id),
                 ("Трифонов Захар Сергеевич",       new DateTime(2009, 4, 3),  174, 67, Position.GK,  teamU16Trainer.Id, gU16Trainer.Id),
                 ("Карпов Максим Геннадьевич",      new DateTime(2008, 6, 19), 176, 70, Position.ST,  teamU16Trainer.Id, gU16Trainer.Id),
+                // Замены для U16-Красные-1
+                ("Соколов Артём Геннадьевич",      new DateTime(2008, 8, 14), 175, 68, Position.LW,  teamU16Trainer.Id, gU16Trainer.Id),
+                ("Богданов Илья Викторович",       new DateTime(2008,10, 26), 179, 73, Position.CB,  teamU16Trainer.Id, gU16Trainer.Id),
+                ("Кириллов Степан Сергеевич",      new DateTime(2009, 1, 30), 175, 69, Position.CM,  teamU16Trainer.Id, gU16Trainer.Id),
+                ("Власов Глеб Дмитриевич",         new DateTime(2008,12,  5), 177, 71, Position.ST,  teamU16Trainer.Id, gU16Trainer.Id),
+                ("Гордеев Тимофей Романович",      new DateTime(2009, 3, 17), 174, 67, Position.RW,  teamU16Trainer.Id, gU16Trainer.Id),
 
                 // U12 Петров (6 человек, без команды)
                 ("Егоров Степан Артёмович",        new DateTime(2013, 1, 8),  152, 44, Position.GK,  null, gU12Petrov.Id),
@@ -435,8 +441,9 @@ namespace FootballAcademy.Controllers
                 "sokolov","popov","zaycev","fedorov","kravcov","melnikov","lazarev","voronov","klimov","turov",
                 // U14 Trainer
                 "smirnov","kuznecov","vasiliev","petrov2","mihajlov","romanov","borisov","zubkov",
-                // U16 Trainer
+                // U16 Trainer (8 основа + 5 замен)
                 "fedorov2","alexandrov","nikolaev","sergeev2","andreev","matveev","trifonov","karpov",
+                "sokolov2","bogdanov","kirillov","vlasov","gordeev",
                 // U12 Petrov
                 "egorov","ilin","zhukov","krylov","nikitin","haritonov",
             };
@@ -680,8 +687,55 @@ namespace FootballAcademy.Controllers
                 new Match { HomeTeamId = teamU16Trainer.Id, OpponentTeamName = "АФК (2012) - 1", Type = GameType.League,   Status = MatchStatus.Finished, Result = MatchResult.Draw, Date = DateTime.UtcNow.AddDays(-100), Lineup = Lineup8(u16TPlayers).ToList() },
                 new Match { HomeTeamId = teamU16Trainer.Id, OpponentTeamName = "АФК-ЖЕН-1",     Type = GameType.League,   Status = MatchStatus.Finished, Result = MatchResult.Loss, Date = DateTime.UtcNow.AddDays(-30),  Lineup = Lineup8(u16TPlayers).ToList() },
                 new Match { HomeTeamId = teamU16Trainer.Id, OpponentTeamName = "АФК-М",          Type = GameType.Friendly, Status = MatchStatus.Scheduled, Date = DateTime.UtcNow.AddDays(7) },
+
+                // Внутриакадемические (Home) — две свои команды играют друг с другом
+                new Match { HomeTeamId = teamU14Ivanov.Id,  OpponentTeamId = teamU14B.Id, Type = GameType.Home, Status = MatchStatus.Finished, Result = MatchResult.Win,  Date = DateTime.UtcNow.AddDays(-150), TrainerComment = "Спарринг основа против второго состава, 3:1", Lineup = Lineup11(u14Players).ToList() },
+                new Match { HomeTeamId = teamU16Trainer.Id, OpponentTeamId = teamU16B.Id, Type = GameType.Home, Status = MatchStatus.Finished, Result = MatchResult.Draw, Date = DateTime.UtcNow.AddDays(-75),  TrainerComment = "Внутренний матч, ничья 2:2",                    Lineup = Lineup8(u16TPlayers).ToList() },
+                new Match { HomeTeamId = teamU16Ivanov.Id,  OpponentTeamId = teamU16B.Id, Type = GameType.Home, Status = MatchStatus.Scheduled, Date = DateTime.UtcNow.AddDays(5) },
             };
             await _context.Matches.AddRangeAsync(matches);
+            await _context.SaveChangesAsync();
+
+            // ── Training (Type="Матч") для каждой команды каждого матча ───────
+            // Логика CreateMatchAsync: на каждую команду-участницу создаётся одна Training.
+            // Для внешнего соперника (Friendly/League/Cup) — только домашняя команда.
+            // Для Home (две своих) — две Training, по одной на каждую.
+            var matchTrainings = new List<Training>();
+            var teamLookup = new Dictionary<long, long>
+            {
+                { teamU14Ivanov.Id,  pIvanov.Id  },
+                { teamU16Ivanov.Id,  pIvanov.Id  },
+                { teamU14Trainer.Id, pTrainer.Id },
+                { teamU16Trainer.Id, pTrainer.Id },
+                { teamU14B.Id,       pIvanov.Id  },
+                { teamU16B.Id,       pTrainer.Id },
+            };
+            foreach (var m in matches)
+            {
+                matchTrainings.Add(new Training
+                {
+                    TrainerId = teamLookup[m.HomeTeamId],
+                    TeamId    = m.HomeTeamId,
+                    MatchId   = m.Id,
+                    Type      = "Матч",
+                    Date      = m.Date,
+                    CreatedAt = DateTime.UtcNow,
+                });
+                if (m.Type == GameType.Home && m.OpponentTeamId.HasValue
+                    && teamLookup.ContainsKey(m.OpponentTeamId.Value))
+                {
+                    matchTrainings.Add(new Training
+                    {
+                        TrainerId = teamLookup[m.OpponentTeamId.Value],
+                        TeamId    = m.OpponentTeamId.Value,
+                        MatchId   = m.Id,
+                        Type      = "Матч",
+                        Date      = m.Date,
+                        CreatedAt = DateTime.UtcNow,
+                    });
+                }
+            }
+            await _context.Trainings.AddRangeAsync(matchTrainings);
             await _context.SaveChangesAsync();
 
             // ── События матчей ────────────────────────────────────────────────

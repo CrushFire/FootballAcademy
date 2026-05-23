@@ -50,6 +50,27 @@ export const POSITION_AND_GROUP_LABEL: Record<string, string> = {
   ...POSITION_GROUP_LABEL,
 }
 
+// Таблица совместимости позиций при замене: какие позиции запасных могут
+// подменять основного на данной позиции. Логика: близкие роли (CM ↔ CDM/CAM),
+// зеркальные фланги (LB ↔ LWB), универсалы (CAM ↔ SS/LW/RW).
+// Используется при выборе замен на шаге утверждения состава и в live-режиме.
+export const POSITION_REPLACEMENTS: Record<string, string[]> = {
+  GK:  ['GK'],
+  CB:  ['CB'],
+  LB:  ['LB', 'LWB'],
+  RB:  ['RB', 'RWB'],
+  LWB: ['LWB', 'LB'],
+  RWB: ['RWB', 'RB'],
+  CDM: ['CDM', 'CM'],
+  CM:  ['CM', 'CDM', 'CAM'],
+  CAM: ['CAM', 'CM', 'SS'],
+  LW:  ['LW', 'CAM'],
+  RW:  ['RW', 'CAM'],
+  ST:  ['ST', 'CF', 'SS'],
+  CF:  ['CF', 'ST'],
+  SS:  ['SS', 'CAM', 'ST'],
+}
+
 export const ATTENDANCE_STATUS: Record<string, string> = {
   Present: 'Присутствовал',
   Absent:  'Отсутствовал',

@@ -79,21 +79,13 @@ namespace Application.Services
                     return Result<MatchResponse>.Failure("Команда соперника не найдена", 404);
             }
 
-            // Собираем уникальные группы (из HomeGroupId и OpponentGroupId)
-            // для последующего автосоздания Training (Type="Матч") на каждую.
-            var groupIds = new List<long>();
-            if (req.HomeGroupId.HasValue) groupIds.Add(req.HomeGroupId.Value);
-            if (req.OpponentGroupId.HasValue && req.OpponentGroupId.Value != req.HomeGroupId)
-                groupIds.Add(req.OpponentGroupId.Value);
-
-            // Валидация: проверяем что все указанные группы существуют
-            if (groupIds.Count > 0)
+            // Собираем команды для автосоздания Training (Type="Матч") на каждую.
+            // Home-матч (две свои команды) — обе команды; внешний соперник — только наша.
+            var teamIds = new List<long> { req.HomeTeamId };
+            if (req.Type == GameType.Home && req.OpponentTeamId.HasValue
+                && req.OpponentTeamId.Value != req.HomeTeamId)
             {
-                var existingGroups = await _context.Groups
-                    .Where(g => groupIds.Contains(g.Id))
-                    .ToListAsync();
-                if (existingGroups.Count != groupIds.Count)
-                    return Result<MatchResponse>.Failure("Одна из указанных групп не найдена", 404);
+                teamIds.Add(req.OpponentTeamId.Value);
             }
 
             var match = new Match
@@ -111,27 +103,26 @@ namespace Application.Services
             await _context.Matches.AddAsync(match);
             await _context.SaveChangesAsync();
 
-            // После создания матча — создаём по Training на каждую указанную группу
-            if (groupIds.Count > 0)
+            // После создания матча — создаём по Training на каждую команду.
+            // Привязка идёт через TeamId (а не GroupId): импорт GPS-метрик матчит файл
+            // по имени группы ИЛИ команды (см. ParserMetrics).
+            var teamsToLink = await _context.Teams
+                .Where(t => teamIds.Contains(t.Id))
+                .ToListAsync();
+            foreach (var t in teamsToLink)
             {
-                var groupsToLink = await _context.Groups
-                    .Where(g => groupIds.Contains(g.Id))
-                    .ToListAsync();
-                foreach (var g in groupsToLink)
+                var newTraining = new Core.Entities.Training
                 {
-                    var newTraining = new Core.Entities.Training
-                    {
-                        TrainerId = g.TrainerId,
-                        GroupId = g.Id,
-                        MatchId = match.Id,
-                        Type = "Матч",
-                        Date = req.Date,
-                        CreatedAt = DateTime.UtcNow,
-                    };
-                    await _context.Trainings.AddAsync(newTraining);
-                }
-                await _context.SaveChangesAsync();
+                    TrainerId = t.TrainerId,
+                    TeamId = t.Id,
+                    MatchId = match.Id,
+                    Type = "Матч",
+                    Date = req.Date,
+                    CreatedAt = DateTime.UtcNow,
+                };
+                await _context.Trainings.AddAsync(newTraining);
             }
+            await _context.SaveChangesAsync();
 
             await _context.Entry(match).Reference(x => x.HomeTeam).LoadAsync();
             if (match.OpponentTeamId.HasValue)

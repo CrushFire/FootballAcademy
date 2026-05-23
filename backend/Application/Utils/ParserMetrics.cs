@@ -36,14 +36,25 @@ namespace Application.Utils
                     return Result<List<MetricCreateRequest>>.Failure(fileInfo.ErrorMessage, 400);
                 }
 
-                // Ищем группу по имени из файла (как есть)
-                var groupName = fileInfo.Data.GroupName;
+                // Имя в файле может означать группу ИЛИ команду:
+                // - обычная тренировка привязана к Group;
+                // - тренировка-матч создаётся с привязкой к Team.
+                // Ищем сначала Group, потом Team — какая совпала, по той и матчим Training.
+                var entityName = fileInfo.Data.GroupName;
                 var group = await _context.Groups
-                    .FirstOrDefaultAsync(g => g.Name == groupName);
+                    .FirstOrDefaultAsync(g => g.Name == entityName);
 
+                Team team = null;
                 if (group == null)
                 {
-                    return Result<List<MetricCreateRequest>>.Failure($"Группа '{groupName}' не найдена", 404);
+                    team = await _context.Teams
+                        .FirstOrDefaultAsync(t => t.Name == entityName);
+                }
+
+                if (group == null && team == null)
+                {
+                    return Result<List<MetricCreateRequest>>.Failure(
+                        $"Группа или команда '{entityName}' не найдена", 404);
                 }
 
                 // Ищем тренировку.
@@ -53,13 +64,27 @@ namespace Application.Utils
                 var windowFrom = fileInfo.Data.DateTime.AddHours(-3);
                 var windowTo   = fileInfo.Data.DateTime;
 
-                var candidates = await _context.Trainings
-                    .Where(t =>
-                        t.GroupId == group.Id &&
-                        t.Type == fileInfo.Data.Type &&
-                        t.Date >= windowFrom &&
-                        t.Date <= windowTo)
-                    .ToListAsync();
+                List<Training> candidates;
+                if (group != null)
+                {
+                    candidates = await _context.Trainings
+                        .Where(t =>
+                            t.GroupId == group.Id &&
+                            t.Type == fileInfo.Data.Type &&
+                            t.Date >= windowFrom &&
+                            t.Date <= windowTo)
+                        .ToListAsync();
+                }
+                else
+                {
+                    candidates = await _context.Trainings
+                        .Where(t =>
+                            t.TeamId == team.Id &&
+                            t.Type == fileInfo.Data.Type &&
+                            t.Date >= windowFrom &&
+                            t.Date <= windowTo)
+                        .ToListAsync();
+                }
 
                 var training = candidates
                     .OrderBy(t => Math.Abs((t.Date - fileInfo.Data.DateTime).Ticks))
@@ -67,14 +92,15 @@ namespace Application.Utils
 
                 if (training == null)
                 {
+                    var ownerLabel = group != null ? $"Группа: {group.Name}" : $"Команда: {team.Name}";
                     return Result<List<MetricCreateRequest>>.Failure(
-                        $"Тренировка не найдена. Дата файла: {fileInfo.Data.DateTime}, Группа: {group.Name}, " +
+                        $"Тренировка не найдена. Дата файла: {fileInfo.Data.DateTime}, {ownerLabel}, " +
                         $"Тип: {fileInfo.Data.Type}. Искал в окне [{windowFrom:yyyy-MM-dd HH:mm} ; {windowTo:yyyy-MM-dd HH:mm}]. " +
                         $"Создайте тренировку сначала.", 404);
                 }
 
-                // Парсим Excel
-                var metrics = await ParseExcelContent(file, training.Id, group.Id);
+                // Парсим Excel — спортсменов ищем в group или team
+                var metrics = await ParseExcelContent(file, training.Id, group?.Id, team?.Id);
 
                 return metrics;
             }
@@ -86,17 +112,19 @@ namespace Application.Utils
 
         private Result<FileNameInfo> ParseFileName(string fileName)
         {
-            // Формат: Группа_{ИмяГруппы}_{Тип}_{YYYY-MM-DD}_{HH-MM}_{Порядковый}.xlsx
-            // ИмяГруппы — любое из БД (например U14-А, U16-Б, U12), может содержать буквы/цифры/дефис.
-            // Регулярка матчит "Группа_" + (имя группы) + "_" + (тип) + "_" + (дата) + "_" + (время) + "_" + (порядковый)
+            // Формат: Группа_{Имя}_{Тип}_{YYYY-MM-DD}_{HH-MM}_{Порядковый}.xlsx
+            // Имя — название Group ИЛИ Team (например U14-А, U16-Б, U14-Красные-1).
+            // Для тренировок-матчей (между двумя своими) — указываем имя команды,
+            // для обычных тренировок — имя группы.
             var regex = new Regex(@"^Группа_([^_]+)_([^_]+)_(\d{4}-\d{2}-\d{2})_(\d{2}-\d{2})_(\d+)\.xlsx$");
             var match = regex.Match(fileName);
 
             if (!match.Success)
             {
                 return Result<FileNameInfo>.Failure(
-                    "Неверный формат имени файла. Ожидается: Группа_{ИмяГруппы}_{Тип}_{YYYY-MM-DD}_{HH-MM}_{Порядковый}.xlsx " +
-                    "(пример: Группа_U14-А_Игровая_2026-05-21_15-30_001.xlsx)", 400);
+                    "Неверный формат имени файла. Ожидается: Группа_{Имя}_{Тип}_{YYYY-MM-DD}_{HH-MM}_{Порядковый}.xlsx " +
+                    "(пример: Группа_U14-А_Игровая_2026-05-21_15-30_001.xlsx или Группа_U14-Красные-1_Матч_2026-05-21_15-30_001.xlsx). " +
+                    "Имя — название группы или команды.", 400);
             }
 
             var groupName = match.Groups[1].Value;
@@ -119,7 +147,7 @@ namespace Application.Utils
             });
         }
 
-        private async Task<Result<List<MetricCreateRequest>>> ParseExcelContent(IFormFile file, long trainingId, long groupId)
+        private async Task<Result<List<MetricCreateRequest>>> ParseExcelContent(IFormFile file, long trainingId, long? groupId, long? teamId)
         {
             var metrics = new List<MetricCreateRequest>();
 
@@ -141,12 +169,13 @@ namespace Application.Utils
                         if (string.IsNullOrEmpty(athleteName))
                             continue;
 
-                        // Ищем спортсмена по FIO
-                        var sportsman = await FindSportsmanByName(athleteName, groupId);
+                        // Ищем спортсмена по FIO в группе или команде
+                        var sportsman = await FindSportsmanByName(athleteName, groupId, teamId);
                         if (sportsman == null)
                         {
+                            var scopeLabel = groupId.HasValue ? "группе" : "команде";
                             return Result<List<MetricCreateRequest>>.Failure(
-                                $"Спортсмен '{athleteName}' не найден в группе. Проверьте ФИО в системе.", 404);
+                                $"Спортсмен '{athleteName}' не найден в {scopeLabel}. Проверьте ФИО в системе.", 404);
                         }
 
                         var metric = new MetricCreateRequest
@@ -240,11 +269,17 @@ namespace Application.Utils
             return null;
         }
 
-        private async Task<Sportsman> FindSportsmanByName(string athleteName, long groupId)
+        private async Task<Sportsman> FindSportsmanByName(string athleteName, long? groupId, long? teamId)
         {
+            // Фильтр по группе или команде (один из двух обязательно задан)
+            System.Linq.Expressions.Expression<Func<Sportsman, bool>> scope = groupId.HasValue
+                ? (s => s.SportsmanGroups.Any(sg => sg.GroupId == groupId.Value))
+                : (s => s.TeamId == teamId);
+
             // Пробуем найти точное совпадение
             var sportsman = await _context.Sportsmen
-                .FirstOrDefaultAsync(s => s.SportsmanGroups.Any(sg => sg.GroupId == groupId) && s.FIO == athleteName);
+                .Where(scope)
+                .FirstOrDefaultAsync(s => s.FIO == athleteName);
 
             if (sportsman != null)
                 return sportsman;
@@ -259,7 +294,8 @@ namespace Application.Utils
                 if (DateTime.TryParseExact(birthDateStr, "dd.MM.yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var birthDate))
                 {
                     sportsman = await _context.Sportsmen
-                        .FirstOrDefaultAsync(s => s.SportsmanGroups.Any(sg => sg.GroupId == groupId) && s.FIO == fio && s.BirthDate.Date == birthDate.Date);
+                        .Where(scope)
+                        .FirstOrDefaultAsync(s => s.FIO == fio && s.BirthDate.Date == birthDate.Date);
                 }
             }
 
