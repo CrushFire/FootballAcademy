@@ -125,6 +125,27 @@ builder.Services.AddScoped<PasswordHasher>();
 builder.Services.AddScoped<ImageService>();
 builder.Services.AddMemoryCache();
 
+// ─── Redis ─────────────────────────────────────────────────────────────
+// Используется для двух целей:
+//   1) IDistributedCache — кэширование тяжёлых аналитических запросов
+//      (медицинский чек, агрегаты метрик) и счётчиков непрочитанных
+//      уведомлений. Снижает нагрузку на PostgreSQL при частых обращениях
+//      нескольких клиентов к одним и тем же данным.
+//   2) SignalR backplane — синхронизация WebSocket-сообщений между
+//      несколькими инстансами API при горизонтальном масштабировании:
+//      push в группу user_{id} с любого узла гарантированно доставляется
+//      клиенту независимо от того, к какому узлу он подключён.
+var redisHost = builder.Configuration["Redis:Host"];
+var redisConn = string.IsNullOrWhiteSpace(redisHost) ? null : $"{redisHost}:6379";
+if (!string.IsNullOrEmpty(redisConn))
+{
+    builder.Services.AddStackExchangeRedisCache(o =>
+    {
+        o.Configuration = redisConn;
+        o.InstanceName = "fa:";
+    });
+}
+
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ISportsmanService, SportsmanService>();
@@ -149,7 +170,13 @@ builder.Services.AddScoped<IMessageService, MessageService>();
 builder.Services.AddScoped<IRagService, RagService>();
 builder.Services.AddSingleton<ArticleKnowledgeService>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<ArticleKnowledgeService>());
-builder.Services.AddSignalR();
+var signalR = builder.Services.AddSignalR();
+if (!string.IsNullOrEmpty(redisConn))
+{
+    // Redis backplane: даёт корректную доставку push-сообщений между
+    // несколькими инстансами при горизонтальном масштабировании API.
+    signalR.AddStackExchangeRedis(redisConn, o => o.Configuration.ChannelPrefix = StackExchange.Redis.RedisChannel.Literal("fa-signalr"));
+}
 builder.Services.AddScoped<INotificationService, SignalRNotificationService>();
 
 var app = builder.Build();

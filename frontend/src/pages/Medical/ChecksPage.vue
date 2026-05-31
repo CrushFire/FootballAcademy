@@ -47,12 +47,12 @@
                 v-for="item in problemItems.slice(cardOffset, cardOffset + 3)"
                 :key="item.sportsmanId"
                 class="rounded-xl border border-neutral-200 bg-white p-3.5 cursor-pointer hover:shadow-sm transition-all"
-                :class="isCriticalItem(item) ? 'hover:border-red-200' : 'hover:border-amber-200'"
+                :class="cardSeverityClasses(item).border"
                 @click="openModal(item)"
               >
                 <div class="flex items-center gap-2 mb-2.5">
                   <div class="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0"
-                    :class="isCriticalItem(item) ? 'bg-red-100 text-red-600' : 'bg-amber-100 text-amber-600'">
+                    :class="cardSeverityClasses(item).avatar">
                     {{ initials(item.sportsmanName) }}
                   </div>
                   <div class="min-w-0">
@@ -68,7 +68,7 @@
                 </div>
                 <button
                   class="mt-3 w-full border-none rounded-lg py-1.5 text-[10px] font-medium transition-colors cursor-pointer"
-                  :class="isCriticalItem(item) ? 'bg-red-50 text-red-600 hover:bg-red-100' : 'bg-amber-50 text-amber-700 hover:bg-amber-100'"
+                  :class="cardSeverityClasses(item).btn"
                 >Подробнее →</button>
               </div>
               <!-- Плейсхолдеры -->
@@ -135,51 +135,71 @@
               <table class="w-full text-xs border-collapse">
                 <thead>
                   <tr class="bg-neutral-50 border-b border-neutral-100">
-                    <th class="text-left px-3 py-2.5 text-[11px] font-medium text-neutral-500 whitespace-nowrap">ФИО</th>
-                    <th class="text-left px-3 py-2.5 text-[11px] font-medium text-neutral-500 whitespace-nowrap">Позиция</th>
-                    <th class="text-center px-3 py-2.5 text-[11px] font-medium text-neutral-500 whitespace-nowrap">
-                      <div class="inline-flex items-center gap-1 justify-center">
-                        ЧСС макс.
-                        <AppTooltip :text="MEDICAL_CHECK_TOOLTIPS.maxHeartRate" />
-                      </div>
-                      <span class="block text-[10px] font-normal text-neutral-400">уд/мин</span>
+                    <th class="text-left px-3 py-2.5 text-[11px] font-medium text-neutral-500 whitespace-nowrap cursor-pointer select-none hover:text-blue-600" @click="toggleSort('name')">
+                      ФИО <span class="text-neutral-600 font-bold text-sm">{{ sortIcon('name') }}</span>
                     </th>
-                    <th class="text-center px-3 py-2.5 text-[11px] font-medium text-neutral-500 whitespace-nowrap">
+                    <th class="text-left px-3 py-2.5 text-[11px] font-medium text-neutral-500 whitespace-nowrap cursor-pointer select-none hover:text-blue-600" @click="toggleSort('position')">
+                      Позиция <span class="text-neutral-600 font-bold text-sm">{{ sortIcon('position') }}</span>
+                    </th>
+                    <th class="text-center px-3 py-2.5 text-[11px] font-medium text-neutral-500 whitespace-nowrap cursor-pointer select-none hover:text-blue-600" @click="toggleSort('maxHr')">
+                      <div class="inline-flex items-center gap-1 justify-center">
+                        Макс. пульс
+                        <AppTooltip :text="MEDICAL_CHECK_TOOLTIPS.maxHeartRate" />
+                        <span class="text-neutral-600 font-bold text-sm">{{ sortIcon('maxHr') }}</span>
+                      </div>
+                      <span class="block text-[10px] font-normal text-neutral-400">ударов в минуту</span>
+                    </th>
+                    <th class="text-center px-3 py-2.5 text-[11px] font-medium text-neutral-500 whitespace-nowrap cursor-pointer select-none hover:text-blue-600" @click="toggleSort('load')">
                       <div class="inline-flex items-center gap-1 justify-center">
                         Нагрузка
                         <AppTooltip :text="MEDICAL_CHECK_TOOLTIPS.playerLoad" />
+                        <span class="text-neutral-600 font-bold text-sm">{{ sortIcon('load') }}</span>
                       </div>
-                      <span class="block text-[10px] font-normal text-neutral-400">PlayerLoad</span>
+                      <span class="block text-[10px] font-normal text-neutral-400">условных единиц</span>
                     </th>
-                    <th class="text-center px-3 py-2.5 text-[11px] font-medium text-neutral-500 whitespace-nowrap">
+                    <th class="text-center px-3 py-2.5 text-[11px] font-medium text-neutral-500 whitespace-nowrap cursor-pointer select-none hover:text-blue-600" @click="toggleSort('recovery')">
                       <div class="inline-flex items-center gap-1 justify-center">
                         Восстановление
                         <AppTooltip :text="MEDICAL_CHECK_TOOLTIPS.timeInLowIntensity" />
+                        <span class="text-neutral-600 font-bold text-sm">{{ sortIcon('recovery') }}</span>
                       </div>
-                      <span class="block text-[10px] font-normal text-neutral-400">мин в зоне 1</span>
+                      <span class="block text-[10px] font-normal text-neutral-400">минут в спокойной зоне</span>
                     </th>
-                    <th class="text-center px-3 py-2.5 text-[11px] font-medium text-neutral-500 whitespace-nowrap">
+                    <th class="text-center px-3 py-2.5 text-[11px] font-medium text-neutral-500 whitespace-nowrap cursor-pointer select-none hover:text-blue-600" @click="toggleSort('risk')">
                       <div class="inline-flex items-center gap-1 justify-center">
                         Риск травм
                         <AppTooltip :text="MEDICAL_CHECK_TOOLTIPS.acuteChronicRatio" />
+                        <span class="text-neutral-600 font-bold text-sm">{{ sortIcon('risk') }}</span>
                       </div>
-                      <span class="block text-[10px] font-normal text-neutral-400">О/Х нагрузка</span>
+                      <span class="block text-[10px] font-normal text-neutral-400">острая / хроническая</span>
                     </th>
-                    <th class="text-center px-3 py-2.5 text-[11px] font-medium text-neutral-500 whitespace-nowrap">
+                    <th class="text-center px-3 py-2.5 text-[11px] font-medium text-neutral-500 whitespace-nowrap cursor-pointer select-none hover:text-blue-600" @click="toggleSort('fatigue')">
                       <div class="inline-flex items-center gap-1 justify-center">
                         Усталость
                         <AppTooltip :text="MEDICAL_CHECK_TOOLTIPS.fatigueIndex" />
+                        <span class="text-neutral-600 font-bold text-sm">{{ sortIcon('fatigue') }}</span>
                       </div>
-                      <span class="block text-[10px] font-normal text-neutral-400">FatigueIndex</span>
+                      <span class="block text-[10px] font-normal text-neutral-400">индекс утомления</span>
                     </th>
-                    <th class="text-center px-3 py-2.5 text-[11px] font-medium text-neutral-500 whitespace-nowrap">
+                    <th class="text-center px-3 py-2.5 text-[11px] font-medium text-neutral-500 whitespace-nowrap cursor-pointer select-none hover:text-blue-600" @click="toggleSort('consistency')">
                       <div class="inline-flex items-center gap-1 justify-center">
                         Стабильность
                         <AppTooltip :text="MEDICAL_CHECK_TOOLTIPS.consistency" />
+                        <span class="text-neutral-600 font-bold text-sm">{{ sortIcon('consistency') }}</span>
                       </div>
-                      <span class="block text-[10px] font-normal text-neutral-400">std нагрузки</span>
+                      <span class="block text-[10px] font-normal text-neutral-400">разброс нагрузки (станд. откл.)</span>
                     </th>
-                    <th class="text-center px-3 py-2.5 text-[11px] font-medium text-neutral-500 whitespace-nowrap">Статус</th>
+                    <th class="text-center px-3 py-2.5 text-[11px] font-medium text-neutral-500 whitespace-nowrap cursor-pointer select-none hover:text-blue-600" @click="toggleSort('redZone')">
+                      <div class="inline-flex items-center gap-1 justify-center">
+                        Красная зона ЧСС
+                        <AppTooltip :text="MEDICAL_CHECK_TOOLTIPS.hrRedZone" />
+                        <span class="text-neutral-600 font-bold text-sm">{{ sortIcon('redZone') }}</span>
+                      </div>
+                      <span class="block text-[10px] font-normal text-neutral-400">% от тренировки</span>
+                    </th>
+                    <th class="text-center px-3 py-2.5 text-[11px] font-medium text-neutral-500 whitespace-nowrap cursor-pointer select-none hover:text-blue-600" @click="toggleSort('status')">
+                      Статус <span class="text-neutral-600 font-bold text-sm">{{ sortIcon('status') }}</span>
+                    </th>
                     <th class="px-3 py-2.5" />
                   </tr>
                 </thead>
@@ -258,11 +278,20 @@
                       />
                     </td>
 
+                    <!-- Красная зона ЧСС (% от тренировки) -->
+                    <td class="px-3 py-2.5 text-center">
+                      <MetricValue
+                        :value="item.metrics?.hrRedZonePercent != null ? +item.metrics.hrRedZonePercent.toFixed(1) : undefined"
+                        :status="redZonePercentStatus(item.metrics?.hrRedZonePercent)"
+                        suffix="%"
+                      />
+                    </td>
+
                     <td class="px-3 py-2.5 text-center">
                       <span class="inline-flex items-center gap-1.5">
                         <span class="w-2.5 h-2.5 rounded-full flex-shrink-0" :class="overallDotClass(item)" />
                         <span class="text-[10px] font-medium" :class="overallTextClass(item)">
-                          {{ item.isHealthy ? 'Норма' : 'Проблемы' }}
+                          {{ item.isHealthy ? 'Норма' : 'Проблема' }}
                         </span>
                       </span>
                     </td>
@@ -349,24 +378,19 @@
               <!-- 5 metric cards matching the 5 check categories -->
               <div class="grid grid-cols-2 gap-2.5 mb-4">
                 <div v-for="m in modalMetricCards" :key="m.label" class="bg-neutral-50 rounded-xl p-3 border border-neutral-100">
-                  <div class="text-[11px] text-neutral-400 mb-1.5">{{ m.label }}</div>
+                  <div class="text-[11px] font-semibold text-neutral-600">{{ m.label }}</div>
+                  <div class="text-[10px] text-neutral-400 mb-1.5">{{ m.sub }}</div>
                   <div class="text-lg font-bold" :class="m.textClass">{{ m.displayValue }}</div>
                   <div class="text-[10px] text-neutral-400 mt-0.5">{{ m.hint }}</div>
                 </div>
               </div>
 
-              <div v-if="modalItem.checkResult.issues?.length || modalWarnings.length">
+              <div v-if="dedupedIssues.length">
                 <div class="text-xs font-semibold text-neutral-600 mb-2">Выявленные проблемы</div>
                 <div class="flex flex-col gap-1.5">
-                  <div v-for="(issue, i) in modalItem.checkResult.issues" :key="'i'+i"
-                    class="flex items-start gap-2 p-2.5 rounded-xl bg-red-50 border border-red-100">
-                    <div class="w-1.5 h-1.5 rounded-full bg-red-500 mt-1.5 flex-shrink-0" />
-                    <span class="text-xs text-neutral-800 font-medium">{{ issue }}</span>
-                  </div>
-                  <div v-for="(warn, i) in modalWarnings" :key="'w'+i"
-                    class="flex items-start gap-2 p-2.5 rounded-xl bg-yellow-50 border border-yellow-100">
-                    <div class="w-1.5 h-1.5 rounded-full bg-yellow-400 mt-1.5 flex-shrink-0" />
-                    <span class="text-xs text-neutral-700 font-medium">{{ warn }}</span>
+                  <div v-for="(issue, i) in dedupedIssues" :key="'i'+i"
+                    class="text-xs text-neutral-800 px-3 py-2 rounded-lg border border-neutral-600 bg-neutral-100">
+                    {{ issue }}
                   </div>
                 </div>
               </div>
@@ -376,7 +400,7 @@
                 <span class="text-xs text-neutral-500">Статус:</span>
                 <span class="w-2.5 h-2.5 rounded-full flex-shrink-0" :class="overallDotClass(modalItem)" />
                 <span class="text-xs font-medium" :class="overallTextClass(modalItem)">
-                  {{ modalItem.isHealthy ? 'Норма' : 'Требует внимания' }}
+                  {{ modalItem.isHealthy ? 'Норма' : overallStatusLabel(modalItem) }}
                 </span>
               </div>
             </div>
@@ -438,45 +462,56 @@ function belowThreshold(val: number, limit: number): MetricStatus {
   return 'ok'
 }
 
-// Нагрузка — бэкенд: LoadOk = PlayerLoad < 500 && acuteChronicRatio < 1.5
+// Базовые пороги (без × PowerFactor) — для приблизительного фронт-статуса.
+// Точные пороги применяет бэк (см. MedicalThresholds в appsettings.Coefficients.json).
+const TH_LOAD = 600           // LoadCapBase
+const TH_INJURY_LOAD = 540    // InjuryLoadCapBase
+const TH_RECOVERY = 300       // MinRecoveryTimeSeconds (5 мин)
+const TH_ACWR_WARN = 1.3      // AcuteChronicWarn (для danger 1.5 — bg-сервис)
+const TH_FATIGUE = 1.3        // FatigueIndexMax
+const TH_CONSISTENCY = 25     // ConsistencyCapBase
+
 function playerLoadStatus(val: number | null | undefined, loadOk: boolean | undefined): MetricStatus {
   if (val == null) return 'unknown'
-  if (loadOk === false) return aboveThreshold(val, 500)
-  // В норме — предупреждение если близко к 450 (injuryRisk порог)
-  if (val != null && val >= 405) return 'warning'  // 90% от 450
+  if (loadOk === false) return aboveThreshold(val, TH_LOAD)
+  if (val >= TH_INJURY_LOAD * 0.9) return 'warning'
   return 'ok'
 }
 
-// Восстановление — бэкенд: RecoveryOk = TimeInSpeedZone1 > 300 (секунды)
 function recoveryStatus(val: number | null | undefined, recoveryOk: boolean | undefined): MetricStatus {
   if (val == null) return 'unknown'
-  if (recoveryOk === false) return belowThreshold(val, 300)
-  if (val <= 330) return 'warning'  // 110% от 300
+  if (recoveryOk === false) return belowThreshold(val, TH_RECOVERY)
+  if (val <= TH_RECOVERY * 1.1) return 'warning'
   return 'ok'
 }
 
-// Риск травм — бэкенд: InjuryRiskOk = PlayerLoad < 450 && accels < 200 && acuteChronicRatio < 1.3
 function acuteChronicStatus(val: number | null | undefined, injuryRiskOk: boolean | undefined): MetricStatus {
   if (val == null) return 'unknown'
-  if (injuryRiskOk === false) return aboveThreshold(val, 1.3)
-  if (val >= 1.17) return 'warning'  // 90% от 1.3
+  if (injuryRiskOk === false) return aboveThreshold(val, TH_ACWR_WARN)
+  if (val >= TH_ACWR_WARN * 0.9) return 'warning'
   return 'ok'
 }
 
-// Усталость — бэкенд: FatigueOk = TimeInHRRedZone < 600 && fatigueIndex < 1.2
 function fatigueStatus(val: number | null | undefined, fatigueOk: boolean | undefined): MetricStatus {
   if (val == null) return 'unknown'
-  if (fatigueOk === false) return aboveThreshold(val, 1.2)
-  if (val >= 1.08) return 'warning'  // 90% от 1.2
+  if (fatigueOk === false) return aboveThreshold(val, TH_FATIGUE)
+  if (val >= TH_FATIGUE * 0.9) return 'warning'
   return 'ok'
 }
 
-// Стабильность — бэкенд: ConsistencyOk = consistency <= 20
 function consistencyStatus(val: number | null | undefined, consistencyOk: boolean | undefined): MetricStatus {
   if (val == null) return 'unknown'
-  if (consistencyOk === false) return aboveThreshold(val, 20)
-  if (val >= 18) return 'warning'  // 90% от 20
+  if (consistencyOk === false) return aboveThreshold(val, TH_CONSISTENCY)
+  if (val >= TH_CONSISTENCY * 0.9) return 'warning'
   return 'ok'
+}
+
+// Красная зона ЧСС: процент от длительности тренировки.
+// Норма ≤ 8%, при 8-10% — caution (нарушено), при ≥10% (т.е. ×1.25) — critical.
+const TH_REDZONE_PCT = 8
+function redZonePercentStatus(pct: number | null | undefined): MetricStatus {
+  if (pct == null) return 'unknown'
+  return aboveThreshold(pct, TH_REDZONE_PCT)
 }
 
 function statusTextClass(s: MetricStatus): string {
@@ -510,49 +545,81 @@ function positionLabel(pos: string) {
 
 function overallDotClass(item: any): string {
   if (item.isHealthy) return 'bg-green-500'
-  return isCriticalItem(item) ? 'bg-red-500' : 'bg-orange-400'
+  const s = itemSeverity(item)
+  if (s === 'red') return 'bg-red-500'
+  if (s === 'orange') return 'bg-orange-400'
+  return 'bg-yellow-400'
 }
 function overallTextClass(item: any): string {
   if (item.isHealthy) return 'text-green-700'
-  return isCriticalItem(item) ? 'text-red-600' : 'text-orange-500'
+  const s = itemSeverity(item)
+  if (s === 'red') return 'text-red-600'
+  if (s === 'orange') return 'text-orange-500'
+  return 'text-yellow-600'
 }
-// Критично если хотя бы один показатель превышает порог более чем на 25%
-function isCriticalItem(item: any): boolean {
-  if (item.isHealthy) return false
+
+// Уровень серьёзности самой худшей проблемы игрока.
+// Берём максимальный процент превышения порога среди всех нарушений.
+// ≥25% → red, ≥10% → orange, <10% → yellow.
+// То же правило что и для отдельной строки issueSeverity — иначе карта может быть
+// "мягче" чем самая красная строка внутри неё.
+type Severity = 'red' | 'orange' | 'yellow'
+// Считаем максимальную серьёзность среди всех 6 метрик игрока через те же
+// MetricStatus, что отображаются в столбцах таблицы. Один источник правды:
+//   critical → red, caution → orange, warning → yellow.
+function itemSeverity(item: any): Severity {
+  if (item.isHealthy) return 'yellow'
   const m  = item.metrics
   const cr = item.checkResult ?? {}
-  // ЧСС: нарушена категория — всегда критично
-  if (!cr.cardiovascularOk) return true
-  // Нагрузка: LoadOk нарушен (>= 500) — всегда критично
-  if (!cr.loadOk) return true
-  if (m) {
-    // PlayerLoad > 562 (450 * 1.25)
-    if (m.playerLoad != null && m.playerLoad >= 562) return true
-    // AcuteChronicRatio > 1.625 (1.3 * 1.25)
-    if (m.acuteChronicRatio != null && m.acuteChronicRatio >= 1.625) return true
-    // FatigueIndex > 1.5 (1.2 * 1.25)
-    if (m.fatigueIndex != null && m.fatigueIndex >= 1.5) return true
-    // Восстановление < 225с (300 * 0.75)
-    if (m.timeInLowIntensity != null && m.timeInLowIntensity <= 225) return true
-    // Consistency > 25 (20 * 1.25) — бэкенд теперь даёт consistencyOk
-    if (m.consistency != null && m.consistency > 25) return true
-  }
-  // 2+ нарушения — красный
-  if ((cr.issues?.length ?? 0) >= 2) return true
-  // ConsistencyOk = false — проверяем степень: если нарушено сильно (> 25) уже выше
-  // Если нарушено умеренно (20–25) — оранжевый, не красный
-  return false
+  const statuses: MetricStatus[] = [
+    // ЧСС
+    cr.cardiovascularOk === false ? 'critical' : 'ok',
+    playerLoadStatus(m?.playerLoad, cr.loadOk),
+    recoveryStatus(m?.timeInLowIntensity, cr.recoveryOk),
+    acuteChronicStatus(m?.acuteChronicRatio, cr.injuryRiskOk),
+    fatigueStatus(m?.fatigueIndex, cr.fatigueOk),
+    consistencyStatus(m?.consistency, cr.consistencyOk),
+  ]
+  if (statuses.includes('critical')) return 'red'
+  if (statuses.includes('caution'))  return 'orange'
+  return 'yellow'
 }
 function overallStatusTag(item: any): string {
   if (item.isHealthy) return 'bg-green-100 text-green-700'
-  return isCriticalItem(item) ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'
+  const s = itemSeverity(item)
+  if (s === 'red') return 'bg-red-100 text-red-700'
+  if (s === 'orange') return 'bg-orange-100 text-orange-700'
+  return 'bg-yellow-100 text-yellow-700'
 }
 function overallStatusLabel(item: any): string {
   if (item.isHealthy) return 'Норма'
-  return isCriticalItem(item) ? 'Критично' : 'Предупреждение'
+  const s = itemSeverity(item)
+  if (s === 'red') return 'Критично'
+  if (s === 'orange') return 'Предупреждение'
+  return 'Лёгкое отклонение'
+}
+// Классы для карточки игрока: рамка/иконка/кнопка "Подробнее" по severity
+function cardSeverityClasses(item: any): { border: string; avatar: string; btn: string } {
+  const s = itemSeverity(item)
+  if (s === 'red')    return { border: 'hover:border-red-200',    avatar: 'bg-red-100 text-red-600',       btn: 'bg-red-50 text-red-600 hover:bg-red-100' }
+  if (s === 'orange') return { border: 'hover:border-orange-200', avatar: 'bg-orange-100 text-orange-600', btn: 'bg-orange-50 text-orange-700 hover:bg-orange-100' }
+  return                       { border: 'hover:border-yellow-200', avatar: 'bg-yellow-100 text-yellow-700', btn: 'bg-yellow-50 text-yellow-700 hover:bg-yellow-100' }
 }
 
 const problemItems = computed(() => allItems.value.filter(i => !i.isHealthy))
+
+type SortKey = 'default' | 'name' | 'position' | 'maxHr' | 'load' | 'recovery' | 'risk' | 'fatigue' | 'consistency' | 'redZone' | 'status'
+const sortKey = ref<SortKey>('default')
+const sortDir = ref<'asc' | 'desc'>('desc')
+function toggleSort(k: SortKey) {
+  if (sortKey.value === k) sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc'
+  else { sortKey.value = k; sortDir.value = 'desc' }
+  page.value = 1
+}
+function sortIcon(k: SortKey): string {
+  if (sortKey.value !== k) return '↕'
+  return sortDir.value === 'asc' ? '↑' : '↓'
+}
 
 const filtered = computed(() => {
   let list = allItems.value
@@ -563,7 +630,27 @@ const filtered = computed(() => {
   if (filterStatus.value === 'issues') list = list.filter(i => !i.isHealthy)
   if (filterStatus.value === 'risks')  list = list.filter(i => i.hasWarnings)
   if (filterStatus.value === 'ok')     list = list.filter(i => i.isHealthy && !i.hasWarnings)
-  return [...list].sort((a, b) => (b.checkResult?.issues?.length ?? 0) - (a.checkResult?.issues?.length ?? 0))
+
+  const getter: Record<SortKey, (x: any) => number | string> = {
+    default:     x => x.isHealthy ? 0 : (itemSeverity(x) === 'red' ? 3 : itemSeverity(x) === 'orange' ? 2 : 1),
+    name:        x => x.sportsmanName ?? '',
+    position:    x => x.position ?? '',
+    maxHr:       x => x.metrics?.maxHeartRate ?? 0,
+    load:        x => x.metrics?.playerLoad ?? 0,
+    recovery:    x => x.metrics?.timeInLowIntensity ?? 0,
+    risk:        x => x.metrics?.acuteChronicRatio ?? 0,
+    fatigue:     x => x.metrics?.fatigueIndex ?? 0,
+    consistency: x => x.metrics?.consistency ?? 0,
+    redZone:     x => x.metrics?.hrRedZonePercent ?? 0,
+    status:      x => (x.isHealthy ? 0 : 1),
+  }
+  const g = getter[sortKey.value]
+  const dir = sortDir.value === 'asc' ? 1 : -1
+  return [...list].sort((a, b) => {
+    const va = g(a), vb = g(b)
+    if (typeof va === 'string' && typeof vb === 'string') return va.localeCompare(vb, 'ru') * dir
+    return ((Number(va) || 0) - (Number(vb) || 0)) * dir
+  })
 })
 
 const totalPages = computed(() => Math.max(1, Math.ceil(filtered.value.length / PER_PAGE)))
@@ -588,62 +675,69 @@ const modalMetricCards = computed(() => {
   const cr = modalItem.value.checkResult
   return [
     {
-      label: 'ЧСС макс.',
-      displayValue: m?.maxHeartRate != null ? `${m.maxHeartRate} уд/мин` : '—',
+      label: 'Макс. пульс',
+      sub: 'ударов в минуту',
+      displayValue: m?.maxHeartRate != null ? `${m.maxHeartRate}` : '—',
       textClass: statusTextClass(cr?.cardiovascularOk === false ? 'critical' : 'ok'),
-      hint: 'порог: 220 − возраст',
+      hint: modalItem.value?.age != null ? `норма < ${220 - modalItem.value.age} (220 − ${modalItem.value.age})` : 'норма < 220 − возраст',
     },
     {
       label: 'Нагрузка',
+      sub: 'условных единиц',
       displayValue: m?.playerLoad != null ? `${m.playerLoad.toFixed(1)}` : '—',
       textClass: statusTextClass(playerLoadStatus(m?.playerLoad, cr?.loadOk)),
-      hint: 'норма < 450 / критично ≥ 500',
+      hint: 'норма < 540 / критично ≥ 600',
     },
     {
       label: 'Восстановление',
+      sub: 'минут в спокойной зоне',
       displayValue: m?.timeInLowIntensity != null ? `${(m.timeInLowIntensity / 60).toFixed(1)} мин` : '—',
       textClass: statusTextClass(recoveryStatus(m?.timeInLowIntensity, cr?.recoveryOk)),
       hint: 'минимум 5 мин в зоне 1',
     },
     {
-      label: 'Риск травм (О/Х)',
+      label: 'Риск травм',
+      sub: 'острая / хроническая',
       displayValue: m?.acuteChronicRatio != null ? `${m.acuteChronicRatio.toFixed(2)}` : '—',
       textClass: statusTextClass(acuteChronicStatus(m?.acuteChronicRatio, cr?.injuryRiskOk)),
       hint: 'норма < 1.3 / критично ≥ 1.5',
     },
     {
       label: 'Усталость',
+      sub: 'индекс утомления',
       displayValue: m?.fatigueIndex != null ? `${m.fatigueIndex.toFixed(2)}` : '—',
       textClass: statusTextClass(fatigueStatus(m?.fatigueIndex, cr?.fatigueOk)),
-      hint: 'норма < 1.2',
+      hint: 'норма < 1.3',
     },
     {
       label: 'Стабильность',
+      sub: 'разброс нагрузки (станд. откл.)',
       displayValue: m?.consistency != null ? `${m.consistency.toFixed(1)}` : '—',
       textClass: statusTextClass(consistencyStatus(m?.consistency, cr?.consistencyOk)),
-      hint: 'норма ≤ 20 у.е.',
+      hint: 'норма ≤ 25 у.е.',
+    },
+    {
+      label: 'Красная зона ЧСС',
+      sub: 'пульс выше 90% от макс.',
+      displayValue: m?.hrRedZonePercent != null ? `${m.hrRedZonePercent.toFixed(1)}%` : '—',
+      textClass: statusTextClass(redZonePercentStatus(m?.hrRedZonePercent)),
+      hint: 'норма ≤ 8% от длительности тренировки',
     },
   ]
 })
 
 
-const modalWarnings = computed(() => {
-  if (!modalItem.value) return []
-  const m  = modalItem.value.metrics
-  const cr = modalItem.value.checkResult
-  if (!m) return []
-  const warns: string[] = []
-  if (playerLoadStatus(m.playerLoad, cr?.loadOk) === 'warning')
-    warns.push(`Риск нагрузки: ${m.playerLoad?.toFixed(1)} у.е.`)
-  if (recoveryStatus(m.timeInLowIntensity, cr?.recoveryOk) === 'warning')
-    warns.push(`Риск недовосстановления: ${(m.timeInLowIntensity / 60).toFixed(1)} мин`)
-  if (acuteChronicStatus(m.acuteChronicRatio, cr?.injuryRiskOk) === 'warning')
-    warns.push(`Риск травм: острая/хроническая нагрузка ${m.acuteChronicRatio?.toFixed(2)}`)
-  if (fatigueStatus(m.fatigueIndex, cr?.fatigueOk) === 'warning')
-    warns.push(`Риск усталости: индекс усталости ${m.fatigueIndex?.toFixed(2)}`)
-  if (consistencyStatus(m.consistency, cr?.consistencyOk) === 'warning')
-    warns.push(`Риск нестабильной нагрузки: разброс ${m.consistency?.toFixed(1)} у.е.`)
-  return warns
+// Бэк иногда даёт две строки про одну проблему (LoadCap + InjuryLoadCap, ACWR danger + warn).
+// Сворачиваем такие пары в одну, оставляя более сильную (LoadCap, ACWR-danger).
+const dedupedIssues = computed<string[]>(() => {
+  const raw: string[] = modalItem.value?.checkResult?.issues ?? []
+  const has = (s: string) => raw.some(x => x.startsWith(s))
+  return raw.filter(x => {
+    if (x.startsWith('Высокий риск травм - нагрузка') && has('Нагрузка игрока критически высокая')) return false
+    if (x.startsWith('Высокий риск травм - ускорения') && has('Нагрузка игрока критически высокая')) return false
+    if (x.startsWith('Повышенный риск травм') && has('Острая нагрузка превышает хроническую')) return false
+    return true
+  })
 })
 
 function openModal(item: any) { modalItem.value = item }
@@ -674,10 +768,12 @@ onMounted(async () => {
         fatigueStatus(m.fatigueIndex, checkResult.fatigueOk) === 'warning' ||
         consistencyStatus(m.consistency, checkResult.consistencyOk) === 'warning'
       )
+      const age = s.age ?? (s.birthDate ? Math.floor((Date.now() - new Date(s.birthDate).getTime()) / 31557600000) : null)
       return {
         sportsmanId:   d.sportsmanId ?? s.id,
         sportsmanName: d.sportsmanName ?? s.fio ?? '—',
         position:      s.position ?? '',
+        age,
         isHealthy:     checkResult.isHealthy ?? true,
         checkResult,
         metrics:       metricsData,

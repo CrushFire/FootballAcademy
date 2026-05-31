@@ -38,9 +38,9 @@ export const useAuthStore = defineStore('auth', () => {
 
   const isAuthenticated = computed(() => !!token.value)
 
-  async function login(identifier: string, password: string) {
-    // Универсальный вход: identifier = логин или email. Бэк сам разрулит.
-    const { data } = await api.post('/auth', { identifier, password })
+  async function login(identifier: string, password: string, mode: 'login' | 'email' = 'login') {
+    // Mode определяет по какому полю искать пользователя на бэке.
+    const { data } = await api.post('/auth', { identifier, password, mode })
     token.value = data.data.token
     userId.value = data.data.userId
     localStorage.setItem('token', data.data.token)

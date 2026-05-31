@@ -91,10 +91,12 @@ const canvasRef = ref<HTMLCanvasElement | null>(null)
 
 function togglePass() { showPass.value = !showPass.value }
 async function handleLogin() {
-  // Email регистронезависимый (toLowerCase), логин — как ввели
+  // Email регистронезависимый (toLowerCase), логин — как ввели.
+  // Режим передаётся на бэк, чтобы тот искал строго по выбранному полю
+  // и возвращал понятную ошибку ("логин не найден" / "email не найден").
   const raw = identifier.value.trim()
   const value = loginMode.value === 'email' ? raw.toLowerCase() : raw
-  await login(value, password.value)
+  await login(value, password.value, loginMode.value)
 }
 
 const EYE_OPEN = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>`

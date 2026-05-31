@@ -4,34 +4,44 @@ using OfficeOpenXml;
 
 ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
 
-// === CLI args ===
+
+// ─── CLI ───────────────────────────────────────────────────────────────
+//   --connection "Host=...;Database=...;..."   — строка подключения к PostgreSQL
+//   --out <папка>                              — куда складывать XLSX (default: ./output)
+//   --limit N                                  — обработать максимум N тренировок
+//   --all                                      — включить тренировки, у которых УЖЕ есть метрики
 string connectionString = GetArg(args, "--connection")
     ?? "Host=localhost;Port=5432;Database=FootballAcademy_DB;Username=postgres;Password=14041404";
-string outDir = GetArg(args, "--out") ?? "output";
-int limit = int.TryParse(GetArg(args, "--limit"), out var l) ? l : int.MaxValue;
-bool onlyEmpty = !args.Contains("--all"); // по умолчанию только тренировки без метрик
-
+// По умолчанию пишем сразу в uploads/metrics — откуда MetricAutoImportService
+// подхватит файлы при ближайшем автоимпорте.
+string outDir = GetArg(args, "--out")
+    ?? Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "FootballAcademy", "uploads", "metrics"));
+int limit = int.TryParse(GetArg(args, "--limit"), out var l) ? l : 10000;
+bool onlyEmpty = !args.Contains("--all");   // по умолчанию только тренировки без метрик
 Directory.CreateDirectory(outDir);
 
 await using var conn = new NpgsqlConnection(connectionString);
 await conn.OpenAsync();
 
-// === Берём тренировки + группу + тренера, опционально только те, у кого ещё нет метрик ===
+// ─── Выборка тренировок ─────────────────────────────────────────────────
+// По умолчанию берём ТОЛЬКО те, у которых ещё нет ни одной строки в TrainingMetrics.
+// (Раньше тут была опечатка — таблица "Metrics", из-за чего фильтр считал что
+// у всех тренировок нет метрик, и каждый прогон перегенерировал всё подряд.)
 var trainings = new List<TrainingRow>();
 var sql = @"
     SELECT t.""Id"", t.""GroupId"", t.""Type"", t.""Date"", g.""Name""
     FROM ""Trainings"" t
     JOIN ""Groups"" g ON g.""Id"" = t.""GroupId""
     WHERE (@onlyEmpty = false OR NOT EXISTS (
-        SELECT 1 FROM ""Metrics"" m WHERE m.""TrainingId"" = t.""Id""
+        SELECT 1 FROM ""TrainingMetrics"" m WHERE m.""TrainingId"" = t.""Id""
     ))
     ORDER BY t.""Date"" DESC
     LIMIT @lim;";
 
 await using (var cmd = new NpgsqlCommand(sql, conn))
 {
-    cmd.Parameters.AddWithValue("onlyEmpty", onlyEmpty);
-    cmd.Parameters.AddWithValue("lim", limit);
+    cmd.Parameters.Add(new NpgsqlParameter("onlyEmpty", NpgsqlTypes.NpgsqlDbType.Boolean) { Value = onlyEmpty });
+    cmd.Parameters.Add(new NpgsqlParameter("lim", NpgsqlTypes.NpgsqlDbType.Integer) { Value = limit });
     await using var rd = await cmd.ExecuteReaderAsync();
     while (await rd.ReadAsync())
     {
@@ -48,7 +58,9 @@ await using (var cmd = new NpgsqlCommand(sql, conn))
 
 if (trainings.Count == 0)
 {
-    Console.WriteLine("Нет подходящих тренировок (попробуй --all для всех или --limit N).");
+    Console.WriteLine("Нет подходящих тренировок. Подсказки:");
+    Console.WriteLine("  • без --all берутся только тренировки БЕЗ метрик — если все уже импортированы, добавь --all");
+    Console.WriteLine("  • --limit N ограничивает выборку, убери чтобы взять все");
     return;
 }
 
@@ -95,10 +107,9 @@ foreach (var t in trainings)
     created++;
 }
 
-Console.WriteLine($"\nГотово. Создано: {created}, пропущено: {skipped}");
-Console.WriteLine($"Чтобы импортировать — скопируй файлы в backend/FootballAcademy/uploads/metrics/ и вызови автоимпорт.");
+Console.WriteLine($"\nГотово. Создано: {created}, пропущено: {skipped}. Файлы в: {Path.GetFullPath(outDir)}");
 
-// === helpers ===
+// ─── helpers ────────────────────────────────────────────────────────────
 
 static string? GetArg(string[] args, string name)
 {
@@ -161,7 +172,9 @@ static void WriteExcel(string path, List<string> sportsmen, Random random)
         ws.Cells[i + 2, col++].Value = Math.Round(random.NextDouble() * 2 + 2, 2);    // Max Dec
         ws.Cells[i + 2, col++].Value = random.Next(3, 15);                // Sprint Efforts
         ws.Cells[i + 2, col++].Value = random.Next(10, 40);               // High Speed Efforts
-        ws.Cells[i + 2, col++].Value = Math.Round(random.NextDouble() * 200 + 200, 2);  // PlayerLoad
+        // PlayerLoad: 300-460 у.е. — в норме под литературные пороги (LoadCap=600×factor).
+        // Если хочешь "проблемного" — генерируй отдельной командой выше или правь в БД.
+        ws.Cells[i + 2, col++].Value = Math.Round(random.NextDouble() * 160 + 300, 2);  // PlayerLoad
         ws.Cells[i + 2, col++].Value = Math.Round(random.NextDouble() * 800 + 400, 2);  // Energy kJ
         ws.Cells[i + 2, col++].Value = Math.Round(random.NextDouble() * 1.5 + 1.5, 2);  // Work Ratio
         ws.Cells[i + 2, col++].Value = Math.Round(random.NextDouble() * 4 + 7, 2);      // Metabolic Power
@@ -172,8 +185,8 @@ static void WriteExcel(string path, List<string> sportsmen, Random random)
         ws.Cells[i + 2, col++].Value = positionGroups[posIdx];
         ws.Cells[i + 2, col++].Value = random.Next(1, 10);                // Explosive Efforts
 
-        ws.Cells[i + 2, col++].Value = random.Next(130, 170);             // Avg HR
-        ws.Cells[i + 2, col++].Value = random.Next(180, 200);             // Max HR
+        ws.Cells[i + 2, col++].Value = random.Next(130, 165);             // Avg HR (норма <170)
+        ws.Cells[i + 2, col++].Value = random.Next(175, 195);             // Max HR
         ws.Cells[i + 2, col++].Value = Math.Round(random.NextDouble() * 200 + 100, 2); // HR Exertion
         for (int z = 0; z < 6; z++)
             ws.Cells[i + 2, col++].Value = random.Next(50, 400);          // HR Zones 1-6

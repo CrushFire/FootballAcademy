@@ -110,7 +110,9 @@ namespace Application.Services.MetricAnalytic
                     .ApplyFilter(filter)
                     .ToListAsync();
 
-                //if (!metrics.Any()) continue;
+                // Без метрик невозможно посчитать чек — пропускаем спортсмена,
+                // иначе AutoMapper-агрегатор крашит на .First() пустого списка.
+                if (!metrics.Any()) continue;
 
                 var avgMetric = _mapper.Map<TrainingMetrics>(metrics);
                 double chronicLoad = metrics.Average(m => m.PlayerLoad);
@@ -178,7 +180,11 @@ namespace Application.Services.MetricAnalytic
             if (acuteChronicRatio >= t.AcuteChronicWarn && acuteChronicRatio < t.AcuteChronicDanger)
                 result.Issues.Add($"Повышенный риск травм - острая/хроническая нагрузка: {acuteChronicRatio:F2} (порог: {t.AcuteChronicWarn})");
             if (m.TimeInHRRedZone >= redZoneCap)
-                result.Issues.Add($"Избыточное время в красной зоне ЧСС: {m.TimeInHRRedZone}с (порог: {redZoneCap}с)");
+            {
+                var rzPercent = m.Duration > 0 ? m.TimeInHRRedZone * 100.0 / m.Duration : 0;
+                var rzPercentCap = m.Duration > 0 ? redZoneCap * 100.0 / m.Duration : 0;
+                result.Issues.Add($"Избыточное время в красной зоне ЧСС: {rzPercent:F1}% от тренировки (порог: {rzPercentCap:F1}%)");
+            }
             if (fatigueIndex >= t.FatigueIndexMax)
                 result.Issues.Add($"Перегруз: индекс усталости {fatigueIndex:F2} (норма < {t.FatigueIndexMax})");
             if (consistency > consistencyCap)

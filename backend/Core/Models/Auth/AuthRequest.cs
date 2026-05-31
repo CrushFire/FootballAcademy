@@ -11,9 +11,12 @@ namespace Core.Models.Auth
     {
         [Required]
         public string Password { get; set; }
-        // Можно прислать либо логин, либо email — сервер сам определит.
-        // Email оставлен для обратной совместимости старых клиентов.
+        // Идентификатор: логин или email — в зависимости от выбранного на фронте режима.
         public string? Identifier { get; set; }
+        // Mode: "login" | "email". Управляет тем, по какому полю искать пользователя.
+        // Если не задан — ищем по обоим (обратная совместимость).
+        public string? Mode { get; set; }
+        // Email оставлен для обратной совместимости старых клиентов.
         public string? Email { get; set; }
     }
 }

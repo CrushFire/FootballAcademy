@@ -6,11 +6,11 @@ export function useAuth() {
   const loading = ref(false)
   const error = ref<string | null>(null)
 
-  async function login(email: string, password: string) {
+  async function login(identifier: string, password: string, mode: 'login' | 'email' = 'login') {
     loading.value = true
     error.value = null
     try {
-      await auth.login(email, password)
+      await auth.login(identifier, password, mode)
     } catch (e: unknown) {
       const err = e as { response?: { data?: { error?: string } } }
       error.value = err.response?.data?.error ?? 'Ошибка входа'

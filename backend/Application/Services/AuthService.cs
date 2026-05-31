@@ -24,16 +24,30 @@ namespace Application.Services
 
         public async Task<Result<AuthResponse>> AuthorizationAsync(AuthRequest req)
         {
-            // Универсальный вход: ищем по логину ИЛИ email (что прислали).
-            // Identifier — приоритет; если его нет — fallback на Email для старых клиентов.
+            // Mode "login" / "email" приходит с фронта и определяет, по какому полю искать.
+            // Если режим не задан — fallback на универсальный поиск (старые клиенты).
             var input = (req.Identifier ?? req.Email ?? string.Empty).Trim();
+            var mode = req.Mode?.ToLowerInvariant();
             if (string.IsNullOrEmpty(input))
-                return Result<AuthResponse>.Failure("Укажите логин или email", 400);
+                return Result<AuthResponse>.Failure(
+                    mode == "email" ? "Укажите email" :
+                    mode == "login" ? "Укажите логин" :
+                                      "Укажите логин или email", 400);
 
-            var user = await _context.Users
-                .FirstOrDefaultAsync(u => u.Login == input || u.Email == input);
+            // Email регистронезависимый; логин — как ввели.
+            var normalized = mode == "email" ? input.ToLowerInvariant() : input;
+
+            User? user = mode switch
+            {
+                "email" => await _context.Users.FirstOrDefaultAsync(u => u.Email.ToLower() == normalized),
+                "login" => await _context.Users.FirstOrDefaultAsync(u => u.Login == normalized),
+            };
+
             if (user == null)
-                return Result<AuthResponse>.Failure("Пользователь не найден", 404);
+                return Result<AuthResponse>.Failure(
+                    mode == "email" ? "Пользователь с таким email не найден" :
+                    mode == "login" ? "Пользователь с таким логином не найден" :
+                                      "Пользователь не найден", 404);
 
             if (!_passwordHasher.VerifyPassword(req.Password, user.Password))
                 return Result<AuthResponse>.Failure("Неверный пароль", 401);

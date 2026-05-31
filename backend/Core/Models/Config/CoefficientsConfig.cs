@@ -147,16 +147,16 @@ namespace Core.Models.Config
 
     public class MedicalThresholdsBlock
     {
-        public double LoadCapBase { get; set; } = 500;
-        public double InjuryLoadCapBase { get; set; } = 450;
-        public double AccDecCapBase { get; set; } = 200;
-        public double RedZoneCapBase { get; set; } = 600;
-        public double ConsistencyCapBase { get; set; } = 20;
-        public int AverageHeartRateMax { get; set; } = 180;
+        public double LoadCapBase { get; set; } = 600;
+        public double InjuryLoadCapBase { get; set; } = 540;
+        public double AccDecCapBase { get; set; } = 180;
+        public double RedZoneCapBase { get; set; } = 480;
+        public double ConsistencyCapBase { get; set; } = 60;
+        public int AverageHeartRateMax { get; set; } = 170;
         public int MinRecoveryTimeSeconds { get; set; } = 300;
         public double AcuteChronicWarn { get; set; } = 1.3;
         public double AcuteChronicDanger { get; set; } = 1.5;
-        public double FatigueIndexMax { get; set; } = 1.2;
+        public double FatigueIndexMax { get; set; } = 1.3;
     }
 
     public class PentagonNormalizationBlock
