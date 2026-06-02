@@ -5,7 +5,7 @@
       <span class="text-sm text-neutral-400 capitalize">{{ todayStr }}</span>
     </div>
 
-    <div class="grid grid-cols-3 gap-6">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
 
       <!-- Левая: пятиугольник + ближайшее занятие -->
       <div class="col-span-1 flex flex-col gap-4 border-r border-neutral-100 pr-6">

@@ -52,7 +52,7 @@
           >
             <div class="flex items-start gap-3">
               <!-- Иконка -->
-              <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5"
+              <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5"
                 :class="isMyPlan(plan) ? 'bg-blue-100' : 'bg-neutral-100'">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"
                   class="w-4 h-4" :class="isMyPlan(plan) ? 'text-blue-500' : 'text-neutral-400'">
@@ -63,13 +63,13 @@
               <!-- Контент -->
               <div class="flex-1 min-w-0">
                 <div class="flex items-center gap-2 flex-wrap">
-                  <span class="text-sm font-semibold text-neutral-800 truncate">{{ plan.name }}</span>
+                  <span class="text-base font-semibold text-neutral-800 truncate">{{ plan.name }}</span>
                   <span v-if="isMyPlan(plan)" class="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-600 font-semibold flex-shrink-0">Мои тренировки</span>
                   <span v-else class="text-[10px] px-1.5 py-0.5 rounded-full bg-neutral-100 text-neutral-500 font-semibold flex-shrink-0">Другие тренеры</span>
                 </div>
-                <div class="text-xs text-neutral-400 mt-0.5">{{ plan.trainerFIO }} · {{ formatDate(plan.createdAt) }}</div>
-                <div v-if="plan.description" class="text-xs text-neutral-600 mt-1.5 line-clamp-2">{{ plan.description }}</div>
-                <div v-else class="text-xs text-neutral-400 mt-1.5">Без описания</div>
+                <div class="text-sm text-neutral-400 mt-0.5">{{ plan.trainerFIO }} · {{ formatDate(plan.createdAt) }}</div>
+                <div v-if="plan.description" class="text-sm text-neutral-600 mt-1.5 line-clamp-2">{{ plan.description }}</div>
+                <div v-else class="text-sm text-neutral-400 mt-1.5">Без описания</div>
               </div>
 
               <!-- Действия (только для своих) -->

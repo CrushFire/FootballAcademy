@@ -2,7 +2,7 @@
   <div class="p-3 h-full">
     <TrainerPageCard color="blue" class="h-full flex flex-col">
       <div class="flex items-center justify-between mb-4 pb-4 border-b border-neutral-100">
-        <div class="text-base font-bold text-neutral-900">Расписание</div>
+        <h1 class="text-xl font-bold text-neutral-900">Расписание</h1>
         <div class="flex items-center gap-2">
           <button @click="prevMonth" class="p-1.5 rounded-lg hover:bg-neutral-100 transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" class="w-4 h-4 text-neutral-500"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>

@@ -59,7 +59,7 @@
             </div>
             <div v-else class="text-2xl font-extrabold text-neutral-400">VS</div>
             <span v-if="m.result" class="text-xs font-bold px-2 py-0.5 rounded-full mt-0.5" :class="resultClass(m.result)">
-              {{ resultLabel[m.result] }}
+              {{ formatResult(m) }}
             </span>
             <span class="text-xs text-neutral-400 mt-1">{{ typeLabel[m.type] ?? m.type }}</span>
           </div>
@@ -160,6 +160,16 @@ function resultClass(r: string) {
   if (r === 'Win')  return 'bg-green-100 text-green-700'
   if (r === 'Loss') return 'bg-red-100 text-red-600'
   return 'bg-neutral-100 text-neutral-600'
+}
+
+// Если обе команды наши (Home + opponentTeamId) — подписываем «Победа {имя}» / «Ничья».
+function formatResult(m: any): string {
+  const isInternal = m.type === 'Home' && !!m.opponentTeamId
+  if (!isInternal) return resultLabel[m.result] ?? m.result
+  if (m.result === 'Draw') return 'Ничья'
+  return m.result === 'Win'
+    ? `Победа ${m.homeTeamName ?? ''}`.trim()
+    : `Победа ${m.opponentTeamName ?? ''}`.trim()
 }
 
 function initials(name: string) {

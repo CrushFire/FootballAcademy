@@ -1,5 +1,5 @@
 <template>
-  <div class="p-6 h-full overflow-y-auto">
+  <div class="p-3 h-full overflow-y-auto">
     <AppCard no-border class="min-h-full flex flex-col">
       <!-- Шапка карточки белая -->
       <div class="flex items-start justify-between bg-white -mx-4 -mt-4 px-5 py-4 mb-5 rounded-t-2xl border-b border-neutral-100">

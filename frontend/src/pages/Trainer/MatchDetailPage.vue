@@ -48,7 +48,7 @@
             </div>
             <div v-else class="text-4xl font-extrabold text-neutral-400">VS</div>
             <span v-if="match.result" class="text-xs font-bold px-2 py-0.5 rounded-full mt-1" :class="resultClass(match.result)">
-              {{ resultLabel[match.result] }}
+              {{ internalResultLabel }}
             </span>
           </div>
           <!-- Эмблема гостевой -->
@@ -134,13 +134,33 @@ import api from '@/services/api'
 import { POSITION_AND_GROUP_LABEL, MATCH_TYPE, MATCH_STATUS, MATCH_RESULT } from '@/constants'
 import FootballField from '@/components/trainer/FootballField.vue'
 
+// Универсальная раскладка на ВСЁ вертикальное поле (база — 4-3-3).
+// Ось Y: 0 = верх (атака соперника), 100 = низ (наши ворота).
+// Внутри одной группы координаты намеренно НЕ на одной линии —
+// например CB чуть глубже LB/RB; CB и CB2 чуть смещены по Y относительно друг друга;
+// CM по бокам выше CDM и т.п. → ассиметрия как в реальной расстановке.
 const FIELD_POSITIONS: Record<string, { x: number; y: number }> = {
-  GK:  { x: 50, y: 10 }, CB:  { x: 30, y: 25 }, CB2: { x: 70, y: 25 },
-  LB:  { x: 15, y: 35 }, RB:  { x: 85, y: 35 }, LWB: { x: 15, y: 45 },
-  RWB: { x: 85, y: 45 }, CM:  { x: 50, y: 50 }, CM2: { x: 35, y: 50 },
-  CM3: { x: 65, y: 50 }, CDM: { x: 50, y: 40 }, CAM: { x: 50, y: 60 },
-  LW:  { x: 20, y: 70 }, RW:  { x: 80, y: 70 }, ST:  { x: 50, y: 85 },
-  CF:  { x: 35, y: 80 }, SS:  { x: 65, y: 80 },
+  GK:  { x: 50, y: 92 },
+  // Защита: крайние выше центральных, центральные не на одной y (естественный «треугольник»)
+  LB:  { x: 12, y: 75 },
+  CB:  { x: 36, y: 82 },
+  CB2: { x: 64, y: 78 },   // чуть впереди CB
+  RB:  { x: 88, y: 75 },
+  // Латерали — между защитой и полузащитой
+  LWB: { x: 10, y: 62 },
+  RWB: { x: 90, y: 62 },
+  // Полузащита: CDM чуть глубже, CM по бокам выше, CM3 — между
+  CDM: { x: 50, y: 60 },
+  CM:  { x: 26, y: 52 },
+  CM2: { x: 74, y: 52 },
+  CM3: { x: 50, y: 48 },
+  CAM: { x: 50, y: 36 },
+  // Атака: вингеры по краям, CF/SS чуть позади ST
+  LW:  { x: 14, y: 24 },
+  RW:  { x: 86, y: 24 },
+  CF:  { x: 34, y: 18 },
+  ST:  { x: 50, y: 10 },
+  SS:  { x: 66, y: 18 },
 }
 
 const route = useRoute()
@@ -167,6 +187,19 @@ const stats = computed(() => [
 ])
 
 const sortedEvents = computed(() => [...(match.value.events ?? [])].sort((a: any, b: any) => a.minute - b.minute))
+
+// Если матч между двумя нашими командами (Home + opponentTeamId есть) — показываем
+// «Победа {имя_победителя}» / «Ничья» вместо абстрактных Победа/Поражение.
+const internalResultLabel = computed(() => {
+  const m = match.value
+  if (!m?.result) return ''
+  const isInternal = m.type === 'Home' && !!m.opponentTeamId
+  if (!isInternal) return resultLabel[m.result]
+  if (m.result === 'Draw') return 'Ничья'
+  return m.result === 'Win'
+    ? `Победа ${m.homeTeamName ?? ''}`.trim()
+    : `Победа ${m.opponentTeamName ?? ''}`.trim()
+})
 
 function getSubstitutionPosition(ev: any): string {
   const lineup: { sportsmanId: number; position: string }[] = match.value.lineup ?? []
@@ -225,32 +258,49 @@ const fieldPositions = computed(() => {
 
   console.log('🔍 Position groups:', Array.from(positionGroups.entries()))
 
-  // Формируем позиции для поля
+  // Формируем позиции для поля.
+  // Если в группе (один ключ pos) больше одного игрока — разносим их
+  // вокруг базовой точки с лёгкой асимметрией: разводим по X и слегка по Y,
+  // чтобы не накладывались. Например 3 CB → расходятся влево-вправо от центра.
   const result: any[] = []
-  const usedPositions = new Set<string>()
-  
+  const usedCount: Record<string, number> = {}
+  // Сколько раз встречается каждая позиция всего (для расчёта смещения).
+  const totalByPos: Record<string, number> = {}
   positionGroups.forEach((group, pos) => {
     if (!group.main) return
-    
-    let x: number, y: number
-    if (usedPositions.has(pos)) {
-      const base = FIELD_POSITIONS[pos] || FIELD_POSITIONS['ST']
-      x = Math.min(90, base.x + (result.length % 3) * 8)
-      y = Math.min(90, base.y + Math.floor(result.length / 3) * 8)
-    } else {
-      usedPositions.add(pos)
-      const fp = FIELD_POSITIONS[pos] || FIELD_POSITIONS['ST']
-      x = fp.x; y = fp.y
+    totalByPos[pos] = (totalByPos[pos] ?? 0) + 1
+  })
+
+  positionGroups.forEach((group, pos) => {
+    if (!group.main) return
+
+    const fp = FIELD_POSITIONS[pos] || FIELD_POSITIONS['ST']
+    let x = fp.x, y = fp.y
+
+    // Если на одной позиции (одинаковый код, например 2 раза CB) >1 игрока,
+    // разводим их симметрично по X относительно базовой точки + чередуем Y
+    // (один чуть глубже, другой чуть выше) для естественной асимметрии.
+    const total = totalByPos[pos] ?? 1
+    if (total > 1) {
+      const idx = usedCount[pos] ?? 0
+      const half = (total - 1) / 2
+      const dx = (idx - half) * 12
+      const dy = (idx % 2 === 0 ? 1 : -1) * 3
+      x = Math.max(6, Math.min(94, x + dx))
+      y = Math.max(6, Math.min(94, y + dy))
     }
-    
+    usedCount[pos] = (usedCount[pos] ?? 0) + 1
+
     result.push({
       x, y,
       number: result.length + 1,
       name: sportsmenMap.value[group.main.sportsmanId] ?? `#${group.main.sportsmanId}`,
+      position: pos,
       late: false,
       substitute: group.reserve ? {
         number: 0,
-        name: sportsmenMap.value[group.reserve.sportsmanId] ?? `#${group.reserve.sportsmanId}`
+        name: sportsmenMap.value[group.reserve.sportsmanId] ?? `#${group.reserve.sportsmanId}`,
+        position: group.reserve.position || pos,
       } : null,
     })
   })

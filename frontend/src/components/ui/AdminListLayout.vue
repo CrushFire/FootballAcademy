@@ -5,7 +5,7 @@
 
       <!-- Заголовок -->
       <div class="flex items-center justify-between mb-4 pb-4 border-b border-neutral-100 dark:border-theme-border flex-shrink-0">
-        <div class="text-base font-bold text-neutral-900 dark:text-theme-text">{{ title }}</div>
+        <div class="text-xl font-bold text-neutral-900 dark:text-theme-text">{{ title }}</div>
         <slot name="actions" />
       </div>
 

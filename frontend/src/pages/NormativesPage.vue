@@ -6,8 +6,8 @@
       <div class="mb-4 pb-4 border-b border-neutral-100">
         <div class="flex items-center justify-between gap-3">
           <div>
-            <div class="text-base font-bold text-neutral-900">Нормативы</div>
-            <div class="text-xs text-neutral-400">{{ periodLabel }}</div>
+            <h1 class="text-xl font-bold text-neutral-900">Нормативы</h1>
+            <p class="text-sm text-neutral-500 mt-0.5">{{ periodLabel }}</p>
           </div>
           <div class="flex items-center gap-2 shrink-0">
             <button

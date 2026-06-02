@@ -11,7 +11,7 @@
         <button
           v-for="tab in tabs" :key="tab.value"
           @click="activeTab = tab.value"
-          class="flex-1 py-3 text-xs font-semibold transition-colors"
+          class="flex-1 py-3 text-sm font-bold transition-colors"
           :class="activeTab === tab.value
             ? 'text-blue-600 border-b-2 border-blue-500 bg-blue-50/50'
             : 'text-neutral-500 hover:text-neutral-700'"

@@ -1,53 +1,59 @@
 <template>
+  <!-- Вертикальный вариант FootballField. Логика и API один в один:
+       принимает positions[] с (x, y), 0..100 на каждой оси.
+       Отличие — поле перевёрнуто: длина по Y (ворота сверху и снизу),
+       центральная линия горизонтальная.
+       Координаты игроков в `positions` ОЖИДАЮТСЯ те же что и в горизонтальном —
+       координата x → поперёк поля, y → от ворот к воротам.
+       Подходит для мобильного отображения завершённого матча. -->
   <div>
     <div class="field-container">
-      <!-- Разметка поля -->
       <svg class="field-lines" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice">
-        <!-- Полосы газона -->
-        <rect x="0"  y="0" width="10" height="100" fill="#1a4fa3" opacity="0.6"/>
-        <rect x="10" y="0" width="10" height="100" fill="#1b57b8" opacity="0.6"/>
-        <rect x="20" y="0" width="10" height="100" fill="#1a4fa3" opacity="0.6"/>
-        <rect x="30" y="0" width="10" height="100" fill="#1b57b8" opacity="0.6"/>
-        <rect x="40" y="0" width="10" height="100" fill="#1a4fa3" opacity="0.6"/>
-        <rect x="50" y="0" width="10" height="100" fill="#1b57b8" opacity="0.6"/>
-        <rect x="60" y="0" width="10" height="100" fill="#1a4fa3" opacity="0.6"/>
-        <rect x="70" y="0" width="10" height="100" fill="#1b57b8" opacity="0.6"/>
-        <rect x="80" y="0" width="10" height="100" fill="#1a4fa3" opacity="0.6"/>
-        <rect x="90" y="0" width="10" height="100" fill="#1b57b8" opacity="0.6"/>
+        <!-- Горизонтальные полосы газона (поперёк короткой стороны) -->
+        <rect x="0" y="0"  width="100" height="10" fill="#1a4fa3" opacity="0.6"/>
+        <rect x="0" y="10" width="100" height="10" fill="#1b57b8" opacity="0.6"/>
+        <rect x="0" y="20" width="100" height="10" fill="#1a4fa3" opacity="0.6"/>
+        <rect x="0" y="30" width="100" height="10" fill="#1b57b8" opacity="0.6"/>
+        <rect x="0" y="40" width="100" height="10" fill="#1a4fa3" opacity="0.6"/>
+        <rect x="0" y="50" width="100" height="10" fill="#1b57b8" opacity="0.6"/>
+        <rect x="0" y="60" width="100" height="10" fill="#1a4fa3" opacity="0.6"/>
+        <rect x="0" y="70" width="100" height="10" fill="#1b57b8" opacity="0.6"/>
+        <rect x="0" y="80" width="100" height="10" fill="#1a4fa3" opacity="0.6"/>
+        <rect x="0" y="90" width="100" height="10" fill="#1b57b8" opacity="0.6"/>
 
         <!-- Внешняя рамка -->
         <rect x="3" y="3" width="94" height="94" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="0.5"/>
 
-        <!-- Центральная линия -->
+        <!-- Центральная линия (горизонтальная) -->
         <line x1="3" y1="50" x2="97" y2="50" stroke="rgba(255,255,255,0.6)" stroke-width="0.5"/>
 
         <!-- Центральный круг -->
         <circle cx="50" cy="50" r="12" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="0.5"/>
         <circle cx="50" cy="50" r="0.8" fill="rgba(255,255,255,0.7)"/>
 
-        <!-- Штрафная левая (верх) -->
-        <rect x="3" y="31" width="16" height="38" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="0.5"/>
-        <!-- Вратарская левая -->
-        <rect x="3" y="40" width="6" height="20" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="0.4"/>
-        <!-- Ворота левые -->
-        <rect x="0.5" y="43" width="2.5" height="14" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="0.4"/>
-        <!-- Точка пенальти левая -->
-        <circle cx="14" cy="50" r="0.7" fill="rgba(255,255,255,0.7)"/>
+        <!-- Штрафная верхняя -->
+        <rect x="31" y="3" width="38" height="16" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="0.5"/>
+        <!-- Вратарская верхняя -->
+        <rect x="40" y="3" width="20" height="6" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="0.4"/>
+        <!-- Ворота верхние -->
+        <rect x="43" y="0.5" width="14" height="2.5" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="0.4"/>
+        <!-- Точка пенальти верхняя -->
+        <circle cx="50" cy="14" r="0.7" fill="rgba(255,255,255,0.7)"/>
 
-        <!-- Штрафная правая (низ) -->
-        <rect x="81" y="31" width="16" height="38" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="0.5"/>
-        <!-- Вратарская правая -->
-        <rect x="91" y="40" width="6" height="20" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="0.4"/>
-        <!-- Ворота правые -->
-        <rect x="97" y="43" width="2.5" height="14" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="0.4"/>
-        <!-- Точка пенальти правая -->
-        <circle cx="86" cy="50" r="0.7" fill="rgba(255,255,255,0.7)"/>
+        <!-- Штрафная нижняя -->
+        <rect x="31" y="81" width="38" height="16" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="0.5"/>
+        <!-- Вратарская нижняя -->
+        <rect x="40" y="91" width="20" height="6" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="0.4"/>
+        <!-- Ворота нижние -->
+        <rect x="43" y="97" width="14" height="2.5" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="0.4"/>
+        <!-- Точка пенальти нижняя -->
+        <circle cx="50" cy="86" r="0.7" fill="rgba(255,255,255,0.7)"/>
 
         <!-- Угловые дуги -->
-        <path d="M3,6 A3,3 0 0,0 6,3" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="0.4"/>
-        <path d="M94,3 A3,3 0 0,0 97,6" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="0.4"/>
-        <path d="M3,94 A3,3 0 0,1 6,97" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="0.4"/>
-        <path d="M97,94 A3,3 0 0,1 94,97" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="0.4"/>
+        <path d="M3,6 A3,3 0 0,1 6,3" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="0.4"/>
+        <path d="M94,3 A3,3 0 0,1 97,6" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="0.4"/>
+        <path d="M3,94 A3,3 0 0,0 6,97" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="0.4"/>
+        <path d="M97,94 A3,3 0 0,0 94,97" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="0.4"/>
       </svg>
 
       <!-- Игроки и пустые слоты -->
@@ -64,7 +70,6 @@
               <div class="player-circle player-empty">
                 <span class="empty-mark">{{ pos.position || '?' }}</span>
               </div>
-              <!-- Плашка снизу при hover (всегда в светлой теме, поверх поля) -->
               <div class="empty-tooltip">
                 <div class="empty-tooltip-title">Слот не занят</div>
                 <div v-if="pos.preferred && pos.preferred.length" class="empty-tooltip-sub">
@@ -130,7 +135,6 @@ defineProps<{
     type?: string
     late?: boolean
     empty?: boolean
-    // Для пустых слотов: список подходящих позиций в порядке приоритета.
     preferred?: string[]
     substitute: { number: number; name: string; position?: string; type?: string } | null
   }[]
@@ -153,76 +157,51 @@ function initials(name: string) {
 <style scoped>
 .field-container {
   position: relative;
-  height: 420px;
+  aspect-ratio: 3 / 4;
   border-radius: 16px;
   overflow: visible;
   background: #1d4ed8;
   box-shadow: 0 4px 12px rgba(29, 78, 216, 0.25);
 }
-
 .field-lines {
   position: absolute;
   inset: 0;
-  width: 100%;
-  height: 100%;
+  width: 100%; height: 100%;
   pointer-events: none;
   border-radius: 16px;
   overflow: hidden;
 }
-
-.players-layer {
-  position: absolute;
-  inset: 0;
-}
-
-.player-wrapper {
-  position: absolute;
-  transform: translate(-50%, -50%);
-}
-
-.player-main {
-  position: relative;
-}
+.players-layer { position: absolute; inset: 0; }
+.player-wrapper { position: absolute; transform: translate(-50%, -50%); }
+.player-main { position: relative; }
 
 .player-circle {
-  width: 36px;
-  height: 36px;
+  width: 36px; height: 36px;
   border-radius: 50%;
   background: #fff;
   border: 2px solid #3b82f6;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 11px;
-  font-weight: 700;
-  color: #1d4ed8;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; color: #1d4ed8;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
   transition: transform 0.15s;
 }
-
 .player-circle.is-late {
   border-color: #93c5fd;
   background: #eff6ff;
 }
-
 .player-circle.is-reserve {
   border-color: #10b981;
   color: #047857;
   background: #d1fae5;
 }
-
 .player-circle.has-substitute {
   cursor: pointer;
   border-color: #10b981;
   color: #047857;
 }
+.player-circle.has-substitute:hover { transform: scale(1.12); }
 
-.player-circle.has-substitute:hover {
-  transform: scale(1.12);
-}
-
-/* Пустой слот — пунктирный кружок с белой жирной подписью позиции.
-   Цвет принудительно белый в любой теме (поле всегда тёмно-синее). */
+/* Пустой слот — пунктирный кружок с белой жирной подписью */
 .player-circle.player-empty,
 :global(.dark) .player-circle.player-empty {
   background: transparent !important;
@@ -234,75 +213,9 @@ function initials(name: string) {
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
   box-shadow: none;
 }
-.player-circle.player-empty .empty-mark {
-  pointer-events: none;
-  color: #ffffff;
-}
+.player-circle.player-empty .empty-mark { pointer-events: none; color: #ffffff; }
 
-/* Плашка снизу при hover для пустого слота: всегда светлая тема. */
-.empty-tooltip {
-  position: absolute;
-  top: calc(100% + 6px);
-  left: 50%;
-  transform: translateX(-50%);
-  min-width: 200px;
-  max-width: 260px;
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  padding: 8px 10px;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.15s;
-  z-index: 25;
-}
-.player-wrapper:hover .empty-tooltip {
-  opacity: 1;
-}
-.empty-tooltip-title {
-  font-size: 11px;
-  font-weight: 700;
-  color: #0f172a;
-  margin-bottom: 4px;
-}
-.empty-tooltip-sub {
-  font-size: 9px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
-  color: #94a3b8;
-  margin-bottom: 4px;
-}
-.empty-tooltip-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 3px;
-}
-.empty-tooltip-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  padding: 2px 6px;
-  border-radius: 6px;
-  background: #f1f5f9;
-  color: #475569;
-  font-size: 10px;
-  font-weight: 500;
-  border: 1px solid #e2e8f0;
-}
-.empty-tooltip-chip-primary {
-  background: #dbeafe;
-  color: #1e40af;
-  border-color: #93c5fd;
-}
-.empty-tooltip-chip-label {
-  font-weight: 500;
-  font-size: 9px;
-  color: inherit;
-  opacity: 0.85;
-}
-
+/* Тултип имени игрока — сверху */
 .player-tooltip {
   position: absolute;
   bottom: calc(100% + 6px);
@@ -311,28 +224,23 @@ function initials(name: string) {
   padding: 5px 9px;
   background: rgba(15, 23, 42, 0.95);
   color: white;
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 11px; font-weight: 600;
   border-radius: 8px;
   white-space: nowrap;
-  opacity: 0;
-  pointer-events: none;
+  opacity: 0; pointer-events: none;
   transition: opacity 0.15s;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   z-index: 10;
 }
+.player-wrapper:hover .player-tooltip { opacity: 1; }
 
-.player-wrapper:hover .player-tooltip {
-  opacity: 1;
-}
-
+/* Лейбл позиции под кружком (на hover) */
 .player-position {
   position: absolute;
   top: calc(100% + 4px);
   left: 50%;
   transform: translateX(-50%);
-  font-size: 10px;
-  font-weight: 700;
+  font-size: 10px; font-weight: 700;
   color: #6b7280;
   background: rgba(255, 255, 255, 0.9);
   padding: 2px 6px;
@@ -340,78 +248,92 @@ function initials(name: string) {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   border: 1px solid #d1d5db;
   white-space: nowrap;
-  opacity: 0;
-  pointer-events: none;
+  opacity: 0; pointer-events: none;
   transition: opacity 0.2s;
   z-index: 10;
 }
+.player-wrapper:hover .player-position { opacity: 1; }
 
-.player-wrapper:hover .player-position {
-  opacity: 1;
-}
-
-.player-substitute {
+/* Подсказка пустого слота (snizu, светлая в любой теме) */
+.empty-tooltip {
   position: absolute;
-  top: calc(100% + 4px);
+  top: calc(100% + 6px);
   left: 50%;
   transform: translateX(-50%);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
+  min-width: 200px; max-width: 260px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 8px 10px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.15s;
+  z-index: 25;
+}
+.player-wrapper:hover .empty-tooltip { opacity: 1; }
+.empty-tooltip-title {
+  font-size: 11px; font-weight: 700; color: #0f172a;
+  margin-bottom: 4px;
+}
+.empty-tooltip-sub {
+  font-size: 9px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.4px; color: #94a3b8; margin-bottom: 4px;
+}
+.empty-tooltip-list { display: flex; flex-wrap: wrap; gap: 3px; }
+.empty-tooltip-chip {
+  display: inline-flex; align-items: center; gap: 3px;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: #f1f5f9; color: #475569;
+  font-size: 10px; font-weight: 500;
+  border: 1px solid #e2e8f0;
+}
+.empty-tooltip-chip-primary {
+  background: #dbeafe; color: #1e40af; border-color: #93c5fd;
+}
+.empty-tooltip-chip-label {
+  font-weight: 500; font-size: 9px;
+  color: inherit; opacity: 0.85;
+}
+
+/* Замена */
+.player-substitute {
+  position: absolute; top: calc(100% + 4px); left: 50%;
+  transform: translateX(-50%);
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
   z-index: 20;
 }
-
-.substitute-arrow {
-  font-size: 10px;
-  color: #10b981;
-  font-weight: 700;
-  line-height: 1;
-}
-
+.substitute-arrow { font-size: 10px; color: #10b981; font-weight: 700; line-height: 1; }
 .substitute-circle {
-  width: 30px;
-  height: 30px;
+  width: 30px; height: 30px;
   border-radius: 50%;
   background: #d1fae5;
   border: 2px solid #10b981;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 11px;
-  font-weight: 700;
-  color: #047857;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; color: #047857;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
   cursor: pointer;
   transition: transform 0.15s;
 }
-
-.substitute-circle:hover {
-  transform: scale(1.1);
-}
-
+.substitute-circle:hover { transform: scale(1.1); }
 .substitute-name {
   padding: 3px 7px;
   background: rgba(15, 23, 42, 0.9);
   color: #6ee7b7;
-  font-size: 10px;
-  font-weight: 600;
+  font-size: 10px; font-weight: 600;
   border-radius: 6px;
   white-space: nowrap;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
-.sub-fade-enter-active,
-.sub-fade-leave-active {
+.sub-fade-enter-active, .sub-fade-leave-active {
   transition: opacity 0.2s, transform 0.2s;
 }
-.sub-fade-enter-from,
-.sub-fade-leave-to {
+.sub-fade-enter-from, .sub-fade-leave-to {
   opacity: 0;
   transform: translateX(-50%) translateY(-6px);
 }
-.sub-fade-enter-to,
-.sub-fade-leave-from {
+.sub-fade-enter-to, .sub-fade-leave-from {
   opacity: 1;
   transform: translateX(-50%) translateY(0);
 }

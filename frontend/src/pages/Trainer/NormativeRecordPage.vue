@@ -34,14 +34,14 @@
           @click="selectGroup(g)"
           class="w-full text-left bg-white rounded-2xl border border-neutral-200 p-3.5 hover:border-green-200 hover:bg-green-50/30 transition-all flex items-center gap-3 shadow-[0_6px_0_-2px_#BBF7D0] dark:shadow-[0_6px_0_-2px_#14532D] mb-1.5"
         >
-          <div class="w-8 h-8 rounded-xl bg-green-100 flex items-center justify-center flex-shrink-0">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" class="w-4 h-4 text-green-600">
+          <div class="w-10 h-10 rounded-xl bg-green-100 flex items-center justify-center flex-shrink-0">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" class="w-5 h-5 text-green-600">
               <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
             </svg>
           </div>
           <div class="flex-1 min-w-0">
-            <div class="text-sm font-semibold text-neutral-800">{{ g.name }}</div>
-            <div class="text-xs text-neutral-400 mt-0.5">{{ g._type === 'team' ? 'Команда' : (g.description || 'Группа') }}</div>
+            <div class="text-base font-semibold text-neutral-800">{{ g.name }}</div>
+            <div class="text-sm text-neutral-400 mt-0.5">{{ g._type === 'team' ? 'Команда' : (g.description || 'Группа') }}</div>
           </div>
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" class="w-4 h-4 text-neutral-300 flex-shrink-0">
             <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>

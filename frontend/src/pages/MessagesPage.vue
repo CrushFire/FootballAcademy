@@ -7,8 +7,8 @@
     <aside class="w-72 bg-white border-r border-neutral-200 flex flex-col shrink-0">
 
       <!-- Заголовок -->
-      <div class="px-4 py-3 border-b border-neutral-200">
-        <span class="text-sm font-bold text-neutral-800">Чаты</span>
+      <div class="px-5 pt-0 pb-3 border-b border-neutral-100">
+        <h1 class="text-xl font-bold text-neutral-900 leading-none">Чаты</h1>
       </div>
 
       <!-- Поиск -->

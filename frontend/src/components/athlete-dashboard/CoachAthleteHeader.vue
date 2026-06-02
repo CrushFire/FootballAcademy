@@ -14,9 +14,10 @@
           К списку
         </button>
 
-        <!-- Аватар-заглушка -->
-        <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
-          <span class="text-blue-600 font-bold text-sm">{{ initials }}</span>
+        <!-- Аватарка спортсмена: на всю высоту плашки. -->
+        <img v-if="avatarUrl" :src="avatarUrl" class="w-16 h-16 rounded-full object-cover object-top border-2 border-blue-200 shrink-0" />
+        <div v-else class="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center shrink-0 border-2 border-blue-200">
+          <span class="text-blue-600 font-bold text-xl">{{ initials }}</span>
         </div>
 
         <!-- Данные -->
@@ -48,6 +49,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { imageUrl } from '@/utils/imageUrl'
 
 const SPEC_LABEL: Record<string, string> = { Football: 'Футбол', Minifootball: 'Мини-футбол' }
 
@@ -58,4 +60,6 @@ const initials = computed(() => {
   const parts = (props.info.fio ?? '').split(' ')
   return parts.slice(0, 2).map((p: string) => p[0] ?? '').join('').toUpperCase() || '?'
 })
+
+const avatarUrl = computed(() => imageUrl(props.info?.images))
 </script>

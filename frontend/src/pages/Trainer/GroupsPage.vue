@@ -33,8 +33,8 @@
     <template #items>
       <div v-for="g in paged" :key="g.id" class="shadow-[0_6px_0_-2px_#BAE6FD] dark:shadow-[0_6px_0_-2px_#0C4A6E] mb-1.5 rounded-2xl">
         <TrainerCard padding="p-3" @click="openDetail(g)">
-          <div class="text-sm font-semibold text-neutral-800">{{ g.name }}</div>
-          <div class="text-xs text-neutral-400 mt-0.5">{{ g.description || '—' }}</div>
+          <div class="text-base font-semibold text-neutral-800">{{ g.name }}</div>
+          <div class="text-sm text-neutral-400 mt-0.5">{{ g.description || '—' }}</div>
         </TrainerCard>
       </div>
     </template>

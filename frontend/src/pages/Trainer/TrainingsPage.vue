@@ -48,12 +48,12 @@
       <TrainerCard v-for="t in paged" :key="t.id" @click="$router.push(`/trainer/trainings/${t.id}`)">
         <div class="flex items-start justify-between gap-2">
           <div class="flex-1 min-w-0">
-            <div class="text-sm font-semibold text-neutral-800">{{ t.type || 'Тренировка' }}</div>
-            <div class="text-xs text-neutral-400 mt-0.5">
+            <div class="text-base font-semibold text-neutral-800">{{ t.type || 'Тренировка' }}</div>
+            <div class="text-sm text-neutral-400 mt-0.5">
               {{ formatDate(t.date) }}<template v-if="t.groupName"> · {{ t.groupName }}</template><template v-if="t.planTrainingName"> · {{ t.planTrainingName }}</template>
             </div>
-            <div v-if="t.otherInformation" class="text-xs text-neutral-600 mt-2 line-clamp-2">{{ t.otherInformation }}</div>
-            <div v-else class="text-xs text-neutral-400 mt-2">Нет описания</div>
+            <div v-if="t.otherInformation" class="text-sm text-neutral-600 mt-2 line-clamp-2">{{ t.otherInformation }}</div>
+            <div v-else class="text-sm text-neutral-400 mt-2">Нет описания</div>
           </div>
           <div class="flex items-center gap-1.5 shrink-0" @click.stop>
             <button

@@ -49,28 +49,28 @@
         @click="openModal(s)"
         class="bg-white rounded-2xl border border-neutral-200 p-3 flex items-center gap-3 cursor-pointer hover:border-sky-200 hover:bg-sky-50/30 transition-all shadow-[0_6px_0_-2px_#BAE6FD] dark:shadow-[0_6px_0_-2px_#0C4A6E] mb-1.5"
       >
-        <div class="w-9 h-9 rounded-xl bg-neutral-100 flex items-center justify-center flex-shrink-0 text-sm font-bold text-neutral-500">
+        <div class="w-10 h-10 rounded-xl bg-neutral-100 flex items-center justify-center flex-shrink-0 text-base font-bold text-neutral-500">
           {{ initials(s.fio) }}
         </div>
         <div class="flex-1 min-w-0">
-          <div class="text-sm font-semibold text-neutral-800 truncate">{{ s.fio }}</div>
-          <div class="text-xs text-neutral-400 mt-0.5">{{ s.position ? `${s.position} (${POSITION_LABEL[s.position] ?? s.position})` : '—' }} · {{ SPEC_LABEL[s.specialization] ?? s.specialization }} · {{ s.age }} лет</div>
+          <div class="text-base font-semibold text-neutral-800 truncate">{{ s.fio }}</div>
+          <div class="text-sm text-neutral-400 mt-0.5">{{ s.position ? `${s.position} (${POSITION_LABEL[s.position] ?? s.position})` : '—' }} · {{ SPEC_LABEL[s.specialization] ?? s.specialization }} · {{ s.age }} лет</div>
         </div>
-        <div class="flex flex-col items-end gap-1 flex-shrink-0 min-w-[140px]">
+        <div class="flex flex-col items-end gap-1 flex-shrink-0 min-w-[160px]">
           <div class="w-full">
-            <div class="text-[9px] font-bold text-neutral-600 uppercase tracking-wide mb-0.5">ГТО:</div>
+            <div class="text-[10px] font-bold text-neutral-600 uppercase tracking-wide mb-0.5">ГТО:</div>
             <div class="flex items-center gap-1 flex-wrap justify-end">
-              <span v-if="miniStats[s.id]?.excellent"    class="text-[10px] px-1.5 py-0.5 rounded-full bg-green-100 text-green-700 font-semibold whitespace-nowrap">{{ miniStats[s.id].excellent }} отл</span>
-              <span v-if="miniStats[s.id]?.good"         class="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700 font-semibold whitespace-nowrap">{{ miniStats[s.id].good }} хор</span>
-              <span v-if="miniStats[s.id]?.satisfactory" class="text-[10px] px-1.5 py-0.5 rounded-full bg-yellow-100 text-yellow-700 font-semibold whitespace-nowrap">{{ miniStats[s.id].satisfactory }} удовл</span>
-              <span v-if="!miniStats[s.id]?.excellent && !miniStats[s.id]?.good && !miniStats[s.id]?.satisfactory" class="text-[10px] text-neutral-400">—</span>
+              <span v-if="miniStats[s.id]?.excellent"    class="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-semibold whitespace-nowrap">{{ miniStats[s.id].excellent }} отл</span>
+              <span v-if="miniStats[s.id]?.good"         class="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 font-semibold whitespace-nowrap">{{ miniStats[s.id].good }} хор</span>
+              <span v-if="miniStats[s.id]?.satisfactory" class="text-xs px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700 font-semibold whitespace-nowrap">{{ miniStats[s.id].satisfactory }} удовл</span>
+              <span v-if="!miniStats[s.id]?.excellent && !miniStats[s.id]?.good && !miniStats[s.id]?.satisfactory" class="text-xs text-neutral-400">—</span>
             </div>
           </div>
           <div class="w-full">
-            <div class="text-[9px] font-bold text-neutral-600 uppercase tracking-wide mb-0.5">Локальные:</div>
+            <div class="text-[10px] font-bold text-neutral-600 uppercase tracking-wide mb-0.5">Локальные:</div>
             <div class="flex items-center gap-1 flex-wrap justify-end">
-              <span v-if="miniStats[s.id]?.pass" class="text-[10px] px-1.5 py-0.5 rounded-full bg-teal-100 text-teal-700 font-semibold whitespace-nowrap">{{ miniStats[s.id].pass }} выпол</span>
-              <span v-else class="text-[10px] text-neutral-400">—</span>
+              <span v-if="miniStats[s.id]?.pass" class="text-xs px-2 py-0.5 rounded-full bg-teal-100 text-teal-700 font-semibold whitespace-nowrap">{{ miniStats[s.id].pass }} выпол</span>
+              <span v-else class="text-xs text-neutral-400">—</span>
             </div>
           </div>
         </div>
@@ -218,6 +218,8 @@ const filteredSportsmen = computed(() => {
 const totalPages     = computed(() => Math.max(1, Math.ceil(filteredSportsmen.value.length / PER_PAGE)))
 const pagedSportsmen = computed(() => filteredSportsmen.value.slice((page.value - 1) * PER_PAGE, page.value * PER_PAGE))
 watch([search, filterSpec], () => { page.value = 1 })
+// При смене полугодия — перезагружаем мини-статистику (как у тренера/спортсмена).
+watch(periodOffset, () => { loadMiniStats(allSportsmen.value) })
 
 // modal
 const modalSportsman    = ref<any | null>(null)

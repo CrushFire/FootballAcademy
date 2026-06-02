@@ -5,8 +5,8 @@
       <!-- Topbar: только заголовок -->
       <div class="flex items-center justify-between mb-4 flex-shrink-0">
         <div>
-          <h2 class="text-base font-bold text-neutral-800">Медицинский мониторинг</h2>
-          <p class="text-xs text-neutral-400 mt-0.5">Анализ состояния игроков</p>
+          <h1 class="text-xl font-bold text-neutral-900">Медицинский мониторинг</h1>
+          <p class="text-sm text-neutral-500 mt-0.5">Анализ состояния игроков</p>
         </div>
       </div>
 

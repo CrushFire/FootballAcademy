@@ -1,15 +1,20 @@
 <template>
   <div class="p-3 h-full">
-    <AppCard no-border class="h-full">
-      <div class="grid grid-cols-5 gap-4 h-full">
+    <AppCard no-border class="h-full flex flex-col">
+      <!-- Шапка страницы -->
+      <div class="-mx-4 -mt-4 px-5 py-4 mb-5 rounded-t-2xl border-b border-neutral-100">
+        <h1 class="text-xl font-bold text-neutral-900">Тренировки</h1>
+        <p class="text-sm text-neutral-500 mt-0.5">Графики тренировок и список занятий</p>
+      </div>
+      <div class="grid grid-cols-5 gap-4 flex-1 min-h-0">
 
         <!-- График (3/4) -->
         <div class="col-span-3 flex flex-col">
           <!-- Заголовок -->
           <div class="mb-3 px-1 flex items-end justify-between">
             <div>
-              <div class="text-base font-bold text-neutral-800">График тренировок</div>
-              <div class="text-xs text-neutral-400 mt-0.5">Выбери категорию и параметры для анализа динамики роста</div>
+              <div class="text-base font-bold text-neutral-400">График тренировок</div>
+              <div class="text-xs text-neutral-500 mt-0.5">Выбери категорию и параметры для анализа динамики роста</div>
             </div>
             <div class="flex items-center gap-3 text-xs text-neutral-400 flex-wrap justify-end">
               <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-blue-400"></span>Скорость</span>

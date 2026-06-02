@@ -1,8 +1,10 @@
 <template>
-  <div class="p-3 h-full">
-    <TrainerPageCard color="blue" class="h-full flex flex-col">
-      <div class="flex items-start justify-between mb-5 pb-4 border-b border-neutral-100">
-        <div>
+  <div class="p-3 h-full flex flex-col gap-3">
+    <!-- Шапка вынесена в отдельную карточку (как в Live-матче) -->
+    <div class="bg-white rounded-2xl border border-neutral-200 shadow-sm overflow-hidden flex-shrink-0">
+      <div class="h-1 bg-gradient-to-r from-blue-500 to-blue-400" />
+      <div class="px-5 py-4 flex items-start justify-between gap-3">
+        <div class="flex-1 min-w-0">
           <h1 class="text-xl font-bold text-neutral-900">{{ isEdit ? 'Редактирование тренировки' : 'Создание тренировки' }}</h1>
           <p class="text-sm text-neutral-500 mt-0.5">
             {{ isEdit
@@ -20,7 +22,10 @@
           Назад
         </button>
       </div>
+    </div>
 
+    <!-- Основная карточка с формой (без верхней полоски) -->
+    <div class="bg-white dark:bg-theme-surface rounded-2xl shadow-sm dark:shadow-none border border-neutral-200 dark:border-theme-border flex-1 min-h-0 flex flex-col p-4">
       <div v-if="loading" class="flex-1 flex items-center justify-center text-sm text-neutral-400">Загрузка...</div>
       <div v-else-if="loadError" class="flex-1 flex items-center justify-center text-sm text-red-500">{{ loadError }}</div>
       <div v-else class="flex-1 overflow-y-auto flex flex-col gap-5">
@@ -138,7 +143,7 @@
           </div>
         </div>
       </div>
-    </TrainerPageCard>
+    </div>
   </div>
 </template>
 
@@ -147,7 +152,6 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '@/services/api'
 import { useAuthStore } from '@/store/auth'
-import TrainerPageCard from '@/components/trainer/TrainerPageCard.vue'
 import SearchableSelect from '@/components/trainer/SearchableSelect.vue'
 import AttendanceEditor from '@/components/trainer/AttendanceEditor.vue'
 

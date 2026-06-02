@@ -56,15 +56,15 @@
           >
             <div class="flex items-start gap-3">
               <!-- Аватар -->
-              <div class="w-9 h-9 rounded-xl bg-green-100 flex items-center justify-center flex-shrink-0 mt-0.5 text-xs font-bold text-green-600">
+              <div class="w-10 h-10 rounded-xl bg-green-100 flex items-center justify-center flex-shrink-0 mt-0.5 text-sm font-bold text-green-600">
                 {{ initials(w.sportsmanFIO) }}
               </div>
 
               <!-- Контент -->
               <div class="flex-1 min-w-0">
-                <div class="text-sm font-semibold text-neutral-800 truncate">{{ w.sportsmanFIO }}</div>
-                <div class="text-xs text-neutral-400 mt-0.5">{{ formatDate(w.createdAt) }} · от {{ w.personalFIO }}</div>
-                <div class="text-xs text-neutral-600 mt-1.5 line-clamp-2">{{ w.workout }}</div>
+                <div class="text-base font-semibold text-neutral-800 truncate">{{ w.sportsmanFIO }}</div>
+                <div class="text-sm text-neutral-400 mt-0.5">{{ formatDate(w.createdAt) }} · от {{ w.personalFIO }}</div>
+                <div class="text-sm text-neutral-600 mt-1.5 line-clamp-2">{{ w.workout }}</div>
               </div>
 
               <!-- Действия -->

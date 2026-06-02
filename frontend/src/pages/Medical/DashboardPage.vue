@@ -10,8 +10,8 @@
           </svg>
         </div>
         <div class="flex-1 min-w-0">
-          <div class="text-base font-semibold text-neutral-900">Медицинский модуль</div>
-          <div class="text-xs text-neutral-500 mt-0.5">Мониторинг состояния спортсменов</div>
+          <h1 class="text-xl font-bold text-neutral-900">Медицинский модуль</h1>
+          <p class="text-sm text-neutral-500 mt-0.5">Мониторинг состояния спортсменов</p>
         </div>
         <RouterLink to="/medical/checks" class="text-xs font-medium text-emerald-600 hover:text-emerald-700 transition-colors flex-shrink-0">
           Все проверки →

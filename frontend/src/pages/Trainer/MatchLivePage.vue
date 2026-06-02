@@ -5,8 +5,8 @@
     <template v-if="step === 'select'">
       <LiveMatchHeader>
         <div class="flex-1">
-          <div class="text-base font-bold text-neutral-900">Live-матч</div>
-          <div class="text-xs text-neutral-500 mt-0.5">Выберите запланированный матч или создайте новый</div>
+          <h1 class="text-xl font-bold text-neutral-900">Live-матч</h1>
+          <p class="text-sm text-neutral-500 mt-0.5">Выберите запланированный матч или создайте новый</p>
         </div>
       </LiveMatchHeader>
 
@@ -320,11 +320,26 @@
               >{{ match.opponentTeamName }}</button>
             </div>
 
-            <MatchLineupDisplay
-              :lineup="currentFieldLineup"
-              :sportsmenMap="sportsmenMap"
-              :events="fieldTeamSide === 'home' ? liveEvents.filter(e => e.isHomeTeam) : liveEvents.filter(e => !e.isHomeTeam)"
-            />
+            <!-- Десктоп/планшет (≥768px): горизонтальная половина с выбором тактики -->
+            <div class="hidden md:block">
+              <MatchLineupDisplay
+                :lineup="currentFieldLineup"
+                :sportsmenMap="sportsmenMap"
+                :events="fieldTeamSide === 'home' ? liveEvents.filter(e => e.isHomeTeam) : liveEvents.filter(e => !e.isHomeTeam)"
+                :mirror="isInternalMatch && fieldTeamSide === 'away'"
+                :match-id="match?.id ? `${match.id}:${fieldTeamSide}` : undefined"
+              />
+            </div>
+            <!-- Мобила (<768px): вертикальное поле с той же логикой тактик -->
+            <div class="md:hidden">
+              <FootballFieldMobile
+                :lineup="currentFieldLineup"
+                :sportsmen-map="sportsmenMap"
+                :events="fieldTeamSide === 'home' ? liveEvents.filter(e => e.isHomeTeam) : liveEvents.filter(e => !e.isHomeTeam)"
+                :mirror="isInternalMatch && fieldTeamSide === 'away'"
+                :match-id="match?.id ? `${match.id}:${fieldTeamSide}` : undefined"
+              />
+            </div>
 
             <!-- Кнопка просмотра состава -->
             <button @click="openLineupEditor"
@@ -457,9 +472,18 @@
                 <label class="block text-xs font-semibold text-neutral-500 mb-1">Результат</label>
                 <select v-model="finishForm.result" class="w-full text-sm rounded-xl border border-neutral-200 px-3 py-2.5 focus:outline-none focus:border-blue-400">
                   <option value="">Выберите результат</option>
-                  <option value="Win">Победа</option>
-                  <option value="Draw">Ничья</option>
-                  <option value="Loss">Поражение</option>
+                  <template v-if="isInternalMatch">
+                    <!-- Обе команды наши: подписываем чьей именно командой выиграно.
+                         Win = победа домашней; Loss = победа гостевой (тоже нашей). -->
+                    <option value="Win">Победа {{ match.homeTeamName }}</option>
+                    <option value="Loss">Победа {{ match.opponentTeamName }}</option>
+                    <option value="Draw">Ничья</option>
+                  </template>
+                  <template v-else>
+                    <option value="Win">Победа</option>
+                    <option value="Draw">Ничья</option>
+                    <option value="Loss">Поражение</option>
+                  </template>
                 </select>
               </div>
               <div>
@@ -661,6 +685,7 @@ import { imageUrl } from '@/utils/imageUrl'
 import { useAuthStore } from '@/store/auth'
 import LiveMatchHeader from '@/components/trainer/LiveMatchHeader.vue'
 import MatchLineupDisplay from '@/components/trainer/MatchLineupDisplay.vue'
+import FootballFieldMobile from '@/components/trainer/FootballFieldMobile.vue'
 import ConfirmDeleteModal from '@/components/ui/ConfirmDeleteModal.vue'
 import ConfirmStartModal from '@/components/ui/ConfirmStartModal.vue'
 
@@ -716,6 +741,8 @@ const match = ref<any>(null)
 const loadingScheduled = ref(true)
 const scheduledMatches = ref<any[]>([])
 const myTeams = ref<any[]>([])
+// Все команды академии — для выбора соперника (включая чужих тренеров).
+const allTeams = ref<any[]>([])
 const myGroups = ref<any[]>([])
 
 // Эмблемы команд — отдельные ref для прямого биндинга
@@ -1023,6 +1050,13 @@ const filteredModalReserves = computed(() => {
 const createForm = ref({ homeTeamId: '' as any, opponentTeamName: '', opponentTeamId: '' as any, type: 'Friendly', date: getLocalDateTimeString() })
 const finishForm = ref({ result: '', trainerComment: '' })
 
+// Матч между двумя нашими командами: тип Home + есть opponentTeamId.
+// Тогда селектор результата показывает имена команд вместо абстрактных Win/Loss.
+const isInternalMatch = computed(() => {
+  const m = match.value
+  return !!m && m.type === 'Home' && !!m.opponentTeamId
+})
+
 const eventModal = ref({
   open: false,
   editId: null as number | null,
@@ -1051,9 +1085,10 @@ const canCreateMatch = computed(() => {
   return !!createForm.value.opponentTeamName
 })
 
+// Соперник — любая команда академии (не обязательно тренера), кроме самой "домашней".
 const availableOpponentTeams = computed(() => {
-  if (!createForm.value.homeTeamId) return myTeams.value
-  return myTeams.value.filter(t => t.id !== Number(createForm.value.homeTeamId))
+  if (!createForm.value.homeTeamId) return allTeams.value
+  return allTeams.value.filter((t: any) => t.id !== Number(createForm.value.homeTeamId))
 })
 
 function getLocalDateTimeString() {
@@ -1166,14 +1201,17 @@ async function loadScheduled() {
   const matchFilter = tid
     ? { filters: { trainerId: [tid] } }
     : undefined
-  const [mRes, tRes, sRes, gRes] = await Promise.allSettled([
+  const [mRes, tRes, sRes, gRes, allTRes] = await Promise.allSettled([
     api.get('/match', { params: matchFilter }),
     api.get('/team', { params: tid ? { filters: { trainerId: [tid] } } : undefined }),
     api.get('/sportsman'),
     api.get('/group', { params: tid ? { filters: { trainerId: [tid] } } : undefined }),
+    // Все команды академии — для списка соперников при создании матча.
+    api.get('/team'),
   ])
 
   if (tRes.status === 'fulfilled') myTeams.value = tRes.value.data.data ?? []
+  if (allTRes.status === 'fulfilled') allTeams.value = allTRes.value.data.data ?? []
   if (gRes.status === 'fulfilled') myGroups.value = gRes.value.data.data ?? []
   if (sRes.status === 'fulfilled') {
     allSportsmensCache.value = sRes.value.data.data ?? []

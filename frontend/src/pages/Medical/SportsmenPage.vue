@@ -35,8 +35,8 @@
           <TrainerCard v-for="s in paged" :key="s.id" padding="p-3">
             <div class="flex items-center justify-between">
               <div class="flex-1 min-w-0">
-                <div class="text-sm font-semibold text-neutral-800">{{ s.fio }}</div>
-                <div class="text-xs text-neutral-400 mt-0.5">
+                <div class="text-base font-semibold text-neutral-800">{{ s.fio }}</div>
+                <div class="text-sm text-neutral-400 mt-0.5">
                   {{ s.position ? `${s.position} (${POSITION_LABEL[s.position] ?? s.position})` : '—' }} · {{ SPEC_LABEL[s.specialization] ?? s.specialization }} · {{ s.age }} лет · {{ s.height }} см · {{ s.weight }} кг
                 </div>
               </div>

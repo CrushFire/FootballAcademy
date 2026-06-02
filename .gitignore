@@ -177,3 +177,8 @@ backend/FootballAcademy/uploads/**/archive/
 *.bak
 *.orig
 *.rej
+
+# === Локальные превью / черновики ===
+header-variants.html
+field-variants.html
+formations-preview.html

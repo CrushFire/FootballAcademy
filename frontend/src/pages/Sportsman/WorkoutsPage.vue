@@ -1,9 +1,9 @@
 <template>
-  <div class="p-6 h-full overflow-y-auto">
+  <div class="p-3 h-full overflow-y-auto">
     <AppCard no-border class="min-h-full flex flex-col">
 
       <!-- Шапка -->
-      <div class="flex items-start justify-between bg-neutral-50 -mx-4 -mt-4 px-5 py-4 mb-5 rounded-t-2xl border-b border-neutral-100">
+      <div class="flex items-start justify-between -mx-4 -mt-4 px-5 py-4 mb-5 rounded-t-2xl border-b border-neutral-100">
         <div>
           <h1 class="text-xl font-bold text-neutral-900">Индивидуальные задания</h1>
           <p class="text-sm text-neutral-500 mt-0.5">Рекомендации и упражнения от тренеров</p>

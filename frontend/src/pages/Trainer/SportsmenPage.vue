@@ -35,13 +35,12 @@
     <template #items>
       <TrainerCard v-for="s in paged" :key="s.id" padding="p-3" @click="goProfile(s.id)">
         <div class="flex items-center gap-3">
-          <div class="w-9 h-9 rounded-xl overflow-hidden bg-neutral-100 flex items-center justify-center flex-shrink-0 text-sm font-bold text-neutral-500">
-            <img v-if="s.images && s.images.length" :src="s.images[0].path" class="w-full h-full object-cover" />
-            <template v-else>{{ initials(s.fio) }}</template>
+          <div class="w-10 h-10 rounded-xl bg-neutral-100 flex items-center justify-center flex-shrink-0 text-base font-bold text-neutral-500">
+            {{ initials(s.fio) }}
           </div>
           <div class="flex-1 min-w-0">
-            <div class="text-sm font-semibold text-neutral-800">{{ s.fio }}</div>
-            <div class="text-xs text-neutral-400 mt-0.5">
+            <div class="text-base font-semibold text-neutral-800">{{ s.fio }}</div>
+            <div class="text-sm text-neutral-400 mt-0.5">
               {{ s.position ? `${s.position} (${POSITION_LABEL[s.position] ?? s.position})` : '—' }} · {{ SPEC_LABEL[s.specialization] ?? s.specialization }} · {{ s.age }} лет · {{ s.height }} см · {{ s.weight }} кг
             </div>
           </div>
