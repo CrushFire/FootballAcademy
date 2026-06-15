@@ -13,27 +13,37 @@ import { ref, reactive } from 'vue'
 defineProps<{ text: string }>()
 
 const visible = ref(false)
-const style = reactive({ top: '0px', left: '0px' })
+const style = reactive({ top: '0px', left: '0px', maxWidth: '300px' })
 
 function show(e: MouseEvent) {
   const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
-  const bubbleW = 300
+  // На узких экранах сужаем bubble чтобы влез
+  const maxW = Math.min(300, window.innerWidth - 24)
+  const bubbleW = maxW
   const bubbleH = 200 // приблизительно
 
+  // Пытаемся справа от иконки
   let left = rect.right + 8
-  let top = rect.top
-
-  // не выходить за правый край
+  // Не влез справа — пробуем слева
   if (left + bubbleW > window.innerWidth - 8) {
     left = rect.left - bubbleW - 8
   }
-  // не выходить за нижний край
+  // Если и слева не влезло (узкий экран) — прижимаем к правому краю с отступом
+  if (left < 8) {
+    left = Math.max(8, window.innerWidth - bubbleW - 8)
+  }
+
+  let top = rect.top
+  // Не выходить за нижний край
   if (top + bubbleH > window.innerHeight - 8) {
     top = window.innerHeight - bubbleH - 8
   }
+  // И за верхний (если bubbleH больше высоты экрана)
+  if (top < 8) top = 8
 
   style.left = `${left}px`
   style.top = `${top}px`
+  style.maxWidth = `${maxW}px`
   visible.value = true
 }
 
@@ -87,10 +97,10 @@ function hide() {
   box-shadow: 0 4px 16px rgba(0,0,0,0.12);
   z-index: 9999;
   pointer-events: none;
-  width: 300px;
   white-space: pre-line;
   text-align: left;
   line-height: 1.4;
+  /* width задаётся через maxWidth из JS — учитывает узкие экраны */
 }
 
 /* Тёмная тема — облачко подсказки */

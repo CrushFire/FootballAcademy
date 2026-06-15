@@ -1,25 +1,25 @@
 <template>
   <div class="p-3 h-full overflow-y-auto">
-    <MedicalPageCard color="emerald" class="min-h-full flex flex-col gap-5">
+    <MedicalPageCard color="emerald" class="!h-auto md:!h-full flex flex-col gap-5">
 
       <!-- Хедер: нейтральный, с левым акцентом -->
-      <div class="flex items-center gap-4 pl-4 py-1 border-l-4 border-emerald-500">
+      <div class="flex items-center gap-2 md:gap-4 pl-3 md:pl-4 py-1 border-l-4 border-emerald-500">
         <div class="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center flex-shrink-0">
           <svg class="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
           </svg>
         </div>
         <div class="flex-1 min-w-0">
-          <h1 class="text-xl font-bold text-neutral-900">Медицинский модуль</h1>
-          <p class="text-sm text-neutral-500 mt-0.5">Мониторинг состояния спортсменов</p>
+          <h1 class="text-lg md:text-xl font-bold text-neutral-900">Медицинский модуль</h1>
+          <p class="text-xs md:text-sm text-neutral-500 mt-0.5">Мониторинг состояния спортсменов</p>
         </div>
-        <RouterLink to="/medical/checks" class="text-xs font-medium text-emerald-600 hover:text-emerald-700 transition-colors flex-shrink-0">
-          Все проверки →
+        <RouterLink to="/medical/checks" class="text-xs font-medium text-emerald-600 hover:text-emerald-700 transition-colors flex-shrink-0 whitespace-nowrap">
+          <span class="hidden sm:inline">Все проверки</span><span class="sm:hidden">Все</span> →
         </RouterLink>
       </div>
 
       <!-- Metric-карточки -->
-      <div class="grid grid-cols-3 gap-3">
+      <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
         <RouterLink
           v-for="stat in statCards" :key="stat.to"
           :to="stat.to"
@@ -32,28 +32,28 @@
             </div>
             <div class="text-xs text-neutral-500 group-hover:text-neutral-700 transition-colors truncate">{{ stat.label }}</div>
           </div>
-          <div class="text-3xl font-semibold leading-tight" :class="stat.valueClass">{{ stat.value }}</div>
+          <div class="text-2xl md:text-3xl font-semibold leading-tight" :class="stat.valueClass">{{ stat.value }}</div>
         </RouterLink>
       </div>
 
       <!-- Список тревог -->
       <div class="rounded-2xl border border-neutral-200 bg-white flex flex-col flex-1 min-h-0 overflow-hidden">
         <!-- Заголовок с фильтрами -->
-        <div class="px-4 py-3 border-b border-neutral-100 flex items-center justify-between gap-3 flex-shrink-0">
-          <div class="text-sm font-semibold text-neutral-800 flex items-center gap-2">
+        <div class="px-3 md:px-4 py-3 border-b border-neutral-100 flex flex-wrap items-center justify-between gap-2 flex-shrink-0">
+          <div class="text-sm font-semibold text-neutral-800 flex items-center gap-2 min-w-0">
             Требуют внимания
             <span v-if="alerts.length" class="text-[11px] px-2 py-0.5 rounded-full bg-red-100 text-red-600 font-semibold">{{ alerts.length }}</span>
           </div>
-          <div class="flex items-center gap-1">
+          <div class="flex items-center gap-1 flex-wrap">
             <button
               v-for="f in filters" :key="f.value"
               @click="activeFilter = f.value"
-              class="text-xs px-3 py-1 rounded-full font-medium transition-colors"
+              class="text-xs px-2 md:px-3 py-1 rounded-full font-medium transition-colors"
               :class="activeFilter === f.value
                 ? 'bg-emerald-100 text-emerald-700'
                 : 'text-neutral-500 hover:text-neutral-700'"
             >{{ f.label }}</button>
-            <RouterLink to="/medical/checks" class="text-xs text-emerald-600 hover:text-emerald-700 transition-colors ml-1 font-medium">Все →</RouterLink>
+            <RouterLink to="/medical/checks" class="text-xs text-emerald-600 hover:text-emerald-700 transition-colors ml-1 font-medium whitespace-nowrap">Все →</RouterLink>
           </div>
         </div>
 

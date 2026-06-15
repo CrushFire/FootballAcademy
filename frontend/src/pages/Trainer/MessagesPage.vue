@@ -1,10 +1,13 @@
 <template>
-  <div class="p-3 h-full">
+  <div class="p-0 md:p-3 h-full">
   <TrainerPageCard color="sky" class="h-full flex flex-col p-0 overflow-hidden">
-  <div class="flex h-full overflow-hidden bg-neutral-50 rounded-2xl">
+  <div class="flex h-full overflow-hidden bg-neutral-50 md:rounded-2xl">
 
-    <!-- Левая панель -->
-    <aside class="w-72 bg-white border-r border-neutral-200 flex flex-col shrink-0">
+    <!-- Левая панель. На мобиле скрываем когда выбран чат/рассылка. -->
+    <aside
+      class="w-full md:w-72 bg-white border-r border-neutral-200 flex-col shrink-0"
+      :class="hasSelection ? 'hidden md:flex' : 'flex'"
+    >
 
       <!-- Вкладки -->
       <div class="flex border-b border-neutral-200">
@@ -133,12 +136,24 @@
       </div>
     </aside>
 
-    <!-- Основная область -->
-    <div class="flex-1 flex flex-col overflow-hidden">
+    <!-- Основная область. На мобиле скрываем когда ничего не выбрано. -->
+    <div
+      class="flex-1 flex-col overflow-hidden"
+      :class="hasSelection ? 'flex' : 'hidden md:flex'"
+    >
 
       <!-- Чат с пользователем -->
       <div v-if="activeTab === 'chats' && selectedUser" class="flex flex-col flex-1 min-h-0">
-        <div class="px-5 py-3 bg-white border-b border-neutral-200 flex items-center gap-3 shrink-0">
+        <div class="px-3 md:px-5 py-3 bg-white border-b border-neutral-200 flex items-center gap-2 md:gap-3 shrink-0">
+          <button
+            @click="clearSelection"
+            class="md:hidden w-8 h-8 rounded-lg flex items-center justify-center text-neutral-500 hover:bg-neutral-100 transition-colors shrink-0"
+            aria-label="К списку чатов"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" class="w-4 h-4">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+            </svg>
+          </button>
           <div class="w-9 h-9 rounded-full flex items-center justify-center text-white font-bold text-sm shrink-0"
             :class="roleColor(selectedUser.role)">
             {{ initials(selectedUser.login) }}
@@ -190,8 +205,17 @@
 
       <!-- Детали рассылки -->
       <div v-else-if="activeTab === 'broadcasts' && selectedBroadcast" class="flex flex-col flex-1 min-h-0">
-        <div class="px-5 py-3 bg-white border-b border-neutral-200 flex items-center justify-between shrink-0">
-          <div class="flex items-center gap-3">
+        <div class="px-3 md:px-5 py-3 bg-white border-b border-neutral-200 flex items-center justify-between shrink-0">
+          <div class="flex items-center gap-2 md:gap-3 min-w-0">
+            <button
+              @click="clearSelection"
+              class="md:hidden w-8 h-8 rounded-lg flex items-center justify-center text-neutral-500 hover:bg-neutral-100 transition-colors shrink-0"
+              aria-label="К списку рассылок"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" class="w-4 h-4">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+              </svg>
+            </button>
             <div class="w-9 h-9 rounded-xl bg-green-100 flex items-center justify-center shrink-0">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" class="w-4 h-4 text-green-600">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"/>
@@ -595,6 +619,18 @@ function formatRelative(iso: string): string {
   if (msgDay.getTime() === today.getTime()) return d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
   if (msgDay.getTime() === yesterday.getTime()) return 'Вчера'
   return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })
+}
+
+// На мобиле показываем либо список (левый aside), либо переписку (правый блок).
+// Десктоп: оба рядом одновременно.
+const hasSelection = computed(() =>
+  (activeTab.value === 'chats' && selectedUser.value)
+  || (activeTab.value === 'broadcasts' && selectedBroadcast.value)
+)
+
+function clearSelection() {
+  selectedUser.value = null
+  selectedBroadcast.value = null
 }
 
 // Filtered users list

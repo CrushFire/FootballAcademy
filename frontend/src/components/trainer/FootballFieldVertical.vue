@@ -268,8 +268,9 @@ function initials(name: string) {
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
   opacity: 0; pointer-events: none;
   transition: opacity 0.15s;
-  z-index: 25;
+  z-index: 100;
 }
+.player-wrapper:hover { z-index: 100; }
 .player-wrapper:hover .empty-tooltip { opacity: 1; }
 .empty-tooltip-title {
   font-size: 11px; font-weight: 700; color: #0f172a;

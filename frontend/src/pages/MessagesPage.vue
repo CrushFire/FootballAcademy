@@ -1,10 +1,13 @@
 <template>
-  <div class="p-3 h-full">
+  <div class="p-0 md:p-3 h-full">
   <AppCard no-border class="h-full flex flex-col p-0 overflow-hidden">
-  <div class="flex h-full overflow-hidden bg-neutral-50 rounded-2xl">
+  <div class="flex h-full overflow-hidden bg-neutral-50 md:rounded-2xl">
 
-    <!-- Левая панель -->
-    <aside class="w-72 bg-white border-r border-neutral-200 flex flex-col shrink-0">
+    <!-- Левая панель. На мобиле скрываем когда что-то выбрано. -->
+    <aside
+      class="w-full md:w-72 bg-white border-r border-neutral-200 flex-col shrink-0"
+      :class="selectedKey ? 'hidden md:flex' : 'flex'"
+    >
 
       <!-- Заголовок -->
       <div class="px-5 pt-0 pb-3 border-b border-neutral-100">
@@ -70,12 +73,24 @@
       </div>
     </aside>
 
-    <!-- Основная область -->
-    <div class="flex-1 flex flex-col overflow-hidden">
+    <!-- Основная область. На мобиле скрываем когда ничего не выбрано. -->
+    <div
+      class="flex-1 flex-col overflow-hidden"
+      :class="selectedKey ? 'flex' : 'hidden md:flex'"
+    >
 
       <!-- Чат -->
       <div v-if="selectedKey && selectedItem?.type === 'chat'" class="flex flex-col flex-1 min-h-0">
-        <div class="px-5 py-3 bg-white border-b border-neutral-200 flex items-center gap-3 shrink-0">
+        <div class="px-3 md:px-5 py-3 bg-white border-b border-neutral-200 flex items-center gap-2 md:gap-3 shrink-0">
+          <button
+            @click="clearSelection"
+            class="md:hidden w-8 h-8 rounded-lg flex items-center justify-center text-neutral-500 hover:bg-neutral-100 transition-colors shrink-0"
+            aria-label="К списку"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" class="w-4 h-4">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+            </svg>
+          </button>
           <div class="w-9 h-9 rounded-full flex items-center justify-center text-white font-bold text-sm shrink-0"
             :class="roleColor(selectedItem.role)">
             {{ initials(selectedItem.name) }}
@@ -107,7 +122,16 @@
 
       <!-- Рассылка как личное сообщение -->
       <div v-else-if="selectedKey && selectedItem?.type === 'broadcast'" class="flex flex-col flex-1 min-h-0">
-        <div class="px-5 py-3 bg-white border-b border-neutral-200 flex items-center gap-3 shrink-0">
+        <div class="px-3 md:px-5 py-3 bg-white border-b border-neutral-200 flex items-center gap-2 md:gap-3 shrink-0">
+          <button
+            @click="clearSelection"
+            class="md:hidden w-8 h-8 rounded-lg flex items-center justify-center text-neutral-500 hover:bg-neutral-100 transition-colors shrink-0"
+            aria-label="К списку"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" class="w-4 h-4">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+            </svg>
+          </button>
           <div class="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" class="w-4 h-4 text-blue-500">
               <path stroke-linecap="round" stroke-linejoin="round" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"/>
@@ -250,6 +274,12 @@ const combinedList = computed(() => {
     return sortDir.value === 'desc' ? diff : -diff
   })
 })
+
+function clearSelection() {
+  selectedKey.value = null
+  selectedItem.value = null
+  selectedBroadcast.value = null
+}
 
 async function selectItem(item: any) {
   selectedKey.value = item.key

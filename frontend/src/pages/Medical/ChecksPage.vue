@@ -42,7 +42,7 @@
               </svg>
             </button>
 
-            <div class="grid grid-cols-3 gap-3 flex-1">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 flex-1">
               <div
                 v-for="item in problemItems.slice(cardOffset, cardOffset + 3)"
                 :key="item.sportsmanId"
@@ -71,11 +71,11 @@
                   :class="cardSeverityClasses(item).btn"
                 >Подробнее →</button>
               </div>
-              <!-- Плейсхолдеры -->
+              <!-- Плейсхолдеры — только на десктопе (на мобиле 1 карточка, лишние "пустоты" не нужны) -->
               <div
                 v-for="n in (3 - problemItems.slice(cardOffset, cardOffset + 3).length)"
                 :key="'ph' + n"
-                class="rounded-xl border border-dashed border-neutral-200 bg-neutral-50/50"
+                class="hidden md:block rounded-xl border border-dashed border-neutral-200 bg-neutral-50/50"
               />
             </div>
 

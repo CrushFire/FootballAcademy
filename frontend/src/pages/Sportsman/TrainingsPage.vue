@@ -6,17 +6,19 @@
         <h1 class="text-xl font-bold text-neutral-900">Тренировки</h1>
         <p class="text-sm text-neutral-500 mt-0.5">Графики тренировок и список занятий</p>
       </div>
-      <div class="grid grid-cols-5 gap-4 flex-1 min-h-0">
+      <!-- Мобила: вертикальный стек (график сверху, тренировки снизу).
+           Десктоп: 5-колоночная сетка (график 3 + тренировки 2). -->
+      <div class="flex flex-col md:grid md:grid-cols-5 gap-4 flex-1 min-h-0 overflow-y-auto md:overflow-visible">
 
-        <!-- График (3/4) -->
-        <div class="col-span-3 flex flex-col">
+        <!-- График (3/5 на десктопе, 100% на мобиле) -->
+        <div class="md:col-span-3 flex flex-col flex-shrink-0">
           <!-- Заголовок -->
-          <div class="mb-3 px-1 flex items-end justify-between">
+          <div class="mb-3 px-1 flex flex-col md:flex-row md:items-end md:justify-between gap-2">
             <div>
               <div class="text-base font-bold text-neutral-400">График тренировок</div>
               <div class="text-xs text-neutral-500 mt-0.5">Выбери категорию и параметры для анализа динамики роста</div>
             </div>
-            <div class="flex items-center gap-3 text-xs text-neutral-400 flex-wrap justify-end">
+            <div class="flex items-center gap-2 md:gap-3 text-xs text-neutral-400 flex-wrap md:justify-end">
               <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-blue-400"></span>Скорость</span>
               <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-amber-400"></span>Нагрузка</span>
               <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-red-400"></span>Кардио</span>
@@ -24,16 +26,16 @@
               <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-green-400"></span>Эффективность</span>
             </div>
           </div>
-          <!-- График прибит к низу -->
-          <div class="flex-1 flex items-end">
+          <!-- График прибит к низу на десктопе; на мобиле фиксированная высота. -->
+          <div class="flex-1 flex items-end h-56 md:h-auto">
             <div class="w-full">
               <TrainingMetricsChart :points="graphPoints" />
             </div>
           </div>
         </div>
 
-        <!-- Список тренировок (2/5) -->
-       <div class="col-span-1 lg:col-span-2 flex flex-col gap-1.5 min-h-0" ref="listRef">
+        <!-- Список тренировок (2/5 на десктопе, 100% на мобиле) -->
+       <div class="md:col-span-2 flex flex-col gap-1.5 min-h-0 flex-shrink-0" ref="listRef">
           <div class="text-xs font-bold text-neutral-400 uppercase tracking-wide mb-1 flex-shrink-0">Тренировки</div>
 
           <div v-if="loading" class="text-sm text-neutral-400">Загрузка...</div>

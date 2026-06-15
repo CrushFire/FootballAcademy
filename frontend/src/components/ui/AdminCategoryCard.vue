@@ -7,8 +7,8 @@
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"
         class="w-5 h-5" :class="iconColor" v-html="iconPath"></svg>
     </div>
-    <div class="text-sm font-bold text-neutral-700">{{ label }}</div>
-    <div class="text-xs text-neutral-400 mt-0.5">{{ desc }}</div>
+    <div class="text-sm font-bold text-neutral-700 break-words">{{ label }}</div>
+    <div class="text-xs text-neutral-400 mt-0.5 break-words">{{ desc }}</div>
     <div class="text-xl font-extrabold mt-2" :class="countColor">{{ count !== undefined ? count : '—' }}</div>
   </div>
 </template>

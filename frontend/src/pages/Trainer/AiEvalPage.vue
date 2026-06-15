@@ -1,10 +1,13 @@
 <template>
-  <div class="p-3 h-full">
+  <div class="p-0 md:p-3 h-full">
   <TrainerPageCard color="violet" class="h-full flex flex-col p-0 overflow-hidden">
-  <div class="flex h-full overflow-hidden bg-neutral-50 rounded-2xl">
+  <div class="flex h-full overflow-hidden bg-neutral-50 md:rounded-2xl">
 
-    <!-- Левая панель -->
-    <aside class="w-72 bg-white border-r border-neutral-200 flex flex-col shrink-0">
+    <!-- Левая панель. На мобиле скрываем когда чат выбран — окно чата получает всю ширину. -->
+    <aside
+      class="w-full md:w-72 bg-white border-r border-neutral-200 flex-col shrink-0"
+      :class="selectedChat ? 'hidden md:flex' : 'flex'"
+    >
 
       <!-- Шапка -->
       <div class="px-4 py-3 border-b border-neutral-200 flex items-center gap-2">
@@ -63,20 +66,32 @@
       </div>
     </aside>
 
-    <!-- Основная область -->
-    <div class="flex-1 flex flex-col overflow-hidden">
+    <!-- Основная область. На мобиле скрываем когда чат не выбран — список занимает весь экран. -->
+    <div
+      class="flex-1 flex-col overflow-hidden"
+      :class="selectedChat ? 'flex' : 'hidden md:flex'"
+    >
 
       <!-- Чат открыт -->
       <template v-if="selectedChat">
 
         <!-- Шапка чата -->
-        <div class="px-5 py-3 bg-white border-b border-neutral-200 flex items-center gap-3 shrink-0">
+        <div class="px-3 md:px-5 py-3 bg-white border-b border-neutral-200 flex items-center gap-2 md:gap-3 shrink-0">
+          <button
+            @click="selectedChat = null"
+            class="md:hidden w-8 h-8 rounded-lg flex items-center justify-center text-neutral-500 hover:bg-neutral-100 transition-colors shrink-0"
+            aria-label="К списку чатов"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" class="w-4 h-4">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+            </svg>
+          </button>
           <div class="w-9 h-9 rounded-xl bg-violet-100 flex items-center justify-center shrink-0">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" class="w-5 h-5 text-violet-600">
               <path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
             </svg>
           </div>
-          <div>
+          <div class="min-w-0">
             <div class="font-semibold text-neutral-900 text-sm">{{ selectedChat.title }}</div>
             <div class="text-xs text-neutral-400">AI-ассистент · спортивные данные академии</div>
           </div>

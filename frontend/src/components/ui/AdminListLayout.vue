@@ -10,8 +10,8 @@
       </div>
 
       <!-- Поиск + фильтр + сортировка -->
-      <div class="flex items-center gap-2 mb-3 flex-shrink-0">
-        <div class="flex-1 relative">
+      <div class="flex flex-wrap md:flex-nowrap items-center gap-2 mb-3 flex-shrink-0">
+        <div class="flex-1 min-w-[180px] relative">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"
             class="w-4 h-4 text-neutral-400 dark:text-theme-muted absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
             <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z"/>

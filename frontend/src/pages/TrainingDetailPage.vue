@@ -1,6 +1,6 @@
 <template>
   <div class="p-3 overflow-y-auto h-full">
-    <AppCard no-border>
+    <AppCard no-border class="min-h-full">
 
       <!-- Заголовок -->
       <div class="flex items-center gap-3 mb-6 pb-4 border-b border-neutral-100">
@@ -15,16 +15,16 @@
 
       <div v-if="loading" class="text-sm text-neutral-400">Загрузка...</div>
 
-      <div v-else-if="metrics" class="grid grid-cols-2 gap-4">
+      <div v-else-if="metrics" class="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
         <div v-for="group in metricGroups" :key="group.title" class="bg-white rounded-xl border border-neutral-200 p-4">
-          <div class="text-xs font-bold text-neutral-400 uppercase tracking-wide mb-3">{{ group.title }}</div>
-          <div class="flex flex-col gap-2">
-            <div v-for="item in group.items" :key="item.label" class="flex justify-between text-sm">
-              <span class="text-neutral-500 flex items-center gap-1">
-                {{ item.label }}
+          <div class="text-xs font-bold text-blue-500 uppercase tracking-wide mb-3">{{ group.title }}</div>
+          <div class="flex flex-col gap-2.5">
+            <div v-for="item in group.items" :key="item.label" class="flex items-center justify-between gap-2 text-sm">
+              <span class="text-neutral-500 flex items-center gap-1 min-w-0">
+                <span class="truncate">{{ item.label }}</span>
                 <AppTooltip :text="item.tip" />
               </span>
-              <span class="font-semibold text-neutral-900">{{ item.value }}</span>
+              <span class="text-base font-bold text-neutral-900 tabular-nums whitespace-nowrap shrink-0">{{ item.value }}</span>
             </div>
           </div>
         </div>

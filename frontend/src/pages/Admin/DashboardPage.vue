@@ -1,13 +1,13 @@
 <template>
   <div class="p-3 h-full">
-    <AppCard no-border class="h-full">
+    <AppCard no-border class="h-full overflow-y-auto">
 
       <div class="mb-6 pb-4 border-b border-neutral-100">
         <div class="text-base font-bold text-neutral-900">Добро пожаловать, {{ auth.userLogin ?? 'Администратор' }}</div>
         <div class="text-xs text-neutral-400 mt-0.5 capitalize">{{ todayStr }}</div>
       </div>
 
-      <div class="grid grid-cols-3 gap-3">
+      <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
         <AdminCategoryCard
           v-for="cat in categories" :key="cat.key"
           :label="cat.label"

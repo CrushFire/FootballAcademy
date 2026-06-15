@@ -102,7 +102,7 @@
         <div class="text-sm font-semibold text-neutral-800 flex items-center gap-2">
           <span class="text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider"
             :class="n._kind === 'gto' ? 'bg-blue-100 text-blue-700' : 'bg-emerald-100 text-emerald-700'">
-            {{ n._kind === 'gto' ? 'ГТО' : 'Локальный' }}
+            {{ n._kind === 'gto' ? 'ГТО' : 'Локал.' }}
           </span>
           {{ n.type }} <span class="text-neutral-400 font-normal">({{ n.unit }})</span>
         </div>
@@ -126,7 +126,7 @@
     <FormField label="Единица измерения">
       <input v-model="editForm.unit" class="w-full px-3 py-2 text-sm rounded-xl border border-neutral-200 focus:outline-none focus:border-blue-400" placeholder="сек, м, раз..." />
     </FormField>
-    <div class="grid grid-cols-2 gap-3">
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
       <FormField label="Возраст">
         <input v-model.number="editForm.ageGroup" type="number" class="w-full px-3 py-2 text-sm rounded-xl border border-neutral-200 focus:outline-none focus:border-blue-400" />
       </FormField>
@@ -137,7 +137,7 @@
         </select>
       </FormField>
     </div>
-    <div class="grid grid-cols-3 gap-3">
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
       <FormField label="Отлично">
         <input v-model.number="editForm.gradeExcellent" type="number" step="0.01" class="w-full px-3 py-2 text-sm rounded-xl border border-neutral-200 focus:outline-none focus:border-blue-400" />
       </FormField>
@@ -158,7 +158,7 @@
     <FormField label="Единица измерения">
       <input v-model="editForm.unit" class="w-full px-3 py-2 text-sm rounded-xl border border-neutral-200 focus:outline-none focus:border-blue-400" placeholder="сек, м, раз..." />
     </FormField>
-    <div class="grid grid-cols-2 gap-3">
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
       <FormField label="Специализация">
         <select v-model.number="editForm.specialization" class="w-full px-3 py-2 text-sm rounded-xl border border-neutral-200 focus:outline-none focus:border-blue-400">
           <option :value="0">Футбол</option>
@@ -172,7 +172,7 @@
         </select>
       </FormField>
     </div>
-    <div class="grid grid-cols-2 gap-3">
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
       <FormField label="Норма (число)">
         <input v-model.number="editForm.value" type="number" step="0.01" class="w-full px-3 py-2 text-sm rounded-xl border border-neutral-200 focus:outline-none focus:border-blue-400" />
       </FormField>

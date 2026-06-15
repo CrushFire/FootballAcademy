@@ -1,15 +1,15 @@
 ﻿<template>
   <div class="p-3 h-full">
-    <div class="bg-white rounded-2xl border border-neutral-200 shadow-sm h-full flex overflow-hidden">
+    <div class="bg-white rounded-2xl border border-neutral-200 shadow-sm h-full flex flex-col md:flex-row overflow-hidden overflow-y-auto md:overflow-hidden">
 
       <div v-if="loading" class="flex-1 flex items-center justify-center text-sm text-neutral-400">Загрузка...</div>
 
       <template v-else-if="userInfo">
         <!-- Левая колонка: аватар + имя + выход -->
-        <div class="w-60 shrink-0 flex flex-col items-center pt-10 px-6 pb-6">
+        <div class="w-full md:w-60 shrink-0 flex flex-col items-center pt-6 md:pt-10 px-4 md:px-6 pb-4 md:pb-6">
           <div class="flex flex-col items-center gap-4 flex-1">
             <!-- У админа нет записи Personal, аватар не загружается — показываем инициалы из login/email -->
-            <div class="w-48 h-48 rounded-full overflow-hidden shrink-0 bg-neutral-700 flex items-center justify-center">
+            <div class="w-32 h-32 md:w-48 md:h-48 rounded-full overflow-hidden shrink-0 bg-neutral-700 flex items-center justify-center">
               <span class="text-white font-bold text-5xl">{{ initials(userInfo.login || userInfo.email) }}</span>
             </div>
             <div class="text-center">
@@ -41,11 +41,12 @@
           </div>
         </Teleport>
 
-        <!-- Вертикальная линия -->
-        <div class="w-px bg-neutral-900 shrink-0 my-6" />
+        <!-- Разделитель: вертикальный на десктопе, горизонтальный на мобиле -->
+        <div class="hidden md:block w-px bg-neutral-900 shrink-0 my-6" />
+        <div class="md:hidden h-px bg-neutral-200 mx-4" />
 
         <!-- Правая часть -->
-        <div class="flex-1 overflow-y-auto px-8 py-8 flex flex-col gap-0">
+        <div class="flex-1 md:overflow-y-auto px-4 md:px-8 py-4 md:py-8 flex flex-col gap-0">
 
           <div class="space-y-3">
             <div class="text-base font-bold text-neutral-700 text-center mb-5">Основные данные</div>

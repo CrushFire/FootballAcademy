@@ -17,7 +17,7 @@
       </div>
 
       <!-- Сводка за всё время -->
-      <div v-if="totalStats" class="grid grid-cols-5 gap-3 mb-6">
+      <div v-if="totalStats" class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
         <div class="rounded-2xl border border-neutral-200 p-4">
           <div class="text-xs font-bold text-neutral-500 uppercase tracking-wide">Всего</div>
           <div class="text-2xl font-extrabold text-neutral-900 mt-1">{{ totalStats.total }}</div>
@@ -75,7 +75,7 @@
       </div>
 
       <!-- Сводка по выбранному кварталу (компактнее и приглушённее) -->
-      <div v-if="activeQuarter && activeQuarter.items.length" class="grid grid-cols-4 gap-2 mb-4">
+      <div v-if="activeQuarter && activeQuarter.items.length" class="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4">
         <div class="rounded-xl border border-neutral-100 px-3 py-2 flex items-center justify-between">
           <span class="text-xs font-medium text-neutral-400">Присутствовал</span>
           <span class="text-base font-bold text-neutral-500">{{ activeQuarter.present }}</span>
@@ -96,20 +96,20 @@
 
       <!-- Таблица занятий -->
       <div v-if="activeQuarter && activeQuarter.items.length" class="rounded-2xl border border-neutral-200 overflow-hidden">
-        <table class="w-full">
+        <table class="w-full table-auto">
           <thead class="bg-neutral-50 text-xs font-bold text-neutral-500 uppercase tracking-wide">
             <tr>
-              <th class="text-left px-4 py-3">Дата</th>
-              <th class="text-left px-4 py-3">Тип тренировки</th>
-              <th class="text-left px-4 py-3">Статус</th>
+              <th class="text-left px-2 md:px-4 py-3">Дата</th>
+              <th class="text-left px-2 md:px-4 py-3 hidden sm:table-cell">Тип</th>
+              <th class="text-left px-2 md:px-4 py-3">Статус</th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="item in activeQuarter.items" :key="item.id" class="border-t border-neutral-100">
-              <td class="px-4 py-3 text-sm text-neutral-700">{{ formatDate(item.trainingDate) }}</td>
-              <td class="px-4 py-3 text-sm text-neutral-700">{{ item.trainingType ?? '—' }}</td>
-              <td class="px-4 py-3">
-                <span class="text-xs font-bold px-2 py-0.5 rounded-full" :class="statusClass(item.status)">
+              <td class="px-2 md:px-4 py-3 text-xs md:text-sm text-neutral-700 whitespace-nowrap">{{ formatDate(item.trainingDate) }}</td>
+              <td class="px-2 md:px-4 py-3 text-xs md:text-sm text-neutral-700 hidden sm:table-cell">{{ item.trainingType ?? '—' }}</td>
+              <td class="px-2 md:px-4 py-3">
+                <span class="text-[10px] md:text-xs font-bold px-2 py-0.5 rounded-full whitespace-nowrap" :class="statusClass(item.status)">
                   {{ statusLabel[item.status] ?? item.status }}
                 </span>
               </td>

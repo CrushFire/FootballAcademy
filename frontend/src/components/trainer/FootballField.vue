@@ -239,7 +239,9 @@ function initials(name: string) {
   color: #ffffff;
 }
 
-/* Плашка снизу при hover для пустого слота: всегда светлая тема. */
+/* Плашка снизу при hover для пустого слота: всегда светлая тема.
+   z-index: 100 — выше любого другого игрока/слота на поле (player-wrapper, players-layer),
+   чтобы тултип не перекрывался соседними кружками. */
 .empty-tooltip {
   position: absolute;
   top: calc(100% + 6px);
@@ -255,7 +257,11 @@ function initials(name: string) {
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.15s;
-  z-index: 25;
+  z-index: 100;
+}
+/* При hover поднимаем сам слот выше остальных — чтобы тултип точно был над всеми. */
+.player-wrapper:hover {
+  z-index: 100;
 }
 .player-wrapper:hover .empty-tooltip {
   opacity: 1;

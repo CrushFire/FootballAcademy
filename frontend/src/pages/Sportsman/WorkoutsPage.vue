@@ -18,7 +18,7 @@
       </div>
 
       <!-- Сводка -->
-      <div class="grid grid-cols-4 gap-3 mb-5">
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
         <div class="rounded-2xl border border-neutral-200 p-4">
           <div class="text-xs font-bold text-neutral-500 uppercase tracking-wide">Всего заданий</div>
           <div class="text-2xl font-extrabold text-neutral-900 mt-1">{{ workouts.length }}</div>

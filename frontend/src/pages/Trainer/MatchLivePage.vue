@@ -1,17 +1,19 @@
 <template>
-  <div class="p-6 h-full flex flex-col gap-4">
+  <div class="p-3 md:p-6 h-full flex flex-col gap-4 min-h-0">
 
     <!-- ШАГ 1: Выбор / создание матча -->
     <template v-if="step === 'select'">
-      <LiveMatchHeader>
-        <div class="flex-1">
-          <h1 class="text-xl font-bold text-neutral-900">Live-матч</h1>
-          <p class="text-sm text-neutral-500 mt-0.5">Выберите запланированный матч или создайте новый</p>
-        </div>
-      </LiveMatchHeader>
+      <div class="shrink-0">
+        <LiveMatchHeader>
+          <div class="flex-1">
+            <h1 class="text-xl font-bold text-neutral-900">Live-матч</h1>
+            <p class="text-sm text-neutral-500 mt-0.5">Выберите запланированный матч или создайте новый</p>
+          </div>
+        </LiveMatchHeader>
+      </div>
 
-      <div class="bg-white rounded-2xl border border-neutral-200 shadow-sm overflow-hidden flex-1 flex flex-col">
-        <div class="p-5 flex-1 flex flex-col gap-4 overflow-y-auto">
+      <div class="bg-white rounded-2xl border border-neutral-200 shadow-sm overflow-hidden flex-1 flex flex-col min-h-0">
+        <div class="p-3 md:p-5 pb-6 flex-1 flex flex-col gap-4 overflow-y-auto">
 
           <!-- Запланированные матчи -->
           <div class="border border-neutral-100 rounded-xl overflow-hidden">
@@ -37,8 +39,10 @@
             </div>
           </div>
 
-          <!-- Создать новый матч -->
-          <div class="border border-neutral-100 rounded-xl overflow-hidden">
+          <!-- Создать новый матч.
+               БЕЗ overflow-hidden — иначе кнопка "Продолжить → Состав" может быть обрезана
+               на коротких экранах (мобила в landscape, маленький viewport). -->
+          <div class="border border-neutral-100 rounded-xl">
             <button
               @click="showCreateForm = !showCreateForm"
               class="w-full px-4 py-3 flex items-center gap-3 hover:bg-neutral-50 transition-colors text-left"
@@ -148,8 +152,10 @@
             </button>
           </div>
 
-          <!-- Список игроков состава — только основа (Main). Запасные подбираются через бейдж "Замены". -->
-          <div class="space-y-2 max-h-80 overflow-y-auto pr-1">
+          <!-- Список игроков состава — только основа (Main). Запасные подбираются через бейдж "Замены".
+               БЕЗ внутреннего max-h/overflow — иначе кнопка "Начать матч" уходит под обрез на коротких экранах
+               (мобила), а внутренний скролл крутит только игроков. Скролл весь блок один — внешний overflow-y-auto на p-5. -->
+          <div class="space-y-2">
             <div v-for="{ entry, idx } in lineupMainEntries" :key="idx"
               class="rounded-xl border border-neutral-100 bg-neutral-50">
               <div class="flex items-center gap-2 p-2">
@@ -224,10 +230,10 @@
 
       <!-- Глобальная карта -->
       <div class="bg-white rounded-2xl border border-neutral-200 shadow-sm overflow-hidden flex-1 flex flex-col">
-        <div class="p-5 space-y-5 flex-1 overflow-y-auto">
+        <div class="p-3 md:p-5 space-y-5 flex-1 overflow-y-auto">
 
           <!-- Счёт + таймер -->
-          <div class="relative flex items-center gap-4 pt-1">
+          <div class="relative flex items-center gap-2 md:gap-4 pt-1">
             <!-- Кнопка паузы — справа сверху, заблокирована во время перерыва между таймами -->
             <button
               @click="togglePause"
@@ -247,17 +253,17 @@
             </button>
 
             <!-- Эмблема домашней -->
-            <div class="flex-1 flex flex-col items-center gap-1.5">
-              <img v-if="homeTeamImage" :src="homeTeamImage" class="w-36 h-36 min-w-[64px] min-h-[64px] object-contain" alt="" />
-              <div v-else class="w-36 h-36 min-w-[64px] min-h-[64px] rounded-full border-2 border-neutral-200 bg-neutral-50 flex items-center justify-center">
+            <div class="flex-1 min-w-0 flex flex-col items-center gap-1.5">
+              <img v-if="homeTeamImage" :src="homeTeamImage" class="w-20 h-20 md:w-36 md:h-36 object-contain" alt="" />
+              <div v-else class="w-20 h-20 md:w-36 md:h-36 rounded-full border-2 border-neutral-200 bg-neutral-50 flex items-center justify-center">
                 <span class="text-lg font-bold text-blue-500 select-none">{{ initials(match.homeTeamName ?? '') }}</span>
               </div>
-              <div class="text-sm font-semibold text-neutral-700 text-center max-w-[140px] leading-tight">{{ match.homeTeamName }}</div>
+              <div class="text-xs md:text-sm font-semibold text-neutral-700 text-center max-w-[140px] leading-tight line-clamp-2">{{ match.homeTeamName }}</div>
             </div>
 
             <!-- Центр -->
-            <div class="flex flex-col items-center gap-2 shrink-0" style="min-width:120px">
-              <div class="text-4xl font-extrabold text-neutral-900 tabular-nums leading-none">{{ homeGoals }} : {{ awayGoals }}</div>
+            <div class="flex flex-col items-center gap-2 shrink-0 min-w-[96px] md:min-w-[120px]">
+              <div class="text-3xl md:text-4xl font-extrabold text-neutral-900 tabular-nums leading-none">{{ homeGoals }} : {{ awayGoals }}</div>
 
               <!-- Таймер + статус -->
               <div class="flex items-center gap-1.5 px-3 py-1 rounded-full border transition-colors"
@@ -291,12 +297,12 @@
             </div>
 
             <!-- Эмблема гостей -->
-            <div class="flex-1 flex flex-col items-center gap-1.5">
-              <img v-if="awayTeamImage" :src="awayTeamImage" class="w-36 h-36 min-w-[64px] min-h-[64px] object-contain" alt="" />
-              <div v-else class="w-36 h-36 min-w-[64px] min-h-[64px] rounded-full border-2 border-neutral-200 bg-neutral-50 flex items-center justify-center">
+            <div class="flex-1 min-w-0 flex flex-col items-center gap-1.5">
+              <img v-if="awayTeamImage" :src="awayTeamImage" class="w-20 h-20 md:w-36 md:h-36 object-contain" alt="" />
+              <div v-else class="w-20 h-20 md:w-36 md:h-36 rounded-full border-2 border-neutral-200 bg-neutral-50 flex items-center justify-center">
                 <span class="text-lg font-bold text-neutral-400 select-none">{{ initials(match.opponentTeamName ?? '?') }}</span>
               </div>
-              <div class="text-sm font-semibold text-neutral-700 text-center max-w-[140px] leading-tight">{{ match.opponentTeamName ?? 'Соперник' }}</div>
+              <div class="text-xs md:text-sm font-semibold text-neutral-700 text-center max-w-[140px] leading-tight line-clamp-2">{{ match.opponentTeamName ?? 'Соперник' }}</div>
             </div>
           </div>
 

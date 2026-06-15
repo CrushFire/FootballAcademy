@@ -243,6 +243,22 @@ onUnmounted(() => {
   box-shadow: 0 32px 80px rgba(10,36,99,0.28), 0 8px 24px rgba(10,36,99,0.14), 0 0 0 1px rgba(59,130,246,0.1);
 }
 
+/* Мобила: карточка компактнее, рамка тоньше — видно фон по краям. */
+@media (max-width: 767px) {
+  .frame { border-width: 8px; }
+  .card {
+    margin: 12px;
+    padding: 20px 18px 18px;
+    border-radius: 20px;
+    max-width: calc(100vw - 32px);
+  }
+  .logo-wrap { margin-bottom: 16px !important; gap: 8px !important; }
+  .logo-box { width: 64px !important; height: 64px !important; border-radius: 18px !important; }
+  h1 { font-size: 20px !important; }
+  .field-group { margin-bottom: 12px !important; }
+  label { margin-bottom: 4px !important; }
+}
+
 .logo-wrap { display: flex; flex-direction: column; align-items: center; margin-bottom: 32px; gap: 12px; }
 .logo-box {
   width: 100px; height: 100px; border-radius: 26px;

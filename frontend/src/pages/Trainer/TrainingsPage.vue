@@ -57,7 +57,7 @@
           </div>
           <div class="flex items-center gap-1.5 shrink-0" @click.stop>
             <button
-              v-if="canEdit(t)"
+              v-if="canModify(t)"
               @click.stop="$router.push(`/trainer/training/edit/${t.id}`)"
               class="w-8 h-8 rounded-lg border border-green-300 bg-green-50 text-green-600 inline-flex items-center justify-center hover:bg-green-100 transition-colors"
               title="Редактировать (доступно 24 ч с момента создания)"
@@ -67,9 +67,10 @@
               </svg>
             </button>
             <button
+              v-if="canModify(t)"
               @click.stop="deleteItem = t"
               class="w-8 h-8 rounded-lg border border-blue-200 bg-blue-50 text-blue-500 inline-flex items-center justify-center hover:bg-blue-100 transition-colors"
-              title="Удалить"
+              title="Удалить (доступно 24 ч с момента создания)"
             >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" class="w-4 h-4">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
@@ -150,7 +151,10 @@ const filtered = computed(() => {
 const totalPages = computed(() => Math.max(1, Math.ceil(filtered.value.length / PER_PAGE)))
 const paged = computed(() => filtered.value.slice((page.value - 1) * PER_PAGE, page.value * PER_PAGE))
 
-function canEdit(t: any): boolean {
+// Окно изменения тренировки = 24 часа от создания. Через сутки нельзя ни
+// редактировать, ни удалить — метрики GPS могут уже импортироваться,
+// рассинхронизация повредила бы целостность данных.
+function canModify(t: any): boolean {
   if (!t.createdAt) return false
   const ageMs = Date.now() - new Date(t.createdAt).getTime()
   return ageMs < 24 * 60 * 60 * 1000

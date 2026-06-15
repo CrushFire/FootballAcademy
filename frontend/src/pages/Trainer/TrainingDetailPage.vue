@@ -46,7 +46,7 @@
       <!-- Топ показателей -->
       <div v-if="topMetrics.length">
         <h3 class="text-sm font-semibold text-neutral-900 mb-2">Топ показателей</h3>
-        <div class="grid grid-cols-3 gap-3">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div v-for="m in topMetrics" :key="m.label" class="p-3 rounded-xl border border-neutral-200 bg-neutral-50 text-center">
             <div class="text-lg font-bold text-blue-600">{{ m.value }}</div>
             <div class="text-xs text-neutral-600 mt-1">{{ m.label }}</div>
@@ -58,7 +58,7 @@
 <!-- Посещаемость (компактная) -->
       <div>
         <h3 class="text-sm font-semibold text-neutral-900 mb-2">Посещаемость</h3>
-        <div class="grid grid-cols-4 gap-2">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
           <div class="p-2 rounded-lg border border-neutral-200 bg-neutral-50 text-center">
             <div class="text-base font-bold text-blue-500">{{ presentCount }}</div>
             <div class="text-xs text-neutral-600 mt-0.5">Присутствовали</div>

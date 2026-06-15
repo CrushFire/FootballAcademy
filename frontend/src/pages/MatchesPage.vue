@@ -1,14 +1,14 @@
 <template>
   <div class="p-3 overflow-y-auto h-full">
-    <AppCard no-border>
+    <AppCard no-border class="min-h-full">
 
       <!-- Шапка страницы -->
-      <div class="flex items-start justify-between -mx-4 -mt-4 px-5 py-4 mb-5 rounded-t-2xl border-b border-neutral-100">
-        <div>
+      <div class="flex items-start justify-between gap-2 -mx-4 -mt-4 px-4 md:px-5 py-4 mb-5 rounded-t-2xl border-b border-neutral-100">
+        <div class="min-w-0">
           <h1 class="text-xl font-bold text-neutral-900">Матчи</h1>
           <p class="text-sm text-neutral-500 mt-0.5">Результаты игр</p>
         </div>
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2 shrink-0">
           <button @click="page > 1 && page--" :disabled="page === 1" class="p-1.5 rounded-lg hover:bg-neutral-100 disabled:opacity-30 transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" class="w-4 h-4 text-neutral-500"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
           </button>
@@ -37,32 +37,32 @@
             <span class="text-xs text-neutral-400">{{ formatDate(m.date) }}</span>
           </div>
 
-          <div class="flex items-center justify-between gap-4">
-            <div class="flex flex-col items-center gap-2 flex-1">
-              <img v-if="teamImage(m.homeTeamId)" :src="teamImage(m.homeTeamId)" class="w-14 h-14 object-contain flex-shrink-0" />
-              <div v-else class="w-14 h-14 rounded-full border-2 border-neutral-200 bg-neutral-50 flex items-center justify-center flex-shrink-0">
+          <div class="flex items-center justify-between gap-2 md:gap-4">
+            <div class="flex flex-col items-center gap-2 flex-1 min-w-0">
+              <img v-if="teamImage(m.homeTeamId)" :src="teamImage(m.homeTeamId)" class="w-12 h-12 md:w-14 md:h-14 object-contain flex-shrink-0" />
+              <div v-else class="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-neutral-200 bg-neutral-50 flex items-center justify-center flex-shrink-0">
                 <span class="text-sm font-bold text-blue-600">{{ initials(m.homeTeamName) }}</span>
               </div>
-              <span class="text-xs font-semibold text-neutral-800 text-center leading-tight max-w-[100px] line-clamp-2">{{ m.homeTeamName }}</span>
+              <span class="text-xs font-semibold text-neutral-800 text-center leading-tight w-full line-clamp-2">{{ m.homeTeamName }}</span>
             </div>
 
-            <div class="flex flex-col items-center gap-1 min-w-[70px]">
-              <div v-if="m.status !== 'Scheduled'" class="text-2xl font-extrabold text-neutral-900">
+            <div class="flex flex-col items-center gap-1 shrink-0 min-w-[60px] md:min-w-[70px]">
+              <div v-if="m.status !== 'Scheduled'" class="text-xl md:text-2xl font-extrabold text-neutral-900">
                 {{ m.homeStats?.goals ?? 0 }} : {{ m.awayStats?.goals ?? 0 }}
               </div>
-              <div v-else class="text-2xl font-extrabold text-neutral-400">VS</div>
-              <span v-if="m.result" class="text-xs font-bold px-2 py-0.5 rounded-full mt-0.5" :class="resultClass(m.result)">
+              <div v-else class="text-xl md:text-2xl font-extrabold text-neutral-400">VS</div>
+              <span v-if="m.result" class="text-[10px] md:text-xs font-bold px-2 py-0.5 rounded-full mt-0.5 whitespace-nowrap" :class="resultClass(m.result)">
                 {{ formatResult(m) }}
               </span>
-              <span class="text-xs text-neutral-400 mt-1">{{ typeLabel[m.type] ?? m.type }}</span>
+              <span class="text-[10px] md:text-xs text-neutral-400 mt-1 whitespace-nowrap">{{ typeLabel[m.type] ?? m.type }}</span>
             </div>
 
-            <div class="flex flex-col items-center gap-2 flex-1">
-              <img v-if="m.opponentTeamId && teamImage(m.opponentTeamId)" :src="teamImage(m.opponentTeamId)" class="w-14 h-14 object-contain flex-shrink-0" />
-              <div v-else class="w-14 h-14 rounded-full border-2 border-neutral-200 bg-neutral-50 flex items-center justify-center flex-shrink-0">
+            <div class="flex flex-col items-center gap-2 flex-1 min-w-0">
+              <img v-if="m.opponentTeamId && teamImage(m.opponentTeamId)" :src="teamImage(m.opponentTeamId)" class="w-12 h-12 md:w-14 md:h-14 object-contain flex-shrink-0" />
+              <div v-else class="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-neutral-200 bg-neutral-50 flex items-center justify-center flex-shrink-0">
                 <span class="text-sm font-bold text-neutral-500">{{ initials(m.opponentTeamName ?? '?') }}</span>
               </div>
-              <span class="text-xs font-semibold text-neutral-800 text-center leading-tight max-w-[100px] line-clamp-2">{{ m.opponentTeamName ?? 'Соперник' }}</span>
+              <span class="text-xs font-semibold text-neutral-800 text-center leading-tight w-full line-clamp-2">{{ m.opponentTeamName ?? 'Соперник' }}</span>
             </div>
           </div>
         </div>

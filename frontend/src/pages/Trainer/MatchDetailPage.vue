@@ -1,15 +1,15 @@
 <template>
-  <div class="p-6 space-y-4 h-full overflow-y-auto">
+  <div class="p-3 md:p-6 space-y-4 h-full overflow-y-auto">
     <!-- Хедер -->
     <div class="bg-white rounded-2xl border border-neutral-200 shadow-sm">
       <div class="h-1 bg-gradient-to-r from-blue-500 to-blue-400" />
-      <div class="px-5 py-4 flex items-center gap-4">
+      <div class="px-3 md:px-5 py-3 md:py-4 flex items-center gap-2 md:gap-4">
         <button @click="$router.back()"
-          class="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-blue-200 bg-blue-50 text-blue-600 text-xs font-semibold hover:bg-blue-100 transition-colors shrink-0">
+          class="flex items-center gap-1.5 px-2 md:px-3 py-2 rounded-xl border border-blue-200 bg-blue-50 text-blue-600 text-xs font-semibold hover:bg-blue-100 transition-colors shrink-0">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" class="w-3.5 h-3.5">
             <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
           </svg>
-          Назад
+          <span class="hidden md:inline">Назад</span>
         </button>
         <div class="flex-1 min-w-0">
           <div class="text-base font-bold text-neutral-900 truncate">
@@ -32,40 +32,49 @@
       <div class="h-1 bg-gradient-to-r from-blue-500 to-blue-400 rounded-t-2xl" />
 
       <!-- Иконки + счёт -->
-      <div class="p-6 pb-4 pt-5">
-        <div class="flex items-start gap-3">
+      <div class="p-3 md:p-6 pb-4 pt-5">
+        <div class="flex items-start gap-2 md:gap-3">
           <!-- Эмблема домашней -->
-          <div class="flex-1 flex items-center justify-center">
-            <img v-if="teamImages[match.homeTeamId]" :src="teamImages[match.homeTeamId]" class="w-48 h-48 object-contain" />
-            <div v-else class="w-48 h-48 rounded-full border-2 border-neutral-200 bg-neutral-50 flex items-center justify-center">
-              <span class="text-4xl font-bold text-blue-500">{{ initials(match.homeTeamName ?? '') }}</span>
+          <div class="flex-1 min-w-0 flex items-center justify-center">
+            <img v-if="teamImages[match.homeTeamId]" :src="teamImages[match.homeTeamId]" class="w-24 h-24 md:w-48 md:h-48 object-contain" />
+            <div v-else class="w-24 h-24 md:w-48 md:h-48 rounded-full border-2 border-neutral-200 bg-neutral-50 flex items-center justify-center">
+              <span class="text-2xl md:text-4xl font-bold text-blue-500">{{ initials(match.homeTeamName ?? '') }}</span>
             </div>
           </div>
           <!-- Счёт по центру -->
-          <div class="flex flex-col items-center gap-1 flex-shrink-0" style="min-width: 200px">
-            <div v-if="match.status !== 'Scheduled'" class="text-4xl font-extrabold text-neutral-900">
+          <div class="flex flex-col items-center gap-1 flex-shrink-0 min-w-[96px] md:min-w-[200px]">
+            <div v-if="match.status !== 'Scheduled'" class="text-3xl md:text-4xl font-extrabold text-neutral-900">
               {{ match.homeStats?.goals ?? 0 }} : {{ match.awayStats?.goals ?? 0 }}
             </div>
-            <div v-else class="text-4xl font-extrabold text-neutral-400">VS</div>
+            <div v-else class="text-3xl md:text-4xl font-extrabold text-neutral-400">VS</div>
             <span v-if="match.result" class="text-xs font-bold px-2 py-0.5 rounded-full mt-1" :class="resultClass(match.result)">
               {{ internalResultLabel }}
             </span>
           </div>
           <!-- Эмблема гостевой -->
-          <div class="flex-1 flex items-center justify-center">
-            <img v-if="match.opponentTeamId && teamImages[match.opponentTeamId]" :src="teamImages[match.opponentTeamId]" class="w-48 h-48 object-contain" />
-            <div v-else class="w-48 h-48 rounded-full border-2 border-neutral-200 bg-neutral-50 flex items-center justify-center">
-              <span class="text-4xl font-bold text-neutral-400">{{ initials(match.opponentTeamName ?? '?') }}</span>
+          <div class="flex-1 min-w-0 flex items-center justify-center">
+            <img v-if="match.opponentTeamId && teamImages[match.opponentTeamId]" :src="teamImages[match.opponentTeamId]" class="w-24 h-24 md:w-48 md:h-48 object-contain" />
+            <div v-else class="w-24 h-24 md:w-48 md:h-48 rounded-full border-2 border-neutral-200 bg-neutral-50 flex items-center justify-center">
+              <span class="text-2xl md:text-4xl font-bold text-neutral-400">{{ initials(match.opponentTeamName ?? '?') }}</span>
             </div>
           </div>
         </div>
       </div>
 
-      <div class="px-6 pb-6 space-y-6">
+      <div class="px-3 md:px-6 pb-6 space-y-6">
         <!-- Поле с расстановкой -->
         <div v-if="fieldPositions.length">
           <div class="text-base font-bold text-neutral-500 uppercase tracking-wide mb-4 text-center">Расстановка на поле</div>
-          <FootballField :positions="fieldPositions" />
+          <!-- Десктоп: горизонтальное поле -->
+          <div class="hidden md:block">
+            <FootballField :positions="fieldPositions" />
+          </div>
+          <!-- Мобила: вертикальное поле (полное).
+               Координаты пересчитываем из горизонтальных в вертикальные:
+               у горизонтального наши ворота слева (x≈0), у вертикального — снизу (y≈100). -->
+          <div class="md:hidden">
+            <FootballFieldVertical :positions="fieldPositionsVertical" />
+          </div>
         </div>
 
         <!-- Статистика -->
@@ -87,8 +96,10 @@
         <!-- События -->
         <div v-if="match.events?.length">
           <div class="text-base font-bold text-neutral-500 uppercase tracking-wide mb-4 text-center">События</div>
-          <div class="flex flex-col">
-            <div v-for="ev in sortedEvents" :key="ev.id"
+
+          <!-- ДЕСКТОП: симметричная разводка, время по центру -->
+          <div class="hidden md:flex flex-col">
+            <div v-for="ev in sortedEvents" :key="'d' + ev.id"
               class="flex items-center gap-2 py-3 border-b border-neutral-100 last:border-b-0"
               :class="ev.isHomeTeam ? 'flex-row' : 'flex-row-reverse'"
             >
@@ -107,6 +118,27 @@
               </div>
               <div class="w-14 text-center text-base font-bold text-neutral-400 flex-shrink-0">{{ ev.minute }}'</div>
               <div class="flex-1"></div>
+            </div>
+          </div>
+
+          <!-- МОБИЛА: в одну колонку, время всегда справа -->
+          <div class="md:hidden flex flex-col">
+            <div v-for="ev in sortedEvents" :key="'m' + ev.id"
+              class="flex items-center gap-2 py-2.5 border-b border-neutral-100 last:border-b-0"
+            >
+              <span class="w-1.5 h-1.5 rounded-full shrink-0" :class="ev.isHomeTeam ? 'bg-blue-500' : 'bg-neutral-400'" />
+              <div class="flex-1 min-w-0">
+                <template v-if="ev.type === 'Substitution'">
+                  <span class="text-sm font-semibold text-neutral-800">Замена</span>
+                  <div class="text-xs text-neutral-400 truncate">
+                    {{ getSubstitutionPosition(ev) }} · {{ sportsmenMap[ev.substituteSportsmanId] ?? ev.substituteSportsmanId }}
+                  </div>
+                </template>
+                <template v-else>
+                  <span class="text-sm font-semibold text-neutral-700">{{ eventTypeLabel[ev.type] ?? ev.type }}</span>
+                </template>
+              </div>
+              <span class="text-sm font-bold text-neutral-400 shrink-0 tabular-nums">{{ ev.minute }}'</span>
             </div>
           </div>
         </div>
@@ -133,34 +165,34 @@ import { imageUrl } from '@/utils/imageUrl'
 import api from '@/services/api'
 import { POSITION_AND_GROUP_LABEL, MATCH_TYPE, MATCH_STATUS, MATCH_RESULT } from '@/constants'
 import FootballField from '@/components/trainer/FootballField.vue'
+import FootballFieldVertical from '@/components/trainer/FootballFieldVertical.vue'
 
-// Универсальная раскладка на ВСЁ вертикальное поле (база — 4-3-3).
-// Ось Y: 0 = верх (атака соперника), 100 = низ (наши ворота).
-// Внутри одной группы координаты намеренно НЕ на одной линии —
-// например CB чуть глубже LB/RB; CB и CB2 чуть смещены по Y относительно друг друга;
-// CM по бокам выше CDM и т.п. → ассиметрия как в реальной расстановке.
+// Универсальная раскладка на ВСЁ горизонтальное поле (база — 4-3-3).
+// Поле ГОРИЗОНТАЛЬНОЕ: X = 0 (левые ворота, НАШИ) → 100 (правые ворота, СОПЕРНИКА).
+// Y = вертикальная позиция игрока (0 = верх трибуны, 100 = низ).
+// Центр поля X=50. Защитники прижаты к нашим воротам (X малое), нападающие — к чужим (X большое).
 const FIELD_POSITIONS: Record<string, { x: number; y: number }> = {
-  GK:  { x: 50, y: 92 },
-  // Защита: крайние выше центральных, центральные не на одной y (естественный «треугольник»)
-  LB:  { x: 12, y: 75 },
-  CB:  { x: 36, y: 82 },
-  CB2: { x: 64, y: 78 },   // чуть впереди CB
-  RB:  { x: 88, y: 75 },
-  // Латерали — между защитой и полузащитой
-  LWB: { x: 10, y: 62 },
-  RWB: { x: 90, y: 62 },
-  // Полузащита: CDM чуть глубже, CM по бокам выше, CM3 — между
-  CDM: { x: 50, y: 60 },
-  CM:  { x: 26, y: 52 },
-  CM2: { x: 74, y: 52 },
-  CM3: { x: 50, y: 48 },
-  CAM: { x: 50, y: 36 },
-  // Атака: вингеры по краям, CF/SS чуть позади ST
-  LW:  { x: 14, y: 24 },
-  RW:  { x: 86, y: 24 },
-  CF:  { x: 34, y: 18 },
-  ST:  { x: 50, y: 10 },
-  SS:  { x: 66, y: 18 },
+  GK:  { x: 8,  y: 50 },
+  // Защита: 4 игрока линией, крайние — у боковых, центральные — ближе к центру по Y
+  LB:  { x: 18, y: 12 },
+  CB:  { x: 18, y: 36 },
+  CB2: { x: 18, y: 64 },
+  RB:  { x: 18, y: 88 },
+  // Латерали — чуть впереди защитников, по бокам
+  LWB: { x: 28, y: 8  },
+  RWB: { x: 28, y: 92 },
+  // Полузащита: CDM ближе к защите, CM/CM2 по бокам, CAM ближе к атаке
+  CDM: { x: 32, y: 50 },
+  CM:  { x: 42, y: 30 },
+  CM2: { x: 42, y: 70 },
+  CM3: { x: 44, y: 50 },
+  CAM: { x: 56, y: 50 },
+  // Атака: вингеры по краям, ST в центре у чужих ворот, CF/SS чуть позади
+  LW:  { x: 72, y: 15 },
+  RW:  { x: 72, y: 85 },
+  CF:  { x: 80, y: 35 },
+  ST:  { x: 86, y: 50 },
+  SS:  { x: 80, y: 65 },
 }
 
 const route = useRoute()
@@ -308,6 +340,14 @@ const fieldPositions = computed(() => {
   console.log('🔍 Field positions result:', result)
   return result
 })
+
+// Для вертикального поля (мобила): переворачиваем координаты.
+// Горизонтальное поле: наши ворота слева (x=0..20), чужие справа (x=80..100), Y — поперёк поля.
+// Вертикальное поле: наши ворота снизу (y=80..100), чужие сверху (y=0..20), X — поперёк.
+// Формула: vertical.x = horizontal.y, vertical.y = 100 - horizontal.x
+const fieldPositionsVertical = computed(() =>
+  fieldPositions.value.map((p: any) => ({ ...p, x: p.y, y: 100 - p.x }))
+)
 
 function statusClass(s: string) {
   if (s === 'Finished')   return 'bg-neutral-100 text-neutral-600'

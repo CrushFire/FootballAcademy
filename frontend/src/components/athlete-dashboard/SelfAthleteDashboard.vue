@@ -8,7 +8,7 @@
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
 
       <!-- Левая: пятиугольник + ближайшее занятие -->
-      <div class="col-span-1 flex flex-col gap-4 border-r border-neutral-100 pr-6">
+      <div class="col-span-1 flex flex-col gap-4 md:border-r border-neutral-100 md:pr-6">
         <DashCard title="Профиль игрока">
           <div class="flex justify-center">
             <svg :viewBox="`0 0 ${SVG} ${SVG}`" class="w-full max-w-[240px] h-auto">
@@ -118,7 +118,7 @@
             <span class="text-xs font-semibold px-2 py-1 rounded-full border border-sky-100 bg-sky-50 text-sky-700">{{ positionLabel[sportsmanPosition] ?? sportsmanPosition }}</span>
           </div>
 
-          <div v-if="(playerProfiles?.length || 0) + (playerPotentialProfiles?.length || 0) > 0" class="grid grid-cols-2 gap-3">
+          <div v-if="(playerProfiles?.length || 0) + (playerPotentialProfiles?.length || 0) > 0" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <!-- Левая колонка: Подтверждено -->
             <div>
               <div class="text-xs font-bold text-emerald-700 uppercase tracking-wide mb-1.5">Подтверждено</div>
@@ -169,7 +169,7 @@
       </div>
 
       <!-- Правая: последняя тренировка -->
-      <div class="col-span-1 flex flex-col gap-4 border-l border-neutral-100 pl-6">
+      <div class="col-span-1 flex flex-col gap-4 md:border-l border-neutral-100 md:pl-6">
         <DashCard title="Последняя тренировка" :icon="true" icon-bg="bg-purple-50 text-purple-500" :clickable="true" @click="$emit('go-trainings')">
           <template #icon>
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>

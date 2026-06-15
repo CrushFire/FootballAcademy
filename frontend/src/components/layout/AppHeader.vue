@@ -1,8 +1,22 @@
 <template>
-  <header class="flex items-center justify-between px-6 shrink-0 bg-primary-700 dark:bg-blue-900 shadow-lg" style="height:60px">
-    <div class="flex items-center gap-3">
-      <img :src="logoUrl" alt="Академия футбола" class="h-10 w-10 object-cover rounded-xl block" />
-      <span class="text-lg font-bold text-white tracking-tight">FootballAcademy</span>
+  <header class="flex items-center justify-between px-4 md:px-6 shrink-0 bg-primary-700 dark:bg-blue-900 shadow-lg" style="height:60px">
+    <div class="flex items-center gap-2 md:gap-3">
+      <!-- Мобила: гамбургер с эмблемой на фоне (объединяем две кнопки в одну). -->
+      <button
+        type="button"
+        @click="openMobileMenu"
+        class="md:hidden relative w-11 h-11 rounded-xl overflow-hidden flex items-center justify-center transition-transform active:scale-95"
+        aria-label="Меню"
+      >
+        <img :src="logoUrl" alt="" class="absolute inset-0 w-full h-full object-cover opacity-90" />
+        <span class="absolute inset-0 bg-black/35" />
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" class="relative w-6 h-6 text-neutral-200 drop-shadow">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
+        </svg>
+      </button>
+      <!-- Десктоп: обычная эмблема -->
+      <img :src="logoUrl" alt="Академия футбола" class="hidden md:block h-10 w-10 object-cover rounded-xl" />
+      <span class="hidden sm:inline text-lg font-bold text-white tracking-tight">FootballAcademy</span>
     </div>
 
     <div class="flex items-center gap-2">
@@ -25,7 +39,7 @@
         <Transition name="drawer">
           <div
             v-if="drawerOpen"
-            class="absolute right-0 top-12 w-80 bg-white rounded-2xl shadow-2xl border border-neutral-100 z-50 overflow-hidden flex flex-col"
+            class="fixed md:absolute right-2 md:right-0 left-2 md:left-auto top-14 md:top-12 md:w-80 max-w-[calc(100vw-1rem)] bg-white rounded-2xl shadow-2xl border border-neutral-100 z-50 overflow-hidden flex flex-col"
             style="max-height: 320px"
           >
             <!-- Хедер панели -->
@@ -128,10 +142,10 @@
       </button>
 
       <!-- Профиль -->
-      <RouterLink :to="profileRoute" class="flex items-center gap-2 pr-3 rounded-full no-underline transition-colors bg-white/10 hover:bg-white/20" :class="avatarUrl ? 'pl-0' : 'pl-1 py-1'">
-        <img v-if="avatarUrl" :src="avatarUrl" class="w-11 h-11 rounded-full object-cover object-top border border-white/30" />
-        <div v-else class="w-8 h-8 rounded-full flex items-center justify-center bg-white/20 text-white" v-html="ICON_USER" />
-        <span class="text-sm font-semibold text-white">{{ userName }}</span>
+      <RouterLink :to="profileRoute" class="flex items-center gap-2 pr-2 md:pr-3 rounded-full no-underline transition-colors bg-white/10 hover:bg-white/20 min-w-0" :class="avatarUrl ? 'pl-0' : 'pl-1 py-1'">
+        <img v-if="avatarUrl" :src="avatarUrl" class="w-10 h-10 md:w-11 md:h-11 rounded-full object-cover object-top border border-white/30 shrink-0" />
+        <div v-else class="w-8 h-8 rounded-full flex items-center justify-center bg-white/20 text-white shrink-0" v-html="ICON_USER" />
+        <span class="hidden sm:inline text-sm font-semibold text-white truncate max-w-[140px]">{{ userName }}</span>
       </RouterLink>
     </div>
   </header>
@@ -146,6 +160,7 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/store/auth'
 import { useNotifications } from '@/composables/useNotifications'
 import { useTheme } from '@/composables/useTheme'
+import { useMobileMenu } from '@/composables/useMobileMenu'
 import type { NotificationItem } from '@/composables/useNotifications'
 import logoUrl from '@/assets/images/Академия_футбола.png'
 import api from '@/services/api'
@@ -155,6 +170,7 @@ const auth = useAuthStore()
 const router = useRouter()
 const { notifications, unreadCount, init, markRead, markAllRead } = useNotifications()
 const { theme, toggle: toggleTheme } = useTheme()
+const { open: openMobileMenu } = useMobileMenu()
 
 const drawerOpen = ref(false)
 const avatarUrl = ref<string | null>(null)

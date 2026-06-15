@@ -44,8 +44,8 @@
           <span class="text-xs text-neutral-400">{{ formatDate(m.date) }}</span>
         </div>
         
-        <div class="flex items-center justify-between gap-4">
-          <div class="flex flex-col items-center gap-2 flex-1">
+        <div class="flex items-center justify-between gap-2 md:gap-4">
+          <div class="flex flex-col items-center gap-2 flex-1 min-w-0">
             <img v-if="teamImages[m.homeTeamId]" :src="teamImages[m.homeTeamId]" class="w-14 h-14 object-contain flex-shrink-0" />
             <div v-else class="w-14 h-14 rounded-full border-2 border-neutral-200 bg-neutral-50 flex items-center justify-center flex-shrink-0">
               <span class="text-sm font-bold text-blue-600">{{ initials(m.homeTeamName) }}</span>
@@ -64,7 +64,7 @@
             <span class="text-xs text-neutral-400 mt-1">{{ typeLabel[m.type] ?? m.type }}</span>
           </div>
 
-          <div class="flex flex-col items-center gap-2 flex-1">
+          <div class="flex flex-col items-center gap-2 flex-1 min-w-0">
             <img v-if="m.opponentTeamId && teamImages[m.opponentTeamId]" :src="teamImages[m.opponentTeamId]" class="w-14 h-14 object-contain flex-shrink-0" />
             <div v-else class="w-14 h-14 rounded-full border-2 border-neutral-200 bg-neutral-50 flex items-center justify-center flex-shrink-0">
               <span class="text-sm font-bold text-neutral-500">{{ initials(m.opponentTeamName ?? '?') }}</span>

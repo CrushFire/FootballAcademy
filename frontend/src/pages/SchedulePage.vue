@@ -1,6 +1,6 @@
 <template>
-  <div class="p-3 overflow-y-auto h-full">
-    <AppCard no-border>
+  <div class="p-3 h-full">
+    <AppCard no-border class="h-full overflow-y-auto">
 
       <div class="flex items-center justify-between mb-4 pb-4 border-b border-neutral-100">
         <h1 class="text-xl font-bold text-neutral-900">Расписание</h1>
@@ -18,45 +18,82 @@
       <div v-if="loading" class="text-sm text-neutral-400">Загрузка...</div>
 
       <div v-else>
-        <div class="grid grid-cols-7 gap-1 mb-1">
-          <div v-for="d in DAYS" :key="d" class="text-center text-xs font-semibold text-neutral-400 uppercase tracking-wide py-1">{{ d }}</div>
-        </div>
+        <!-- ДЕСКТОП: классическая сетка 7×N -->
+        <div class="hidden md:block">
+          <div class="grid grid-cols-7 gap-1 mb-1">
+            <div v-for="d in DAYS" :key="d" class="text-center text-xs font-semibold text-neutral-400 uppercase tracking-wide py-1">{{ d }}</div>
+          </div>
 
-        <div class="grid grid-cols-7 gap-1">
-          <div
-            v-for="day in calendarDays"
-            :key="day.iso"
-            class="min-h-[90px] rounded-lg p-1.5 flex flex-col gap-1"
-            :class="[
-              day.currentMonth ? 'bg-white border border-neutral-200' : 'bg-neutral-100 border border-transparent',
-              day.isToday ? 'ring-2 ring-blue-400' : ''
-            ]"
-          >
-            <div class="mb-0.5">
-              <span
-                class="text-xs font-semibold w-5 h-5 flex items-center justify-center rounded-full"
-                :class="day.isToday ? 'bg-blue-600 text-white' : day.currentMonth ? 'text-neutral-700' : 'text-neutral-300'"
-              >{{ day.dayNum }}</span>
-            </div>
+          <div class="grid grid-cols-7 gap-1">
+            <div
+              v-for="day in calendarDays"
+              :key="day.iso"
+              class="min-h-[90px] rounded-lg p-1.5 flex flex-col gap-1"
+              :class="[
+                day.currentMonth ? 'bg-white border border-neutral-200' : 'bg-neutral-100 border border-transparent',
+                day.isToday ? 'ring-2 ring-blue-400' : ''
+              ]"
+            >
+              <div class="mb-0.5">
+                <span
+                  class="text-xs font-semibold w-5 h-5 flex items-center justify-center rounded-full"
+                  :class="day.isToday ? 'bg-blue-600 text-white' : day.currentMonth ? 'text-neutral-700' : 'text-neutral-300'"
+                >{{ day.dayNum }}</span>
+              </div>
 
-            <template v-for="ev in eventsForDay(day.iso)" :key="ev.key">
-              <div v-if="ev.type === 'match'" class="rounded-lg px-2 py-1.5 bg-green-50 border border-green-200">
-                <div class="flex items-center gap-1 mb-0.5">
-                  <span class="w-2 h-2 rounded-full bg-green-500 flex-shrink-0"></span>
-                  <span class="text-xs font-semibold text-green-700">Матч</span>
+              <template v-for="ev in eventsForDay(day.iso)" :key="ev.key">
+                <div v-if="ev.type === 'match'" class="rounded-lg px-2 py-1.5 bg-green-50 border border-green-200">
+                  <div class="flex items-center gap-1 mb-0.5">
+                    <span class="w-2 h-2 rounded-full bg-green-500 flex-shrink-0"></span>
+                    <span class="text-xs font-semibold text-green-700">Матч</span>
+                  </div>
+                  <div class="text-xs text-green-600 leading-tight truncate">{{ ev.homeTeamName }} vs {{ ev.opponentTeamName || 'Соперник' }}</div>
+                  <div class="text-xs text-green-400 mt-0.5">{{ formatTime(ev.date) }}</div>
                 </div>
-                <div class="text-xs text-green-600 leading-tight truncate">{{ ev.homeTeamName }} vs {{ ev.opponentTeamName || 'Соперник' }}</div>
-                <div class="text-xs text-green-400 mt-0.5">{{ formatTime(ev.date) }}</div>
-              </div>
-              <div v-else class="rounded-lg px-2 py-1.5 bg-blue-50 border border-blue-100">
-                <div class="text-xs font-semibold text-blue-700 mb-0.5">{{ (ev.beginTime ?? '').slice(0, 5) }}</div>
-                <div class="text-xs text-blue-400 mt-0.5 truncate">{{ ev.sportHall }}</div>
-              </div>
-            </template>
+                <div v-else class="rounded-lg px-2 py-1.5 bg-blue-50 border border-blue-100">
+                  <div class="text-xs font-semibold text-blue-700 mb-0.5">{{ (ev.beginTime ?? '').slice(0, 5) }}</div>
+                  <div class="text-xs text-blue-400 mt-0.5 truncate">{{ ev.sportHall }}</div>
+                </div>
+              </template>
+            </div>
           </div>
         </div>
 
-        <div class="flex items-center gap-4 mt-3 pt-3 border-t border-neutral-100">
+        <!-- МОБИЛА: ВЕСЬ месяц, но сетка по 5 колонок (день недели не привязан к колонке,
+             зато клетки шире и читаются). Скроллим вниз как обычно. -->
+        <div class="md:hidden">
+          <div class="grid grid-cols-5 gap-1">
+            <div
+              v-for="day in monthDays"
+              :key="'m' + day.iso"
+              class="min-h-[100px] rounded-lg p-1.5 flex flex-col gap-1 bg-white border border-neutral-200"
+              :class="day.isToday ? 'ring-2 ring-blue-400' : ''"
+            >
+              <!-- Внутри клетки: число + день недели подписью -->
+              <div class="flex items-center justify-between mb-0.5">
+                <span
+                  class="text-xs font-semibold w-5 h-5 flex items-center justify-center rounded-full"
+                  :class="day.isToday ? 'bg-blue-600 text-white' : 'text-neutral-700'"
+                >{{ day.dayNum }}</span>
+                <span class="text-[9px] font-semibold text-neutral-400 uppercase tracking-wide">{{ DAYS[(new Date(day.iso).getDay() + 6) % 7] }}</span>
+              </div>
+
+              <template v-for="ev in eventsForDay(day.iso)" :key="'me' + ev.key">
+                <div v-if="ev.type === 'match'" class="rounded-md px-1.5 py-1 bg-green-50 border border-green-200">
+                  <div class="text-[10px] font-semibold text-green-700">Матч</div>
+                  <div class="text-[10px] text-green-600 leading-tight truncate">{{ ev.homeTeamName }}</div>
+                  <div class="text-[10px] text-green-400">{{ formatTime(ev.date) }}</div>
+                </div>
+                <div v-else class="rounded-md px-1.5 py-1 bg-blue-50 border border-blue-100">
+                  <div class="text-[10px] font-semibold text-blue-700">{{ (ev.beginTime ?? '').slice(0, 5) }}</div>
+                  <div class="text-[10px] text-blue-400 truncate">{{ ev.sportHall }}</div>
+                </div>
+              </template>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-4 mt-3 pt-3 border-t border-neutral-100 flex-wrap">
           <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-blue-100 border border-blue-200"></span><span class="text-xs text-neutral-500">Занятие</span></div>
           <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-green-100 border border-green-200"></span><span class="text-xs text-neutral-500">Матч</span></div>
           <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded ring-2 ring-blue-400 bg-white"></span><span class="text-xs text-neutral-500">Сегодня</span></div>
@@ -89,6 +126,7 @@ const DOW_MAP: Record<string, number> = {
 const today = new Date()
 today.setHours(0, 0, 0, 0)
 
+
 const currentYear = computed(() => new Date(today.getFullYear(), today.getMonth() + monthOffset.value, 1).getFullYear())
 const currentMonth = computed(() => new Date(today.getFullYear(), today.getMonth() + monthOffset.value, 1).getMonth())
 
@@ -110,6 +148,10 @@ const calendarDays = computed(() => {
   for (let i = 1; i <= remaining; i++) days.push(makeDay(new Date(year, month + 1, i), false))
   return days
 })
+
+// Для мобильной 5-колоночной сетки: только дни ТЕКУЩЕГО месяца,
+// без хвостов из соседних (день недели в десктопной 7-сетке не нужен).
+const monthDays = computed(() => calendarDays.value.filter(d => d.currentMonth))
 
 function makeDay(d: Date, isCurrent: boolean) {
   return {

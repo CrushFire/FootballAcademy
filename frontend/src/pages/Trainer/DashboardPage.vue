@@ -20,7 +20,7 @@
       </div>
 
       <!-- Быстрые ссылки -->
-      <div class="grid grid-cols-3 gap-2.5">
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
         <router-link
           v-for="link in quickLinks" :key="link.to"
           :to="link.to"

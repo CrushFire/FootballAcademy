@@ -5,10 +5,10 @@
       <span class="text-sm text-neutral-400 capitalize">{{ todayStr }}</span>
     </div>
 
-    <div class="grid grid-cols-2 gap-6">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 
       <!-- Левая: пятиугольник + кнопки -->
-      <div class="flex flex-col gap-3 border-r border-neutral-100 pr-6">
+      <div class="flex flex-col gap-3 md:border-r border-neutral-100 md:pr-6">
         <DashCard title="Профиль игрока">
           <div class="flex justify-center">
             <svg :viewBox="`0 0 ${SVG} ${SVG}`" class="w-full max-w-[200px] h-auto">
@@ -72,7 +72,7 @@
             <span class="text-xs font-semibold px-2 py-1 rounded-full border border-sky-100 bg-sky-50 text-sky-700">{{ positionLabel[sportsmanPosition] ?? sportsmanPosition }}</span>
           </div>
 
-          <div v-if="(playerProfiles?.length || 0) + (playerPotentialProfiles?.length || 0) > 0" class="grid grid-cols-2 gap-3">
+          <div v-if="(playerProfiles?.length || 0) + (playerPotentialProfiles?.length || 0) > 0" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <!-- Левая колонка: Подтверждено (только непозиционные качества) -->
             <div>
               <div class="text-xs font-bold text-emerald-700 uppercase tracking-wide mb-1.5">Подтверждено</div>

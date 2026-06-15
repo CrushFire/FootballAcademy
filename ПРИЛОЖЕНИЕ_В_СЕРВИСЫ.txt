@@ -1,0 +1,937 @@
+================================================================================
+ПРИЛОЖЕНИЕ В
+Программный код ключевых сервисов и страниц системы
+================================================================================
+
+
+В.1 — Сервис аутентификации (AuthService)
+
+public async Task<Result<AuthResponse>> AuthorizationAsync(AuthRequest req)
+{
+    var input = (req.Identifier ?? req.Email ?? string.Empty).Trim();
+    var mode = req.Mode?.ToLowerInvariant();
+    if (string.IsNullOrEmpty(input))
+        return Result<AuthResponse>.Failure("Укажите логин или email", 400);
+
+    var normalized = mode == "email" ? input.ToLowerInvariant() : input;
+
+    User? user = mode switch
+    {
+        "email" => await _context.Users.FirstOrDefaultAsync(u => u.Email.ToLower() == normalized),
+        "login" => await _context.Users.FirstOrDefaultAsync(u => u.Login == normalized),
+    };
+
+    if (user == null)
+        return Result<AuthResponse>.Failure("Пользователь не найден", 404);
+
+    if (!_passwordHasher.VerifyPassword(req.Password, user.Password))
+        return Result<AuthResponse>.Failure("Неверный пароль", 401);
+
+    string? personalType = null;
+    string? personalId = null;
+    if (user.Role == "personal")
+    {
+        var personal = await _context.Personal.FirstOrDefaultAsync(p => p.UserId == user.Id);
+        personalType = personal?.Type.ToString();
+        personalId = personal?.Id.ToString();
+    }
+
+    var token = _jwtTokenGen.TokenGen(user.Id.ToString(), user.Login,
+        user.Email, user.Role, personalType, personalId);
+    return Result<AuthResponse>.Success(new AuthResponse { Token = token, UserId = user.Id });
+}
+
+
+В.2 — Сервис пользователей (UserService)
+
+public async Task<Result<bool>> CreateUserAsync(UserCreateRequest req)
+{
+    if (req == null)
+        return Result<bool>.Failure("Данные пользователя не могут быть пустыми", 400);
+
+    var existingUser = await _context.Users.FirstOrDefaultAsync(x => x.Email == req.Email);
+    if (existingUser != null)
+        return Result<bool>.Failure("Пользователь с таким email уже существует", 409);
+
+    var newUser = _mapper.Map<User>(req);
+    if (!string.IsNullOrWhiteSpace(req.Password))
+        newUser.Password = _passwordHasher.HashPassword(req.Password);
+
+    await _context.Users.AddAsync(newUser);
+    await _context.SaveChangesAsync();
+    return Result<bool>.Success(true);
+}
+
+
+В.3 — Сервис спортсменов (SportsmanService)
+
+public async Task<Result<SportsmanResponse>> GetByIdAsync(long id)
+{
+    var sportsman = await _context.Sportsmen
+        .Include(s => s.Images)
+        .Include(s => s.Team)
+        .Include(s => s.SportsmanGroups).ThenInclude(sg => sg.Group)
+        .FirstOrDefaultAsync(s => s.Id == id);
+
+    if (sportsman == null)
+        return Result<SportsmanResponse>.Failure("Спортсмен не найден", 404);
+
+    var response = _mapper.Map<SportsmanResponse>(sportsman);
+    response.Age = CalculateAge(sportsman.BirthDate);
+    return Result<SportsmanResponse>.Success(response);
+}
+
+private int CalculateAge(DateTime birthDate)
+{
+    var today = DateTime.Today;
+    var age = today.Year - birthDate.Year;
+    if (birthDate.Date > today.AddYears(-age)) age--;
+    return age;
+}
+
+
+В.4 — Сервис персонала (PersonalService)
+
+public async Task<Result<List<PersonalResponse>>> GetByTypeAsync(PersonalType type)
+{
+    var personal = await _context.Personal
+        .Include(p => p.Images)
+        .Where(p => p.Type == type)
+        .OrderBy(p => p.FIO)
+        .ToListAsync();
+
+    var response = _mapper.Map<List<PersonalResponse>>(personal);
+    return Result<List<PersonalResponse>>.Success(response);
+}
+
+
+В.5 — Сервис групп (GroupService)
+
+public async Task<Result<bool>> AddSportsmanAsync(long groupId, long sportsmanId)
+{
+    var group = await _context.Groups.FindAsync(groupId);
+    if (group == null)
+        return Result<bool>.Failure("Группа не найдена", 404);
+
+    var sportsman = await _context.Sportsmen.FindAsync(sportsmanId);
+    if (sportsman == null)
+        return Result<bool>.Failure("Спортсмен не найден", 404);
+
+    var existing = await _context.SportsmanGroups
+        .AnyAsync(sg => sg.GroupId == groupId && sg.SportsmanId == sportsmanId);
+    if (existing)
+        return Result<bool>.Failure("Спортсмен уже состоит в группе", 409);
+
+    await _context.SportsmanGroups.AddAsync(new SportsmanGroup
+    {
+        GroupId = groupId,
+        SportsmanId = sportsmanId
+    });
+    await _context.SaveChangesAsync();
+    return Result<bool>.Success(true);
+}
+
+
+В.6 — Сервис команд (TeamService)
+
+public async Task<Result<TeamResponse>> CreateAsync(TeamCreateRequest req)
+{
+    if (string.IsNullOrWhiteSpace(req.Name))
+        return Result<TeamResponse>.Failure("Название команды обязательно", 400);
+
+    var trainer = await _context.Personal.FindAsync(req.TrainerId);
+    if (trainer == null || trainer.Type != PersonalType.Trainer)
+        return Result<TeamResponse>.Failure("Тренер не найден", 404);
+
+    var team = _mapper.Map<Team>(req);
+    await _context.Teams.AddAsync(team);
+    await _context.SaveChangesAsync();
+
+    var response = _mapper.Map<TeamResponse>(team);
+    return Result<TeamResponse>.Success(response);
+}
+
+
+В.7 — Сервис тренировок (TrainingService)
+
+public async Task<Result<TrainingResponse>> CreateAsync(TrainingCreateRequest req)
+{
+    if (req.GroupId == null && req.TeamId == null)
+        return Result<TrainingResponse>.Failure(
+            "Тренировка должна быть привязана к группе или команде", 400);
+
+    var trainer = await _context.Personal.FindAsync(req.TrainerId);
+    if (trainer == null)
+        return Result<TrainingResponse>.Failure("Тренер не найден", 404);
+
+    var training = _mapper.Map<Training>(req);
+    await _context.Trainings.AddAsync(training);
+    await _context.SaveChangesAsync();
+
+    var response = _mapper.Map<TrainingResponse>(training);
+    return Result<TrainingResponse>.Success(response);
+}
+
+
+В.8 — Сервис метрик тренировок (MetricService)
+
+public async Task<Result<string>> ImportMetricsFromFileAsync(string filePath)
+{
+    using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read);
+    var formFile = new FormFile(stream, 0, stream.Length, "file",
+        Path.GetFileName(filePath));
+
+    var parseResult = await _parser.ParseExcelFileAsync(formFile);
+    if (!parseResult.IsSuccess)
+        return Result<string>.Failure(parseResult.ErrorMessage, parseResult.StatusCode);
+
+    var metrics = parseResult.Data.Select(req => _mapper.Map<TrainingMetrics>(req)).ToList();
+    await _context.TrainingMetrics.AddRangeAsync(metrics);
+    await _context.SaveChangesAsync();
+
+    return Result<string>.Success($"Импортировано {parseResult.Data.Count} метрик");
+}
+
+
+В.9 — Сервис автоматического импорта (MetricAutoImportService)
+
+public async Task<Result<AutoImportResult>> RunAutoImportNowAsync()
+{
+    const string folder = "/app/uploads/metrics";
+    if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
+
+    using var scope = _serviceProvider.CreateScope();
+    var metricService = scope.ServiceProvider.GetRequiredService<IMetricsService>();
+    var files = Directory.GetFiles(folder, "*.xlsx");
+
+    int processed = 0, failed = 0, metricsImported = 0;
+    string? lastError = null;
+
+    foreach (var filePath in files)
+    {
+        var importResult = await metricService.ImportMetricsFromFileAsync(filePath);
+        if (!importResult.IsSuccess)
+        {
+            failed++;
+            lastError = importResult.ErrorMessage;
+            continue;
+        }
+
+        var match = Regex.Match(importResult.Data ?? "", @"\d+");
+        if (match.Success && int.TryParse(match.Value, out var n))
+            metricsImported += n;
+
+        var archivePath = Path.Combine(folder, "archive");
+        Directory.CreateDirectory(archivePath);
+        File.Move(filePath, Path.Combine(archivePath, Path.GetFileName(filePath)));
+        processed++;
+    }
+
+    return Result<AutoImportResult>.Success(new AutoImportResult
+    {
+        Processed = processed,
+        Failed = failed,
+        MetricsImported = metricsImported
+    });
+}
+
+
+В.10 — Сервис основных метрик (MainMetricService)
+
+public CommonMetrics CalculateCommonMetrics(TrainingMetrics m)
+{
+    var durationMin = m.Duration / 60.0;
+    return new CommonMetrics
+    {
+        SprintRatio = m.TotalDistance > 0
+            ? (double)m.SprintDistance / m.TotalDistance : 0,
+        HighSpeedRatio = m.TotalDistance > 0
+            ? (double)m.HighSpeedDistance / m.TotalDistance : 0,
+        AvgSpeed = durationMin > 0 ? m.TotalDistance / durationMin : 0,
+        HRRedPercent = m.Duration > 0
+            ? (double)m.TimeInHRRedZone / m.Duration : 0,
+        AerobicLoad = m.TotalDistance > 0
+            ? (double)(m.LowSpeedDistance + m.ModerateSpeedDistance) / m.TotalDistance : 0,
+        CardioEfficiency = m.AverageHeartRate > 0
+            ? (double)m.TotalDistance / m.AverageHeartRate : 0,
+        HRStability = m.MaxHeartRate > 0
+            ? (double)m.AverageHeartRate / m.MaxHeartRate : 0,
+        ExplosiveIndex = m.Duration > 0
+            ? (double)(m.ExplosiveEfforts + m.AccelerationCount
+                + m.DecelerationCount) / m.Duration : 0
+    };
+}
+
+
+В.11 — Сервис медицинских метрик (MedicalMetricService)
+
+public MedicalCheckResult PerformCheck(TrainingMetrics m, int athleteAge, double acwr)
+{
+    var maxHrThreshold = GetMaxHeartRateBase(athleteAge) - athleteAge;
+    var cvOk = m.MaxHeartRate < maxHrThreshold && m.AverageHeartRate < 180;
+    var loadOk = m.PlayerLoad < 500 && acwr < 1.5;
+    var recoveryOk = m.TimeInSpeedZone1 > 300;
+    var injuryRiskOk = m.PlayerLoad < 450
+        && (m.AccelerationCount + m.DecelerationCount) < 200 && acwr < 1.3;
+
+    var fatigueOk = m.TimeInHRRedZone < 600;
+    var issues = new List<string>();
+    if (!cvOk) issues.Add("Сердечно-сосудистая система");
+    if (!loadOk) issues.Add("Превышение нагрузки");
+    if (!recoveryOk) issues.Add("Недостаточное восстановление");
+    if (!injuryRiskOk) issues.Add("Высокий риск травмы");
+    if (!fatigueOk) issues.Add("Утомление");
+
+    return new MedicalCheckResult
+    {
+        IsHealthy = issues.Count == 0,
+        Issues = issues
+    };
+}
+
+private int GetMaxHeartRateBase(int age) => age switch
+{
+    <= 10 => 210,
+    <= 12 => 210,
+    <= 14 => 208,
+    <= 16 => 206,
+    <= 18 => 204,
+    <= 21 => 202,
+    _ => 205
+};
+
+
+В.12 — Сервис пятиугольника (PentagonService)
+
+public PentagonResult CalculatePentagon(TrainingMetrics m, Sportsman s,
+    List<TrainingMetrics> groupMetrics)
+{
+    var raw = CalculateRawPentagon(m);
+    var posCoefs = _positionCoefficientService.GetByPosition(s.Position);
+    var absStandards = _absoluteStandardService.GetByAgeAndGender(s.Age, s.Gender);
+    var n = groupMetrics.Count;
+    var (wRel, wAbs) = GetNormalizationWeights(n);
+
+    var result = new PentagonResult();
+    foreach (var axis in new[] { "Speed", "Power", "Sprints", "Endurance", "Explosive" })
+    {
+        var groupMax = groupMetrics.Max(gm => GetRawValue(axis, gm));
+        var adjG = groupMax * posCoefs[axis];
+        var adjA = absStandards[axis] * posCoefs[axis];
+
+        var rel = adjG > 0 ? raw[axis] / adjG : 0;
+        var abs = adjA > 0 ? raw[axis] / adjA : 0;
+        var score = Math.Clamp(wRel * rel + wAbs * abs, 0, 1);
+
+        result[axis] = score;
+    }
+    return result;
+}
+
+private (double wRel, double wAbs) GetNormalizationWeights(int n)
+{
+    if (n >= 30) return (0.80, 0.20);
+    if (n >= 15) return (0.70, 0.30);
+    if (n >= 5) return (0.50, 0.50);
+    return (0.20, 0.80);
+}
+
+
+В.13 — Сервис профилей игрока (ProfileService)
+
+public List<PlayerProfile> DetermineProfiles(TrainingMetrics m, Sportsman s)
+{
+    var profiles = new List<PlayerProfile>();
+    var common = _mainMetricService.CalculateCommonMetrics(m);
+    var posCoef = _positionCoefficientService.GetByPosition(s.Position);
+    var durationMin = m.Duration / 60.0;
+    var accPerSec = m.Duration > 0 ? (double)m.AccelerationCount / m.Duration : 0;
+    var defIdx = m.TotalDistance > 0 ? m.PlayerLoad / m.TotalDistance : 0;
+
+    if (common.SprintRatio > 0.45 && accPerSec > 0.15)
+        profiles.Add(PlayerProfile.Sprinter);
+
+    if (common.AerobicLoad > 0.35)
+        profiles.Add(PlayerProfile.EnduranceRunner);
+
+    if (m.PlayerLoad > 300)
+        profiles.Add(PlayerProfile.PowerPlayer);
+
+    if (common.ExplosiveIndex > 1.2)
+        profiles.Add(PlayerProfile.ExplosivePlayer);
+
+    if (defIdx > 2.0 && posCoef["Power"] >= 1.0)
+        profiles.Add(PlayerProfile.DefenderType);
+
+    if (profiles.Count >= 4)
+        profiles.Add(PlayerProfile.Universal);
+
+    return profiles;
+}
+
+
+В.14 — Сервис графика динамики (GraphService)
+
+public async Task<Result<List<GraphPoint>>> GetGraphPointsAsync(
+    long sportsmanId, string metricKey, DateTime from, DateTime to)
+{
+    var metrics = await _context.TrainingMetrics
+        .Include(tm => tm.Training)
+        .Where(tm => tm.SportsmanId == sportsmanId
+                  && tm.Training.Date >= from
+                  && tm.Training.Date <= to)
+        .OrderBy(tm => tm.Training.Date)
+        .ToListAsync();
+
+    var points = metrics.Select(tm => new GraphPoint
+    {
+        Date = tm.Training.Date,
+        Value = ExtractMetricValue(tm, metricKey),
+        TrainingType = tm.Training.Type,
+        MatchType = tm.Training.MatchId.HasValue ? "Match" : null
+    }).ToList();
+
+    return Result<List<GraphPoint>>.Success(points);
+}
+
+
+В.15 — Сервис позиционных коэффициентов (PositionCoeffiecientService)
+
+public Dictionary<string, double> GetByPosition(Position? position)
+{
+    return position switch
+    {
+        Position.GK => new() { ["Speed"] = 0.65, ["Sprint"] = 0.45,
+            ["Power"] = 0.75, ["Endurance"] = 1.00, ["Explosive"] = 1.25 },
+        Position.CB or Position.LB or Position.RB
+            or Position.LWB or Position.RWB => new()
+        {
+            ["Speed"] = 0.85, ["Sprint"] = 0.75,
+            ["Power"] = 1.00, ["Endurance"] = 0.95, ["Explosive"] = 0.95
+        },
+        Position.CDM or Position.CM or Position.CAM => new()
+        {
+            ["Speed"] = 0.90, ["Sprint"] = 0.80,
+            ["Power"] = 1.05, ["Endurance"] = 1.10, ["Explosive"] = 1.00
+        },
+        Position.ST or Position.CF or Position.SS => new()
+        {
+            ["Speed"] = 0.95, ["Sprint"] = 0.95,
+            ["Power"] = 0.95, ["Endurance"] = 0.90, ["Explosive"] = 1.10
+        },
+        Position.LW or Position.RW => new()
+        {
+            ["Speed"] = 1.00, ["Sprint"] = 1.00,
+            ["Power"] = 0.85, ["Endurance"] = 1.00, ["Explosive"] = 1.05
+        },
+        _ => new() { ["Speed"] = 1.00, ["Sprint"] = 1.00,
+            ["Power"] = 1.00, ["Endurance"] = 1.00, ["Explosive"] = 1.00 }
+    };
+}
+
+
+В.16 — Сервис абсолютных стандартов (AbsoluteStandardService)
+
+public Dictionary<string, double> GetByAgeAndGender(int age, char gender)
+{
+    var ageGroup = GetAgeGroup(age);
+    var male = _maleAgeCoefficient.GetByAgeGroup(ageGroup);
+    if (gender == 'M') return male;
+
+    return new Dictionary<string, double>
+    {
+        ["MaxSpeed"] = male["MaxSpeed"] * 0.86,
+        ["AvgSpeed"] = male["AvgSpeed"] * 0.86,
+        ["HSR"] = male["HSR"] * 0.88,
+        ["DPM"] = male["DPM"] * 0.92,
+        ["PlayerLoad"] = male["PlayerLoad"] * 0.88,
+        ["SprintRatio"] = male["SprintRatio"] * 0.88,
+        ["ExplosiveIndex"] = male["ExplosiveIndex"] * 0.85
+    };
+}
+
+private string GetAgeGroup(int age) => age switch
+{
+    <= 10 => "U10", <= 12 => "U12", <= 14 => "U14",
+    <= 16 => "U16", <= 18 => "U18", <= 21 => "U21",
+    _ => "Senior"
+};
+
+
+В.17 — Сервис матчей (MatchService)
+
+public async Task<Result<MatchResponse>> StartLiveMatchAsync(long matchId)
+{
+    var match = await _context.Matches.FindAsync(matchId);
+    if (match == null)
+        return Result<MatchResponse>.Failure("Матч не найден", 404);
+
+    if (match.Status != MatchStatus.Scheduled)
+        return Result<MatchResponse>.Failure(
+            "Запустить можно только запланированный матч", 400);
+
+    match.Status = MatchStatus.InProgress;
+    match.StartedAt = DateTime.UtcNow;
+    await _context.SaveChangesAsync();
+
+    await _hubContext.Clients.All.SendAsync("MatchStarted", matchId);
+    return Result<MatchResponse>.Success(_mapper.Map<MatchResponse>(match));
+}
+
+
+В.18 — Сервис событий матча (MatchService — фиксация событий)
+
+public async Task<Result<MatchEventResponse>> AddEventAsync(MatchEventCreateRequest req)
+{
+    var match = await _context.Matches.FindAsync(req.MatchId);
+    if (match == null || match.Status != MatchStatus.InProgress)
+        return Result<MatchEventResponse>.Failure(
+            "Матч не идёт или не существует", 400);
+
+    var matchEvent = _mapper.Map<MatchEvent>(req);
+    await _context.MatchEvents.AddAsync(matchEvent);
+    await _context.SaveChangesAsync();
+
+    var response = _mapper.Map<MatchEventResponse>(matchEvent);
+    await _hubContext.Clients.Group($"match-{req.MatchId}")
+        .SendAsync("EventAdded", response);
+
+    return Result<MatchEventResponse>.Success(response);
+}
+
+
+В.19 — Сервис очистки матчей (MatchCleanupService)
+
+public async Task CleanupStaleMatchesAsync()
+{
+    var threshold = DateTime.UtcNow.AddHours(-6);
+    var staleMatches = await _context.Matches
+        .Where(m => m.Status == MatchStatus.InProgress
+                 && m.StartedAt != null
+                 && m.StartedAt < threshold)
+        .ToListAsync();
+
+    foreach (var match in staleMatches)
+    {
+        match.Status = MatchStatus.Cancelled;
+        match.TrainerComment = (match.TrainerComment ?? "")
+            + " [Автоматически отменён: превышено время проведения]";
+    }
+
+    if (staleMatches.Count > 0)
+        await _context.SaveChangesAsync();
+}
+
+
+В.20 — Сервис сообщений (MessageService)
+
+public async Task<Result<MessageResponse>> SendAsync(MessageSendRequest req,
+    long senderId)
+{
+    var receiver = await _context.Users.FindAsync(req.ReceiverId);
+    if (receiver == null)
+        return Result<MessageResponse>.Failure("Получатель не найден", 404);
+
+    var message = new Message
+    {
+        SenderId = senderId,
+        ReceiverId = req.ReceiverId,
+        Text = req.Text,
+        SenderRole = req.SenderRole,
+        IsRead = false
+    };
+    await _context.Messages.AddAsync(message);
+    await _context.SaveChangesAsync();
+
+    var response = _mapper.Map<MessageResponse>(message);
+    await _hubContext.Clients.User(req.ReceiverId.ToString())
+        .SendAsync("NewMessage", response);
+
+    return Result<MessageResponse>.Success(response);
+}
+
+
+В.21 — Сервис нормативов (NormativeService)
+
+public string CalculateGrade(double result, Normative norm)
+{
+    var lower = norm.GradeExcellent < norm.GradeSatisfactory;
+    if (lower)
+    {
+        if (result <= norm.GradeExcellent) return "excellent";
+        if (result <= norm.GradeGood) return "good";
+        if (result <= norm.GradeSatisfactory) return "satisfactory";
+    }
+    else
+    {
+        if (result >= norm.GradeExcellent) return "excellent";
+        if (result >= norm.GradeGood) return "good";
+        if (result >= norm.GradeSatisfactory) return "satisfactory";
+    }
+    return "none";
+}
+
+
+В.22 — Сервис изображений (ImageService)
+
+public async Task<Result<ImageResponse>> UploadAsync(IFormFile file,
+    long? sportsmanId, long? personalId, long? teamId)
+{
+    if (file == null || file.Length == 0)
+        return Result<ImageResponse>.Failure("Файл не загружен", 400);
+
+    var fileName = $"{Guid.NewGuid()}{Path.GetExtension(file.FileName)}";
+    var path = Path.Combine("/app/uploads/images", fileName);
+    Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+
+    using (var stream = new FileStream(path, FileMode.Create))
+        await file.CopyToAsync(stream);
+
+    var image = new Image
+    {
+        Path = $"/images/{fileName}",
+        SportsmanId = sportsmanId,
+        PersonalId = personalId,
+        TeamId = teamId
+    };
+    await _context.Images.AddAsync(image);
+    await _context.SaveChangesAsync();
+
+    return Result<ImageResponse>.Success(_mapper.Map<ImageResponse>(image));
+}
+
+
+В.23 — Сервис расписания (SchedualeService)
+
+public async Task<Result<List<ClassResponse>>> GetByGroupAsync(long groupId)
+{
+    var classes = await _context.Classes
+        .Where(c => c.GroupId == groupId)
+        .OrderBy(c => c.DayOfWeek).ThenBy(c => c.BeginTime)
+        .ToListAsync();
+
+    return Result<List<ClassResponse>>.Success(
+        _mapper.Map<List<ClassResponse>>(classes));
+}
+
+
+В.24 — Сервис занятий (ClassService)
+
+public async Task<Result<bool>> CreateAsync(ClassCreateRequest req)
+{
+    var group = await _context.Groups.FindAsync(req.GroupId);
+    if (group == null)
+        return Result<bool>.Failure("Группа не найдена", 404);
+
+    var classEntity = _mapper.Map<Class>(req);
+    await _context.Classes.AddAsync(classEntity);
+    await _context.SaveChangesAsync();
+    return Result<bool>.Success(true);
+}
+
+
+В.25 — Сервис интеллектуального ассистента (RagService)
+
+public async Task<Result<string>> AskAsync(string question, long sportsmanId)
+{
+    var knowledgeContext = await _knowledgeService.GetRelevantContextAsync(question);
+    var sportsmanContext = await BuildSportsmanContextAsync(sportsmanId);
+
+    var prompt = $"Ты — ассистент тренера футбольной академии. " +
+                 $"Используя предоставленные данные, дай развёрнутый ответ " +
+                 $"на вопрос пользователя.\n\n" +
+                 $"Данные спортсмена:\n{sportsmanContext}\n\n" +
+                 $"Дополнительный контекст:\n{knowledgeContext}\n\n" +
+                 $"Вопрос: {question}";
+
+    var requestBody = new
+    {
+        model = "qwen3:8b",
+        prompt = prompt,
+        stream = false
+    };
+
+    var response = await _httpClient.PostAsJsonAsync(
+        "http://ollama:11434/api/generate", requestBody);
+
+    if (!response.IsSuccessStatusCode)
+        return Result<string>.Failure("Локальная модель недоступна", 503);
+
+    var result = await response.Content.ReadFromJsonAsync<OllamaResponse>();
+    return Result<string>.Success(result.Response);
+}
+
+
+В.26 — Сервис мужских возрастных коэффициентов (MaleAgeCoefficientService)
+
+public Dictionary<string, double> GetByAgeGroup(string ageGroup)
+{
+    return ageGroup switch
+    {
+        "U10" => new() { ["MaxSpeed"] = 22.0, ["AvgSpeed"] = 5.5,
+            ["HSR"] = 0.060, ["DPM"] = 95, ["PlayerLoad"] = 400,
+            ["SprintRatio"] = 0.04, ["ExplosiveIndex"] = 0.25 },
+        "U14" => new() { ["MaxSpeed"] = 28.0, ["AvgSpeed"] = 6.5,
+            ["HSR"] = 0.080, ["DPM"] = 115, ["PlayerLoad"] = 600,
+            ["SprintRatio"] = 0.08, ["ExplosiveIndex"] = 0.45 },
+        "U18" => new() { ["MaxSpeed"] = 32.0, ["AvgSpeed"] = 7.5,
+            ["HSR"] = 0.100, ["DPM"] = 125, ["PlayerLoad"] = 700,
+            ["SprintRatio"] = 0.12, ["ExplosiveIndex"] = 0.65 },
+        "Senior" => new() { ["MaxSpeed"] = 36.0, ["AvgSpeed"] = 8.5,
+            ["HSR"] = 0.120, ["DPM"] = 130, ["PlayerLoad"] = 800,
+            ["SprintRatio"] = 0.14, ["ExplosiveIndex"] = 0.75 },
+        _ => GetByAgeGroup("U14")
+    };
+}
+
+
+В.27 — Сервис возрастных коэффициентов (AgeCoefficientService)
+
+public Dictionary<string, double> GetCoefficients(int age, char gender)
+{
+    return gender == 'M'
+        ? _maleService.GetByAgeGroup(GetAgeGroup(age))
+        : _femaleService.GetByAgeGroup(GetAgeGroup(age));
+}
+
+private string GetAgeGroup(int age) => age switch
+{
+    <= 10 => "U10", <= 12 => "U12", <= 14 => "U14",
+    <= 16 => "U16", <= 18 => "U18", <= 21 => "U21",
+    _ => "Senior"
+};
+
+
+В.28 — Страница входа в систему (LoginPage.vue)
+
+<template>
+  <div class="login-root">
+    <canvas class="bg-canvas" ref="bgCanvas" />
+    <div class="frame" />
+    <form class="card" @submit.prevent="onSubmit">
+      <div class="logo-wrap">
+        <div class="logo-box">
+          <img :src="logoUrl" alt="Логотип академии" />
+        </div>
+        <h1>FootballAcademy</h1>
+        <span class="tag">Система управления академией</span>
+      </div>
+
+      <div class="mode-switch">
+        <button type="button" class="mode-btn"
+          :class="{ active: mode === 'login' }" @click="mode = 'login'">
+          По логину
+        </button>
+        <button type="button" class="mode-btn"
+          :class="{ active: mode === 'email' }" @click="mode = 'email'">
+          По email
+        </button>
+      </div>
+
+      <div class="field-group">
+        <label>{{ mode === 'login' ? 'Логин' : 'Email' }}</label>
+        <input v-model="identifier"
+          :type="mode === 'email' ? 'email' : 'text'" required />
+      </div>
+
+      <div class="field-group">
+        <label>Пароль</label>
+        <div class="input-wrap">
+          <input v-model="password"
+            :type="showPassword ? 'text' : 'password'" required />
+          <span class="input-icon" @click="showPassword = !showPassword">
+            {{ showPassword ? '🙈' : '👁' }}
+          </span>
+        </div>
+      </div>
+
+      <button type="submit" class="submit-btn" :disabled="loading">
+        {{ loading ? 'Вход...' : 'Войти' }}
+      </button>
+
+      <p v-if="error" class="error">{{ error }}</p>
+    </form>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/store/auth'
+
+const router = useRouter()
+const auth = useAuthStore()
+
+const mode = ref<'login' | 'email'>('login')
+const identifier = ref('')
+const password = ref('')
+const showPassword = ref(false)
+const loading = ref(false)
+const error = ref('')
+
+async function onSubmit() {
+  loading.value = true
+  error.value = ''
+  try {
+    await auth.login({ identifier: identifier.value,
+      password: password.value, mode: mode.value })
+    router.push('/')
+  } catch (e: any) {
+    error.value = e.message ?? 'Ошибка входа'
+  } finally {
+    loading.value = false
+  }
+}
+</script>
+
+
+В.29 — Страница посещаемости спортсмена (AttendancePage.vue)
+
+<template>
+  <div class="p-3 overflow-y-auto h-full">
+    <AppCard no-border class="min-h-full">
+      <div class="-mx-4 -mt-4 px-5 py-4 mb-5 rounded-t-2xl border-b">
+        <h1 class="text-xl font-bold text-neutral-900">История посещений</h1>
+        <p class="text-sm text-neutral-500 mt-0.5">
+          Все тренировки и статус посещения
+        </p>
+      </div>
+
+      <div v-if="totalStats" class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
+        <div class="rounded-2xl border p-4">
+          <div class="text-xs font-bold uppercase">Всего</div>
+          <div class="text-2xl font-extrabold mt-1">{{ totalStats.total }}</div>
+        </div>
+        <div class="rounded-2xl border border-blue-100 bg-blue-50 p-4">
+          <div class="text-xs font-bold text-blue-600 uppercase">Присутствовал</div>
+          <div class="text-2xl font-extrabold text-blue-700 mt-1">
+            {{ totalStats.present }}
+          </div>
+        </div>
+        <div class="rounded-2xl border border-sky-100 bg-sky-50 p-4">
+          <div class="text-xs font-bold text-sky-600 uppercase">Опоздал</div>
+          <div class="text-2xl font-extrabold text-sky-700 mt-1">
+            {{ totalStats.late }}
+          </div>
+        </div>
+        <div class="rounded-2xl border bg-neutral-100 p-4">
+          <div class="text-xs font-bold text-neutral-600 uppercase">Отсутствовал</div>
+          <div class="text-2xl font-extrabold text-neutral-700 mt-1">
+            {{ totalStats.absent }}
+          </div>
+        </div>
+        <div class="rounded-2xl border border-green-100 bg-green-50 p-4">
+          <div class="text-xs font-bold text-green-700 uppercase">Уважительная</div>
+          <div class="text-2xl font-extrabold text-green-700 mt-1">
+            {{ totalStats.excused }}
+          </div>
+        </div>
+      </div>
+
+      <div v-if="activeQuarter?.items.length"
+           class="rounded-2xl border overflow-hidden">
+        <table class="w-full">
+          <thead class="bg-neutral-50 text-xs font-bold uppercase">
+            <tr>
+              <th class="text-left px-2 md:px-4 py-3">Дата</th>
+              <th class="text-left px-2 md:px-4 py-3 hidden sm:table-cell">Тип</th>
+              <th class="text-left px-2 md:px-4 py-3">Статус</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="item in activeQuarter.items" :key="item.id">
+              <td class="px-2 md:px-4 py-3 text-xs md:text-sm whitespace-nowrap">
+                {{ formatDate(item.trainingDate) }}
+              </td>
+              <td class="px-2 md:px-4 py-3 text-xs md:text-sm hidden sm:table-cell">
+                {{ item.trainingType ?? '—' }}
+              </td>
+              <td class="px-2 md:px-4 py-3">
+                <span class="text-[10px] md:text-xs font-bold px-2 py-0.5
+                       rounded-full whitespace-nowrap"
+                      :class="statusClass(item.status)">
+                  {{ statusLabel[item.status] ?? item.status }}
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </AppCard>
+  </div>
+</template>
+
+
+В.30 — Страница индивидуальных заданий спортсмена (WorkoutsPage.vue)
+
+<template>
+  <div class="p-3 overflow-y-auto h-full">
+    <AppCard no-border class="min-h-full">
+      <div class="-mx-4 -mt-4 px-5 py-4 mb-5 rounded-t-2xl border-b">
+        <h1 class="text-xl font-bold text-neutral-900">Индивидуальные задания</h1>
+        <p class="text-sm text-neutral-500 mt-0.5">
+          Рекомендации и упражнения от тренеров
+        </p>
+      </div>
+
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+        <div class="rounded-2xl border p-4">
+          <div class="text-xs font-bold uppercase">Всего заданий</div>
+          <div class="text-2xl font-extrabold mt-1">{{ workouts.length }}</div>
+        </div>
+        <div class="rounded-2xl border border-green-100 bg-green-50 p-4">
+          <div class="text-xs font-bold text-green-700 uppercase">За месяц</div>
+          <div class="text-2xl font-extrabold text-green-700 mt-1">
+            {{ recentCount }}
+          </div>
+        </div>
+        <div class="rounded-2xl border border-blue-100 bg-blue-50 p-4">
+          <div class="text-xs font-bold text-blue-600 uppercase">Тренеров</div>
+          <div class="text-2xl font-extrabold text-blue-700 mt-1">
+            {{ trainersCount }}
+          </div>
+        </div>
+        <div class="rounded-2xl border border-violet-100 bg-violet-50 p-4">
+          <div class="text-xs font-bold text-violet-600 uppercase">Последнее</div>
+          <div class="text-sm font-bold text-violet-700 mt-1.5 truncate">
+            {{ lastDateLabel }}
+          </div>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-2 mb-4">
+        <input v-model="search" type="text"
+          placeholder="Поиск по тексту задания или тренеру..."
+          class="flex-1 min-w-[160px] md:min-w-[220px] text-sm rounded-xl
+                 border px-3 py-2 focus:outline-none focus:border-blue-400" />
+        <select v-model="trainerFilter" class="text-xs rounded-xl border
+                px-3 py-2 focus:outline-none focus:border-blue-400">
+          <option value="">Все тренеры</option>
+          <option v-for="t in trainers" :key="t.id" :value="t.id">
+            {{ t.fio }}
+          </option>
+        </select>
+      </div>
+
+      <div class="flex flex-col gap-3">
+        <div v-for="w in filteredWorkouts" :key="w.id"
+             class="bg-white rounded-2xl border p-4 hover:border-blue-200
+                    transition-colors">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-sm font-semibold">{{ w.personalName }}</span>
+            <span class="text-xs text-neutral-400">
+              {{ formatDate(w.createdAt) }}
+            </span>
+          </div>
+          <p class="text-sm text-neutral-700 leading-relaxed whitespace-pre-wrap">
+            {{ w.workout }}
+          </p>
+        </div>
+      </div>
+    </AppCard>
+  </div>
+</template>
+
+================================================================================
+КОНЕЦ ПРИЛОЖЕНИЯ В
+================================================================================

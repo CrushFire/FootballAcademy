@@ -66,7 +66,7 @@
         <option value="F">Женский</option>
       </select>
     </FormField>
-    <div class="grid grid-cols-2 gap-3">
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
       <FormField label="Рост (см)">
         <input v-model.number="editForm.height" type="number" class="w-full px-3 py-2 text-sm rounded-xl border border-neutral-200 focus:outline-none focus:border-blue-400" />
       </FormField>

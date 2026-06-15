@@ -26,12 +26,12 @@
       </select>
     </template>
     <template #actions>
-      <div class="flex items-center gap-1.5">
-        <button @click="nextPeriod" class="p-1.5 rounded-lg border border-neutral-200 bg-neutral-50 hover:bg-neutral-100 transition-colors">
+      <div class="flex items-center gap-1.5 flex-shrink-0">
+        <button @click="nextPeriod" class="p-1.5 rounded-lg border border-neutral-200 bg-neutral-50 hover:bg-neutral-100 transition-colors shrink-0">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" class="w-4 h-4 text-neutral-500"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
         </button>
-        <span class="text-xs text-neutral-500 min-w-[110px] text-center">{{ periodLabel }}</span>
-        <button @click="prevPeriod" :disabled="periodOffset === 0" class="p-1.5 rounded-lg border border-neutral-200 bg-neutral-50 hover:bg-neutral-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+        <span class="text-xs text-neutral-500 min-w-[100px] md:min-w-[110px] text-center whitespace-nowrap">{{ periodLabel }}</span>
+        <button @click="prevPeriod" :disabled="periodOffset === 0" class="p-1.5 rounded-lg border border-neutral-200 bg-neutral-50 hover:bg-neutral-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors shrink-0">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" class="w-4 h-4 text-neutral-500"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
         </button>
       </div>
@@ -44,46 +44,56 @@
     </template>
 
     <template #items>
+      <!-- На десктопе: ФИО слева + ГТО/Лок. справа в одну строку (как было раньше).
+           На мобиле: ФИО сверху, ГТО/Лок. снизу отдельной строкой — иначе зажимается. -->
       <div
         v-for="s in pagedSportsmen"
         :key="s.id"
         @click="openModal(s)"
-        class="bg-white rounded-2xl border border-neutral-200 p-3 flex items-center gap-3 cursor-pointer hover:border-blue-200 hover:bg-blue-50/30 transition-all"
+        class="bg-white rounded-2xl border border-neutral-200 p-3 flex flex-col md:flex-row md:items-center gap-3 cursor-pointer hover:border-blue-200 hover:bg-blue-50/30 transition-all"
       >
-        <div class="w-10 h-10 rounded-xl bg-neutral-100 flex items-center justify-center flex-shrink-0 text-base font-bold text-neutral-500">
-          {{ initials(s.fio) }}
-        </div>
-        <div class="flex-1 min-w-0">
-          <div class="text-base font-semibold text-neutral-800 truncate">{{ s.fio }}</div>
-          <div class="flex items-center gap-1.5 mt-0.5 flex-wrap">
-            <span v-if="s.age" class="text-xs text-neutral-500">{{ s.age }} лет</span>
-            <span v-if="s.groupName" class="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-600 font-medium">{{ s.groupName }}</span>
-            <span v-if="s.teamName" class="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-600 font-medium">{{ s.teamName }}</span>
+        <!-- Аватарка + ФИО -->
+        <div class="flex items-center gap-3 flex-1 min-w-0">
+          <div class="w-10 h-10 rounded-xl bg-neutral-100 flex items-center justify-center flex-shrink-0 text-base font-bold text-neutral-500">
+            {{ initials(s.fio) }}
           </div>
-        </div>
-        <div class="flex flex-col items-end gap-1 flex-shrink-0 min-w-[160px]">
-          <div class="flex flex-col items-end gap-1 w-full">
-            <!-- ГТО -->
-            <div class="w-full">
-              <div class="text-[10px] font-bold text-neutral-600 uppercase tracking-wide mb-0.5">ГТО:</div>
-              <div class="flex items-center gap-1 flex-wrap justify-end">
-                <span v-if="miniStats[s.id]?.excellent"    class="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-semibold whitespace-nowrap">{{ miniStats[s.id].excellent }} отл</span>
-                <span v-if="miniStats[s.id]?.good"         class="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 font-semibold whitespace-nowrap">{{ miniStats[s.id].good }} хор</span>
-                <span v-if="miniStats[s.id]?.satisfactory" class="text-xs px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700 font-semibold whitespace-nowrap">{{ miniStats[s.id].satisfactory }} удовл</span>
-                <span v-if="!miniStats[s.id]?.excellent && !miniStats[s.id]?.good && !miniStats[s.id]?.satisfactory" class="text-xs text-neutral-400">—</span>
-              </div>
-            </div>
-            <!-- Локальные -->
-            <div class="w-full">
-              <div class="text-[10px] font-bold text-neutral-600 uppercase tracking-wide mb-0.5">Локальные:</div>
-              <div class="flex items-center gap-1 flex-wrap justify-end">
-                <span v-if="miniStats[s.id]?.pass" class="text-xs px-2 py-0.5 rounded-full bg-teal-100 text-teal-700 font-semibold whitespace-nowrap">{{ miniStats[s.id].pass }} выпол</span>
-                <span v-else class="text-xs text-neutral-400">—</span>
-              </div>
+          <div class="flex-1 min-w-0">
+            <div class="text-base font-semibold text-neutral-800 truncate">{{ s.fio }}</div>
+            <div class="flex items-center gap-1.5 mt-0.5 flex-wrap">
+              <span v-if="s.age" class="text-xs text-neutral-500">{{ s.age }} лет</span>
+              <span v-if="s.groupName" class="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-600 font-medium">{{ s.groupName }}</span>
+              <span v-if="s.teamName" class="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-600 font-medium">{{ s.teamName }}</span>
             </div>
           </div>
+          <!-- Стрелка справа от ФИО — только на мобиле, на десктопе она в конце карточки -->
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" class="md:hidden w-4 h-4 text-neutral-300 flex-shrink-0">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+          </svg>
         </div>
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" class="w-4 h-4 text-neutral-300 flex-shrink-0">
+
+        <!-- Блок с результатами ГТО/Локальные.
+             На десктопе фиксированной ширины справа; на мобиле — на всю ширину под ФИО, в 2 колонки. -->
+        <div class="grid grid-cols-2 md:grid-cols-1 md:min-w-[160px] md:flex-shrink-0 gap-2 md:gap-1">
+          <div>
+            <div class="text-[10px] font-bold text-neutral-600 uppercase tracking-wide mb-0.5">ГТО:</div>
+            <div class="flex items-center gap-1 flex-wrap md:justify-end">
+              <span v-if="miniStats[s.id]?.excellent"    class="text-[10px] md:text-xs px-1.5 md:px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-semibold whitespace-nowrap">{{ miniStats[s.id].excellent }} отл</span>
+              <span v-if="miniStats[s.id]?.good"         class="text-[10px] md:text-xs px-1.5 md:px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 font-semibold whitespace-nowrap">{{ miniStats[s.id].good }} хор</span>
+              <span v-if="miniStats[s.id]?.satisfactory" class="text-[10px] md:text-xs px-1.5 md:px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700 font-semibold whitespace-nowrap">{{ miniStats[s.id].satisfactory }} удовл</span>
+              <span v-if="!miniStats[s.id]?.excellent && !miniStats[s.id]?.good && !miniStats[s.id]?.satisfactory" class="text-xs text-neutral-400">—</span>
+            </div>
+          </div>
+          <div>
+            <div class="text-[10px] font-bold text-neutral-600 uppercase tracking-wide mb-0.5">Локальные:</div>
+            <div class="flex items-center gap-1 flex-wrap md:justify-end">
+              <span v-if="miniStats[s.id]?.pass" class="text-[10px] md:text-xs px-1.5 md:px-2 py-0.5 rounded-full bg-teal-100 text-teal-700 font-semibold whitespace-nowrap">{{ miniStats[s.id].pass }} выпол</span>
+              <span v-else class="text-xs text-neutral-400">—</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Стрелка справа — только на десктопе -->
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" class="hidden md:block w-4 h-4 text-neutral-300 flex-shrink-0">
           <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
         </svg>
       </div>
@@ -121,10 +131,10 @@
             </button>
           </div>
 
-          <!-- Modal body: two columns -->
+          <!-- Modal body: две колонки на десктопе, стек на мобиле -->
           <div v-if="modalLoading" class="p-6 text-center text-sm text-neutral-400">Загрузка...</div>
           <div v-else class="flex-1 overflow-y-auto p-4">
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
 
               <!-- GTO -->
               <div class="flex flex-col gap-2">
@@ -358,7 +368,7 @@ function calcLocalGrade(result: number, norm: any): string {
   if (!norm) return 'none'
   return norm.isMoreBetter ? (result >= norm.value ? 'pass' : 'fail') : (result <= norm.value ? 'pass' : 'fail')
 }
-function gradeLabel(g: string)       { return ({ excellent: 'Отлично', good: 'Хорошо', satisfactory: 'Удовл.', none: '—' } as any)[g] ?? '—' }
+function gradeLabel(g: string)       { return ({ excellent: 'Отл.', good: 'Хор.', satisfactory: 'Удовл.', none: '—' } as any)[g] ?? '—' }
 function localGradeLabel(g: string)  { return ({ pass: 'Выполнено', fail: 'Не выполнено', none: '—' } as any)[g] ?? '—' }
 function gradeBadge(g: string)       { return ({ excellent: 'bg-green-100 text-green-700', good: 'bg-blue-100 text-blue-700', satisfactory: 'bg-yellow-100 text-yellow-700', none: 'bg-neutral-100 text-neutral-500' } as any)[g] ?? 'bg-neutral-100 text-neutral-500' }
 function gradeBorder(g: string)      { return ({ excellent: 'border-green-200 bg-green-50/40', good: 'border-blue-200 bg-blue-50/40', satisfactory: 'border-yellow-200 bg-yellow-50/40', none: 'border-neutral-200 bg-white' } as any)[g] ?? 'border-neutral-200 bg-white' }

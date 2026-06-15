@@ -1,6 +1,6 @@
 <template>
   <div class="p-3 h-full">
-    <AppCard no-border class="h-full">
+    <AppCard no-border class="h-full overflow-y-auto">
 
       <!-- Заголовок + пагинация периодов -->
       <div class="mb-4 pb-4 border-b border-neutral-100">
@@ -38,7 +38,7 @@
 
       <div v-if="loading" class="text-sm text-neutral-400">Загрузка...</div>
 
-      <div v-else class="grid grid-cols-2 gap-6">
+      <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-6">
 
         <!-- ГТО -->
         <div class="flex flex-col gap-2">
@@ -204,7 +204,7 @@ function calcLocalGrade(result: number, norm: any): string {
   return norm.isMoreBetter ? (result >= norm.value ? 'pass' : 'fail') : (result <= norm.value ? 'pass' : 'fail')
 }
 
-function gradeLabel(g: string)      { return ({ excellent: 'Отлично', good: 'Хорошо', satisfactory: 'Удовл.', none: '—' } as any)[g] ?? '—' }
+function gradeLabel(g: string)      { return ({ excellent: 'Отл.', good: 'Хор.', satisfactory: 'Удовл.', none: '—' } as any)[g] ?? '—' }
 function localGradeLabel(g: string) { return ({ pass: 'Выполнено', fail: 'Не выполнено', none: '—' } as any)[g] ?? '—' }
 function gradeBadge(g: string)      { return ({ excellent: 'bg-green-100 text-green-700', good: 'bg-blue-100 text-blue-700', satisfactory: 'bg-yellow-100 text-yellow-700', none: 'bg-neutral-100 text-neutral-500' } as any)[g] ?? 'bg-neutral-100 text-neutral-500' }
 function gradeBorder(g: string)     { return ({ excellent: 'border-green-200 bg-green-50/40', good: 'border-blue-200 bg-blue-50/40', satisfactory: 'border-yellow-200 bg-yellow-50/40', none: 'border-neutral-200 bg-white' } as any)[g] ?? 'border-neutral-200 bg-white' }
